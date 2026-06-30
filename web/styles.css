@@ -143,6 +143,10 @@ button {
     font-weight: 800;
 }
 
+.update-control {
+    position: relative;
+}
+
 .update-button {
     display: inline-flex;
     align-items: center;
@@ -189,6 +193,119 @@ button {
 .update-button:disabled {
     cursor: wait;
     opacity: .72;
+}
+
+.update-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 20;
+    width: 370px;
+    padding: 16px;
+    color: #eadff0;
+    background: linear-gradient(145deg, #21142d, #130b1c);
+    border: 1px solid #6b4d7d;
+    border-radius: 9px;
+    box-shadow: 0 18px 38px rgba(0, 0, 0, .52);
+}
+
+.update-panel[hidden] {
+    display: none;
+}
+
+.update-panel-heading {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(226, 189, 76, .25);
+}
+
+.update-panel-heading span,
+.update-panel-heading strong {
+    display: block;
+}
+
+.update-panel-heading span {
+    color: #f0ce55;
+    font: 14px/1 "Russo One", sans-serif;
+    text-transform: uppercase;
+}
+
+.update-panel-heading strong {
+    margin-top: 6px;
+    color: #ac9ab8;
+    font: 600 11px/1 "Literata", serif;
+}
+
+.update-panel-heading button {
+    width: 28px;
+    height: 28px;
+    color: #cfbfd7;
+    background: #342441;
+    border: 1px solid #604c6d;
+    border-radius: 50%;
+    cursor: pointer;
+    font: 18px/1 "Russo One", sans-serif;
+}
+
+.update-panel > p {
+    margin: 13px 0 11px;
+    color: #c9bacf;
+    font: 600 12px/1.45 "Literata", serif;
+}
+
+.update-action-button {
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 12px;
+    color: #251721;
+    background: linear-gradient(#f0ce55, #c89c2d);
+    border: 1px solid #f3d86d;
+    border-radius: 5px;
+    cursor: pointer;
+    font: 10px/1.2 "Russo One", sans-serif;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.update-action-button:disabled {
+    color: #93869a;
+    background: #30233a;
+    border-color: #574663;
+    cursor: wait;
+}
+
+.update-notes {
+    margin-top: 15px;
+    padding: 13px 14px;
+    color: #ddd0e2;
+    background: rgba(255, 255, 255, .045);
+    border-left: 3px solid #a72a43;
+    border-radius: 4px;
+}
+
+.update-notes > span {
+    color: #bba9c3;
+    font: 700 9px/1 "Literata", serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.update-notes h3 {
+    margin: 7px 0 9px;
+    color: #f0ce55;
+    font: 13px/1.25 "Russo One", sans-serif;
+}
+
+.update-notes ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 18px;
+    color: #cfc1d4;
+    font: 580 11px/1.4 "Literata", serif;
 }
 
 .library-button {
@@ -671,26 +788,54 @@ button {
     text-transform: uppercase;
 }
 
-.notation-switch button {
-    min-width: 48px;
-    height: 26px;
-    padding: 0 9px;
+.notation-toggle {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 104px;
+    height: 28px;
+    padding: 2px;
+    overflow: hidden;
     color: #705b63;
-    background: transparent;
-    border: 0;
-    border-radius: 13px;
+    background: rgba(68, 45, 62, .09);
+    border: 1px solid rgba(111, 73, 80, .28);
+    border-radius: 14px;
     cursor: pointer;
-    font: 10px/1 "Russo One", sans-serif;
 }
 
-.notation-switch button:hover {
-    color: #8f2337;
-}
-
-.notation-switch button[aria-pressed="true"] {
-    color: #fff8e8;
+.notation-toggle i {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: calc(50% - 2px);
+    height: 22px;
     background: linear-gradient(#a82a42, #701b2d);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25), 0 2px 5px rgba(66, 36, 43, .2);
+    border-radius: 11px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25),
+        0 2px 5px rgba(66, 36, 43, .2);
+    transition: transform .22s ease;
+}
+
+.notation-toggle[aria-checked="true"] i {
+    transform: translateX(100%);
+}
+
+.notation-toggle b {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    color: #705b63;
+    font: 9px/1 "Russo One", sans-serif;
+}
+
+.notation-toggle b:first-of-type,
+.notation-toggle[aria-checked="true"] b:last-of-type {
+    color: #fff8e8;
+}
+
+.notation-toggle[aria-checked="true"] b:first-of-type {
+    color: #705b63;
 }
 
 .page-content {
@@ -1381,9 +1526,8 @@ button {
         display: none;
     }
 
-    .notation-switch button {
-        min-width: 42px;
-        padding-inline: 7px;
+    .notation-toggle {
+        width: 90px;
     }
 
     .unlock-grid {

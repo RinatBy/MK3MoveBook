@@ -64,6 +64,7 @@
         "robot-smoke", "sonya", "stryker", "unmasked-sub-zero"
     ]);
     const moveAnimations = window.MOVEBOOK_ANIMATIONS || {};
+    const changelogEntries = window.MOVEBOOK_CHANGELOG || [];
 
     const state = {
         version: "umk3uk",
@@ -81,6 +82,13 @@
         fighterCount: document.querySelector("#fighterCount"),
         routeBar: document.querySelector("#routeBar"),
         updateButton: document.querySelector("#updateButton"),
+        updatePanel: document.querySelector("#updatePanel"),
+        updatePanelClose: document.querySelector("#updatePanelClose"),
+        updatePanelStatus: document.querySelector("#updatePanelStatus"),
+        updatePanelVersion: document.querySelector("#updatePanelVersion"),
+        updateActionButton: document.querySelector("#updateActionButton"),
+        updateNotesTitle: document.querySelector("#updateNotesTitle"),
+        updateNotesList: document.querySelector("#updateNotesList"),
         secretsButton: document.querySelector("#secretsButton"),
         fighterSeal: document.querySelector(".fighter-seal"),
         heroPortrait: document.querySelector("#heroPortrait"),
@@ -90,6 +98,7 @@
         movePreview: document.querySelector("#movePreview"),
         movePreviewVideo: document.querySelector("#movePreviewVideo"),
         sectionTabs: document.querySelector("#sectionTabs"),
+        notationToggle: document.querySelector("#notationToggle"),
         pageContent: document.querySelector("#pageContent"),
         comboFocus: document.querySelector("#comboFocus"),
         statusText: document.querySelector("#statusText"),
@@ -669,12 +678,14 @@
     }
 
     function updateNotationSwitch() {
-        elements.sectionTabs.querySelectorAll("[data-notation]").forEach(button => {
-            button.setAttribute(
-                "aria-pressed",
-                String(button.dataset.notation === state.notation)
-            );
-        });
+        const segaSelected = state.notation === "sega";
+        elements.notationToggle.setAttribute(
+            "aria-checked",
+            String(segaSelected)
+        );
+        elements.notationToggle.title = segaSelected
+            ? "Сейчас SEGA: переключить на обозначения UMK3"
+            : "Сейчас UMK3: переключить на обозначения SEGA";
     }
 
     function escapeHtml(value) {
@@ -692,6 +703,58 @@
             : null;
     }
 
+    function renderChangelog() {
+        const entry = changelogEntries[0];
+        if (!entry) {
+            elements.updatePanelVersion.textContent = "";
+            elements.updateNotesTitle.textContent = "История изменений пока пуста";
+            elements.updateNotesList.innerHTML = "";
+            return;
+        }
+        elements.updatePanelVersion.textContent =
+            `Версия ${entry.version} · ${entry.date}`;
+        elements.updateNotesTitle.textContent = entry.title;
+        elements.updateNotesList.innerHTML = (entry.items || [])
+            .map(item => `<li>${escapeHtml(item)}</li>`)
+            .join("");
+    }
+
+    function rememberLatestChangelog() {
+        const entry = changelogEntries[0];
+        if (!entry) {
+            return;
+        }
+        try {
+            localStorage.setItem("movebook-changelog-seen", entry.version);
+        } catch {
+            // The panel still works when storage is unavailable.
+        }
+    }
+
+    function setUpdatePanel(open, remember = false) {
+        elements.updatePanel.hidden = !open;
+        elements.updateButton.setAttribute("aria-expanded", String(open));
+        if (!open && remember) {
+            rememberLatestChangelog();
+        }
+    }
+
+    function showNewChangelogOnce() {
+        const entry = changelogEntries[0];
+        if (!entry) {
+            return;
+        }
+        let seenVersion = "";
+        try {
+            seenVersion = localStorage.getItem("movebook-changelog-seen") || "";
+        } catch {
+            // Show the notes when storage is unavailable.
+        }
+        if (seenVersion !== entry.version) {
+            setUpdatePanel(true);
+        }
+    }
+
     function applyUpdateStatus(message) {
         if (!message || message.type !== "movebook-update-status") {
             return;
@@ -699,17 +762,28 @@
         const label = elements.updateButton.querySelector("b");
         elements.updateButton.dataset.state = message.state || "idle";
         elements.updateButton.dataset.action = message.action || "";
-        elements.updateButton.disabled = !message.action;
         label.textContent = message.state === "current"
             ? "Нет обновлений"
             : (message.label || "Обновления");
         elements.updateButton.title = message.details || label.textContent;
+        elements.updatePanelStatus.textContent =
+            message.details || "Состояние обновлений неизвестно.";
+        elements.updateActionButton.dataset.action = message.action || "";
+        elements.updateActionButton.disabled = !message.action;
+        elements.updateActionButton.textContent =
+            message.action === "install"
+                ? "Установить обновление"
+                : (message.action === "check"
+                    ? "Проверить ещё раз"
+                    : (message.label || "Подождите…"));
         if (message.details) {
             elements.statusText.textContent = message.details;
         }
     }
 
     function initializeUpdater() {
+        renderChangelog();
+        showNewChangelogOnce();
         const bridge = updateBridge();
         if (!bridge) {
             applyUpdateStatus({
@@ -761,30 +835,37 @@
     });
 
     elements.updateButton.addEventListener("click", () => {
+        setUpdatePanel(elements.updatePanel.hidden);
+    });
+
+    elements.updatePanelClose.addEventListener("click", () => {
+        setUpdatePanel(false, true);
+    });
+
+    elements.updateActionButton.addEventListener("click", () => {
         const bridge = updateBridge();
         if (!bridge) {
             elements.statusText.textContent =
                 "Проверка обновлений доступна в desktop-приложении";
             return;
         }
-        const action = elements.updateButton.dataset.action === "install"
+        const action = elements.updateActionButton.dataset.action === "install"
             ? "install-update"
             : "check-updates";
         bridge.postMessage(action);
     });
 
-    elements.sectionTabs.addEventListener("click", event => {
-        const notationButton = event.target.closest("[data-notation]");
-        if (notationButton) {
-            state.notation = notationButton.dataset.notation;
-            try {
-                localStorage.setItem("movebook-notation", state.notation);
-            } catch {
-                // The selected notation still works for the current session.
-            }
-            render();
-            return;
+    elements.notationToggle.addEventListener("click", () => {
+        state.notation = state.notation === "umk3" ? "sega" : "umk3";
+        try {
+            localStorage.setItem("movebook-notation", state.notation);
+        } catch {
+            // The selected notation still works for the current session.
         }
+        render();
+    });
+
+    elements.sectionTabs.addEventListener("click", event => {
         const tab = event.target.closest("[data-tab]");
         if (!tab) {
             return;
@@ -827,6 +908,17 @@
 
     elements.backButton.addEventListener("click", () => history.back());
     elements.forwardButton.addEventListener("click", () => history.forward());
+    document.addEventListener("click", event => {
+        if (!elements.updatePanel.hidden &&
+            !event.target.closest(".update-control")) {
+            setUpdatePanel(false, true);
+        }
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !elements.updatePanel.hidden) {
+            setUpdatePanel(false, true);
+        }
+    });
     window.addEventListener("hashchange", () => {
         readRoute();
         render();
