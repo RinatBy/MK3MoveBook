@@ -700,7 +700,9 @@
         elements.updateButton.dataset.state = message.state || "idle";
         elements.updateButton.dataset.action = message.action || "";
         elements.updateButton.disabled = !message.action;
-        label.textContent = message.label || "Обновления";
+        label.textContent = message.state === "current"
+            ? "Нет обновлений"
+            : (message.label || "Обновления");
         elements.updateButton.title = message.details || label.textContent;
         if (message.details) {
             elements.statusText.textContent = message.details;
