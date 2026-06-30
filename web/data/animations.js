@@ -1,0 +1,23 @@
+window.MOVEBOOK_ANIMATIONS = {
+  "kabal|special moves|dash": "assets/moves/kabal/special/01-dash.webm",
+  "kabal|special moves|eye spark (also in air)": "assets/moves/kabal/special/02-eye-spark-also-in-air.webm",
+  "kabal|special moves|ground saw": "assets/moves/kabal/special/03-ground-saw.webm",
+  "kabal|autokombos|(13%)|hp,hp,_2_+hp(juggle)": "assets/moves/kabal/autokombos/01-13-percent.webm",
+  "kabal|autokombos|(18%)|[lk/hk],lk,_4_+hk": "assets/moves/kabal/autokombos/02-18-percent.webm",
+  "kabal|autokombos|(17%)|hp,hp,_2_+lp,_2_+hp": "assets/moves/kabal/autokombos/03-17-percent.webm",
+  "kabal|autokombos|(19%)|hp,hp,hk,_4_+hk": "assets/moves/kabal/autokombos/04-19-percent.webm",
+  "kabal|autokombos|(24%)|[lk/hk],lk,hk,_4_+hk": "assets/moves/kabal/autokombos/05-24-percent.webm",
+  "kabal|autokombos|(15%)|[lk/hk],lk,hp,hp,_2_+hp(juggle)": "assets/moves/kabal/autokombos/06-15-percent.webm",
+  "kabal|autokombos|(17%)|[lk/hk],lk,hp,hp,_2_+lp,_2_+hp": "assets/moves/kabal/autokombos/07-17-percent.webm",
+  "kabal|autokombos|(18%)|[lk/hk],lk,hp,hp,hk,_4_+hk": "assets/moves/kabal/autokombos/08-18-percent.webm",
+  "kabal|finishing moves|fatality 1 (sweep)": "assets/moves/kabal/finishing/01-fatality-1-sweep.webm",
+  "kabal|finishing moves|fatality 2 (close)": "assets/moves/kabal/finishing/02-fatality-2-close.webm",
+  "kabal|finishing moves|friendship (sweep)": "assets/moves/kabal/finishing/04-friendship-sweep.webm",
+  "kabal|finishing moves|babality": "assets/moves/kabal/finishing/05-babality.webm",
+  "kabal|finishing moves|brutality": "assets/moves/kabal/finishing/07-brutality.webm",
+  "kitana|special moves|fan lift": "assets/moves/kitana/special/01-fan-lift.webm",
+  "kitana|special moves|fan throw (also in air)": "assets/moves/kitana/special/02-fan-throw-also-in-air.webm",
+  "kitana|special moves|square wave": "assets/moves/kitana/special/03-square-wave.webm",
+  "kitana|autokombos|(23%)": "assets/moves/kitana/autokombos/01-23-percent.webm",
+  "kitana|autokombos|(25%)": "assets/moves/kitana/autokombos/02-25-percent.webm"
+};

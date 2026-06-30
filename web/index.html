@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#140c1d">
+    <title>MK3 MoveBook</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand-mark" aria-hidden="true"></div>
+            <div class="brand-copy">
+                <strong>MK3 MOVEBOOK</strong>
+                <span>интерактивная книга бойца</span>
+            </div>
+
+            <nav class="history-controls" aria-label="Навигация">
+                <button id="backButton" class="chrome-button" type="button" title="Назад">←</button>
+                <button id="forwardButton" class="chrome-button" type="button" title="Вперёд">→</button>
+            </nav>
+
+            <div id="routeBar" class="route-bar" aria-label="Текущая страница"></div>
+
+            <button id="updateButton" class="update-button" type="button"
+                data-state="idle" title="Проверить обновления">
+                <span aria-hidden="true">↻</span>
+                <b>Обновления</b>
+            </button>
+
+            <button id="secretsButton" class="library-button" type="button">
+                Секреты и коды
+            </button>
+
+            <label class="version-picker">
+                <select id="versionSelect"></select>
+            </label>
+        </header>
+
+        <div class="workspace">
+            <aside class="roster-panel">
+                <div class="roster-heading">
+                    <p>Выберите бойца</p>
+                    <strong id="fighterCount"></strong>
+                </div>
+                <label class="search-box">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="searchInput" type="search" placeholder="Персонаж или приём">
+                </label>
+                <div id="rosterList" class="roster-list" role="listbox"></div>
+            </aside>
+
+            <main class="reader">
+                <div class="reader-backdrop" aria-hidden="true"></div>
+                <article class="book" aria-label="Книга приёмов">
+                    <section class="book-page book-page-left">
+                        <div class="page-corner page-corner-left" aria-hidden="true"></div>
+                        <div class="fighter-seal">
+                            <img id="heroPortrait" alt="">
+                        </div>
+                        <p class="edition-label">ULTIMATE KOMBAT DOSSIER</p>
+                        <h1 id="fighterTitle"></h1>
+                        <div class="ornament" aria-hidden="true"><span>◆</span></div>
+                        <p id="fighterSubtitle" class="fighter-subtitle"></p>
+
+                        <div class="contents-title">Содержание</div>
+                        <nav id="categoryNav" class="category-nav"></nav>
+
+                        <section id="movePreview" class="move-preview" hidden>
+                            <video id="movePreviewVideo" muted loop playsinline
+                                preload="metadata"></video>
+                        </section>
+
+                        <div class="book-note">
+                            <span id="bookNoteLabel">Источник комбинаций</span>
+                            <strong id="bookNoteValue">command.dat</strong>
+                        </div>
+                        <div class="page-number" id="leftPageNumber"></div>
+                    </section>
+
+                    <div class="book-gutter" aria-hidden="true"></div>
+
+                    <section class="book-page book-page-right">
+                        <div class="page-corner page-corner-right" aria-hidden="true"></div>
+                        <nav id="sectionTabs" class="section-tabs" aria-label="Разделы персонажа">
+                            <button type="button" data-tab="moves">Приёмы</button>
+                            <button type="button" data-tab="history">История</button>
+                            <button type="button" data-tab="facts">Факты</button>
+                            <div class="notation-switch" role="group" aria-label="Обозначения кнопок">
+                                <span>Кнопки</span>
+                                <button type="button" data-notation="umk3"
+                                    title="HP, LP, HK, LK, BL, RUN">UMK3</button>
+                                <button type="button" data-notation="sega"
+                                    title="X, A, Z, C, B, Y">SEGA</button>
+                            </div>
+                        </nav>
+
+                        <div id="pageContent" class="page-content"></div>
+                        <div id="comboFocus" class="combo-focus" hidden></div>
+                        <div class="page-number" id="rightPageNumber"></div>
+                    </section>
+                </article>
+            </main>
+        </div>
+
+        <footer class="statusbar">
+            <span><i class="status-dot"></i> Автономный справочник</span>
+            <span id="statusText">Готово</span>
+        </footer>
+    </div>
+
+    <script src="data/moves.js"></script>
+    <script src="data/lore.js"></script>
+    <script src="data/animations.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

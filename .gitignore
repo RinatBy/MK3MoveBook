@@ -1,0 +1,11 @@
+settings.ini
+backups/
+desktop/build/
+desktop/package/
+desktop/release/
+desktop/vendor/
+tools/ocr_work/
+tools/video_temp/
+tools/ocr_*.exe
+tools/ocr_*.png
+web/assets/moves/
