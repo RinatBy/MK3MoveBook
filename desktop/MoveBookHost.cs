@@ -150,6 +150,357 @@ namespace MK3MoveBook
         public string Sha256 { get; set; }
     }
 
+    internal sealed class LoadingView : Control
+    {
+        private readonly System.Windows.Forms.Timer animationTimer;
+        private readonly Stopwatch animationClock;
+        private readonly Image logo;
+        private readonly Font statusFont;
+
+        private string statusText;
+        private float displayedProgress;
+        private float targetProgress;
+        private double lastTickAt;
+
+        public LoadingView(string logoPath)
+        {
+            BackColor = Color.FromArgb(18, 10, 28);
+            Dock = DockStyle.Fill;
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw |
+                ControlStyles.UserPaint,
+                true
+            );
+
+            if (File.Exists(logoPath))
+            {
+                logo = Image.FromFile(logoPath);
+            }
+
+            statusFont = new Font(
+                "Segoe UI",
+                12.5F,
+                FontStyle.Regular,
+                GraphicsUnit.Point
+            );
+            statusText = "Открываем книгу приёмов";
+            displayedProgress = 0.0F;
+            targetProgress = 0.08F;
+
+            animationClock = new Stopwatch();
+            animationTimer = new System.Windows.Forms.Timer();
+            animationTimer.Interval = 33;
+            animationTimer.Tick += OnAnimationTick;
+            StartLoading(0.08F, statusText);
+        }
+
+        public void StartLoading(float initialProgress, string text)
+        {
+            displayedProgress = 0.0F;
+            targetProgress = ClampProgress(initialProgress);
+            SetStatusText(text);
+            animationClock.Restart();
+            lastTickAt = 0.0;
+            animationTimer.Start();
+            Visible = true;
+            Invalidate();
+        }
+
+        public void SetProgress(float progress, string text)
+        {
+            targetProgress = Math.Max(
+                targetProgress,
+                ClampProgress(progress)
+            );
+            SetStatusText(text);
+            animationTimer.Start();
+            Invalidate();
+        }
+
+        public void Complete()
+        {
+            targetProgress = 1.0F;
+            displayedProgress = 1.0F;
+            Invalidate();
+            Update();
+        }
+
+        public void StopAnimation()
+        {
+            animationTimer.Stop();
+        }
+
+        protected override void OnPaint(PaintEventArgs eventArgs)
+        {
+            base.OnPaint(eventArgs);
+
+            Graphics graphics = eventArgs.Graphics;
+            graphics.Clear(BackColor);
+            graphics.SmoothingMode =
+                System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            graphics.InterpolationMode =
+                System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode =
+                System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+
+            double seconds = animationClock.Elapsed.TotalSeconds;
+            int availableSize = Math.Min(ClientSize.Width, ClientSize.Height);
+            int logoSize = Math.Max(
+                132,
+                Math.Min(210, (int)(availableSize * 0.24))
+            );
+            int contentHeight = logoSize + 86;
+            int logoLeft = (ClientSize.Width - logoSize) / 2;
+            int logoTop = Math.Max(
+                24,
+                (ClientSize.Height - contentHeight) / 2 - 12
+            );
+            Rectangle logoBounds = new Rectangle(
+                logoLeft,
+                logoTop,
+                logoSize,
+                logoSize
+            );
+
+            using (SolidBrush shadowBrush = new SolidBrush(
+                Color.FromArgb(
+                    85,
+                    0,
+                    0,
+                    0
+                )
+            ))
+            {
+                graphics.FillEllipse(
+                    shadowBrush,
+                    logoLeft + logoSize / 8,
+                    logoTop + logoSize - logoSize / 18,
+                    logoSize * 3 / 4,
+                    Math.Max(8, logoSize / 7)
+                );
+            }
+
+            if (logo != null)
+            {
+                DrawGrayscaleImage(
+                    graphics,
+                    logo,
+                    logoBounds
+                );
+
+                if (displayedProgress > 0.001F)
+                {
+                    float waterTop = logoBounds.Bottom -
+                        logoBounds.Height * displayedProgress;
+                    float waveAmplitude = Math.Max(
+                        2.0F,
+                        Math.Min(6.0F, logoSize * 0.025F)
+                    );
+                    const int waveSegments = 36;
+                    PointF[] wavePoints =
+                        new PointF[waveSegments + 1];
+                    List<PointF> fillPoints = new List<PointF>();
+
+                    for (
+                        int index = 0;
+                        index <= waveSegments;
+                        index++
+                    )
+                    {
+                        float ratio =
+                            (float)index / waveSegments;
+                        float x = logoBounds.Left +
+                            logoBounds.Width * ratio;
+                        float y = waterTop +
+                            (float)Math.Sin(
+                                seconds * 3.4 +
+                                ratio * Math.PI * 3.0
+                            ) * waveAmplitude;
+                        y = Math.Max(
+                            logoBounds.Top,
+                            Math.Min(logoBounds.Bottom, y)
+                        );
+                        wavePoints[index] = new PointF(x, y);
+                        fillPoints.Add(wavePoints[index]);
+                    }
+
+                    fillPoints.Add(
+                        new PointF(
+                            logoBounds.Right,
+                            logoBounds.Bottom
+                        )
+                    );
+                    fillPoints.Add(
+                        new PointF(
+                            logoBounds.Left,
+                            logoBounds.Bottom
+                        )
+                    );
+
+                    using (
+                        System.Drawing.Drawing2D.GraphicsPath fillPath =
+                            new System.Drawing.Drawing2D.GraphicsPath()
+                    )
+                    {
+                        fillPath.AddPolygon(fillPoints.ToArray());
+                        System.Drawing.Drawing2D.GraphicsState state =
+                            graphics.Save();
+                        graphics.SetClip(
+                            fillPath,
+                            System.Drawing.Drawing2D.CombineMode.Intersect
+                        );
+                        graphics.DrawImage(logo, logoBounds);
+                        graphics.Restore(state);
+                    }
+
+                    if (
+                        displayedProgress > 0.03F &&
+                        displayedProgress < 0.98F
+                    )
+                    {
+                        int lineInset = Math.Max(
+                            1,
+                            (int)(waveSegments * 0.125F)
+                        );
+                        int linePointCount =
+                            wavePoints.Length - lineInset * 2;
+                        PointF[] visibleWavePoints =
+                            new PointF[linePointCount];
+                        Array.Copy(
+                            wavePoints,
+                            lineInset,
+                            visibleWavePoints,
+                            0,
+                            linePointCount
+                        );
+
+                        using (
+                            System.Drawing.Drawing2D.GraphicsPath wavePath =
+                                new System.Drawing.Drawing2D.GraphicsPath()
+                        )
+                        using (Pen glowPen = new Pen(
+                            Color.FromArgb(145, 244, 197, 83),
+                            2.0F
+                        ))
+                        {
+                            glowPen.StartCap =
+                                System.Drawing.Drawing2D.LineCap.Round;
+                            glowPen.EndCap =
+                                System.Drawing.Drawing2D.LineCap.Round;
+                            wavePath.AddLines(visibleWavePoints);
+                            graphics.DrawPath(glowPen, wavePath);
+                        }
+                    }
+                }
+            }
+
+            SizeF textSize = graphics.MeasureString(statusText, statusFont);
+            float textLeft = (ClientSize.Width - textSize.Width) / 2.0F;
+            float textTop = logoTop + logoSize + 24.0F;
+            using (SolidBrush textBrush = new SolidBrush(
+                Color.FromArgb(238, 237, 226, 211)
+            ))
+            {
+                graphics.DrawString(
+                    statusText,
+                    statusFont,
+                    textBrush,
+                    textLeft,
+                    textTop
+                );
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                animationTimer.Stop();
+                animationTimer.Dispose();
+                animationClock.Stop();
+                statusFont.Dispose();
+                if (logo != null)
+                {
+                    logo.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }
+
+        private void OnAnimationTick(object sender, EventArgs eventArgs)
+        {
+            double now = animationClock.Elapsed.TotalSeconds;
+            double elapsed = Math.Max(0.0, now - lastTickAt);
+            lastTickAt = now;
+
+            if (displayedProgress < targetProgress)
+            {
+                float remaining =
+                    targetProgress - displayedProgress;
+                float smoothStep = remaining *
+                    (float)Math.Min(1.0, elapsed * 1.35);
+                float minimumStep = (float)(elapsed * 0.012);
+                displayedProgress = Math.Min(
+                    targetProgress,
+                    displayedProgress +
+                    Math.Max(smoothStep, minimumStep)
+                );
+            }
+
+            Invalidate();
+        }
+
+        private void SetStatusText(string text)
+        {
+            statusText = string.IsNullOrWhiteSpace(text)
+                ? "Открываем книгу приёмов"
+                : text.Trim();
+        }
+
+        private static float ClampProgress(float progress)
+        {
+            return Math.Max(0.0F, Math.Min(1.0F, progress));
+        }
+
+        private static void DrawGrayscaleImage(
+            Graphics graphics,
+            Image image,
+            Rectangle bounds
+        )
+        {
+            float[][] values = new float[][]
+            {
+                new float[] { 0.299F, 0.299F, 0.299F, 0.0F, 0.0F },
+                new float[] { 0.587F, 0.587F, 0.587F, 0.0F, 0.0F },
+                new float[] { 0.114F, 0.114F, 0.114F, 0.0F, 0.0F },
+                new float[] { 0.0F, 0.0F, 0.0F, 0.64F, 0.0F },
+                new float[] { 0.0F, 0.0F, 0.0F, 0.0F, 1.0F }
+            };
+            System.Drawing.Imaging.ColorMatrix matrix =
+                new System.Drawing.Imaging.ColorMatrix(values);
+
+            using (
+                System.Drawing.Imaging.ImageAttributes attributes =
+                    new System.Drawing.Imaging.ImageAttributes()
+            )
+            {
+                attributes.SetColorMatrix(matrix);
+                graphics.DrawImage(
+                    image,
+                    bounds,
+                    0,
+                    0,
+                    image.Width,
+                    image.Height,
+                    GraphicsUnit.Pixel,
+                    attributes
+                );
+            }
+        }
+    }
+
     internal sealed class MoveBookWindow : Form
     {
         private const string AppHost = "appassets.example";
@@ -158,8 +509,7 @@ namespace MK3MoveBook
             "update-manifest.json";
 
         private readonly WebView2 browser;
-        private readonly Panel loadingPanel;
-        private readonly Label loadingLabel;
+        private readonly LoadingView loadingView;
         private readonly JavaScriptSerializer jsonSerializer;
         private readonly string localDataDirectory;
         private readonly string bundledWebDirectory;
@@ -212,22 +562,17 @@ namespace MK3MoveBook
             );
             browser.Dock = DockStyle.Fill;
             browser.BackColor = BackColor;
+            browser.Visible = false;
             Controls.Add(browser);
 
-            loadingLabel = new Label();
-            loadingLabel.AutoSize = true;
-            loadingLabel.Font = new Font("Segoe UI", 13.0F, FontStyle.Regular);
-            loadingLabel.ForeColor = Color.FromArgb(237, 226, 211);
-            loadingLabel.BackColor = Color.Transparent;
-            loadingLabel.Text = "Открываем книгу приёмов…";
-
-            loadingPanel = new Panel();
-            loadingPanel.Dock = DockStyle.Fill;
-            loadingPanel.BackColor = BackColor;
-            loadingPanel.Controls.Add(loadingLabel);
-            loadingPanel.Resize += CenterLoadingLabel;
-            Controls.Add(loadingPanel);
-            loadingPanel.BringToFront();
+            string loadingLogoPath = Path.Combine(
+                bundledWebDirectory,
+                "assets",
+                "movebook-loading.png"
+            );
+            loadingView = new LoadingView(loadingLogoPath);
+            Controls.Add(loadingView);
+            loadingView.BringToFront();
 
             Shown += OnWindowShown;
         }
@@ -324,22 +669,13 @@ namespace MK3MoveBook
             return leftVersion.CompareTo(rightVersion);
         }
 
-        private void CenterLoadingLabel(object sender, EventArgs eventArgs)
-        {
-            loadingLabel.Left = Math.Max(
-                16,
-                (loadingPanel.ClientSize.Width - loadingLabel.Width) / 2
-            );
-            loadingLabel.Top = Math.Max(
-                16,
-                (loadingPanel.ClientSize.Height - loadingLabel.Height) / 2
-            );
-        }
-
         private async void OnWindowShown(object sender, EventArgs eventArgs)
         {
             Shown -= OnWindowShown;
-            CenterLoadingLabel(this, EventArgs.Empty);
+            loadingView.StartLoading(
+                0.12F,
+                "Проверяем файлы книги"
+            );
             string initializationStage = "проверка файлов";
 
             try
@@ -354,9 +690,17 @@ namespace MK3MoveBook
                 }
 
                 initializationStage = "создание окна WebView2";
+                loadingView.SetProgress(
+                    0.72F,
+                    "Запускаем книжный движок"
+                );
                 await browser.EnsureCoreWebView2Async(null);
 
                 initializationStage = "подключение локальных страниц";
+                loadingView.SetProgress(
+                    0.82F,
+                    "Подготавливаем страницы"
+                );
                 MapCurrentWebDirectory();
 
                 initializationStage = "настройка окна";
@@ -373,14 +717,15 @@ namespace MK3MoveBook
                 browser.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 
                 initializationStage = "открытие книги";
-                loadingPanel.Visible = false;
-                browser.Visible = true;
-                browser.BringToFront();
+                loadingView.SetProgress(
+                    0.94F,
+                    "Открываем книгу приёмов"
+                );
                 NavigateToBook();
             }
             catch (Exception exception)
             {
-                loadingPanel.Visible = false;
+                loadingView.Visible = false;
                 MessageBox.Show(
                     this,
                     "Не удалось открыть MK3 MoveBook.\n\n" +
@@ -438,7 +783,11 @@ namespace MK3MoveBook
         {
             if (eventArgs.IsSuccess)
             {
-                loadingPanel.Visible = false;
+                loadingView.Complete();
+                loadingView.StopAnimation();
+                loadingView.Visible = false;
+                browser.Visible = true;
+                browser.BringToFront();
                 browser.Focus();
                 return;
             }
@@ -460,22 +809,28 @@ namespace MK3MoveBook
                 usingDownloadedContent = false;
                 currentWebDirectory = bundledWebDirectory;
                 currentContentVersion = ReadContentVersion(bundledWebDirectory);
-                loadingLabel.Text =
-                    "Обновление не загрузилось. Возвращаем встроенную версию…";
-                loadingPanel.Visible = true;
-                loadingPanel.BringToFront();
-                CenterLoadingLabel(this, EventArgs.Empty);
+                browser.Visible = false;
+                loadingView.StartLoading(
+                    0.68F,
+                    "Обновление не загрузилось. Возвращаем встроенную версию…"
+                );
+                loadingView.SetProgress(
+                    0.94F,
+                    "Открываем встроенную версию книги"
+                );
+                loadingView.BringToFront();
                 MapCurrentWebDirectory();
                 NavigateToBook();
                 return;
             }
 
-            loadingLabel.Text =
+            browser.Visible = false;
+            loadingView.SetProgress(
+                0.94F,
                 "Не удалось загрузить страницы книги. Код: " +
-                eventArgs.WebErrorStatus + ".";
-            loadingPanel.Visible = true;
-            loadingPanel.BringToFront();
-            CenterLoadingLabel(this, EventArgs.Empty);
+                eventArgs.WebErrorStatus + "."
+            );
+            loadingView.BringToFront();
         }
 
         private void OnBrowserProcessFailed(
@@ -483,11 +838,12 @@ namespace MK3MoveBook
             CoreWebView2ProcessFailedEventArgs eventArgs
         )
         {
-            loadingLabel.Text =
-                "Веб-движок завершил работу. Перезапустите MK3 MoveBook.";
-            loadingPanel.Visible = true;
-            loadingPanel.BringToFront();
-            CenterLoadingLabel(this, EventArgs.Empty);
+            browser.Visible = false;
+            loadingView.StartLoading(
+                0.18F,
+                "Веб-движок завершил работу. Перезапустите MK3 MoveBook."
+            );
+            loadingView.BringToFront();
         }
 
         private async void OnWebMessageReceived(
