@@ -18,7 +18,7 @@ $webLauncherSource = Join-Path $desktopDirectory "MoveBookWebLauncher.cs"
 $icon = Join-Path $sourceDirectory "web\assets\icon.ico"
 $webIcon = Join-Path $sourceDirectory "web\assets\iconweb.ico"
 $executable = Join-Path $OutputDirectory "MK3 MoveBook.exe"
-$webLauncherExecutable = Join-Path $OutputDirectory "Web MK3 MoveBook.exe"
+$webLauncherExecutable = Join-Path $OutputDirectory "Web MK3 MBook.exe"
 
 $requiredFiles = @(
     $compiler,
