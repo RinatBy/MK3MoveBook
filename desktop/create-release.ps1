@@ -48,6 +48,7 @@ if ($LASTEXITCODE -ne 0) {
 
 $runtimeFiles = @(
     "MK3 MoveBook.exe",
+    "MK3 MoveBook Web.exe",
     "Microsoft.Web.WebView2.Core.dll",
     "Microsoft.Web.WebView2.WinForms.dll",
     "WebView2Loader.dll",

@@ -65,6 +65,8 @@
     ]);
     const moveAnimations = window.MOVEBOOK_ANIMATIONS || {};
     const changelogEntries = window.MOVEBOOK_CHANGELOG || [];
+    const latestReleaseUrl =
+        "https://github.com/RinatBy/MK3MoveBook/releases/latest";
 
     const state = {
         version: "umk3uk",
@@ -771,12 +773,15 @@
             message.details || "Состояние обновлений неизвестно.";
         elements.updateActionButton.dataset.action = message.action || "";
         elements.updateActionButton.disabled = !message.action;
-        elements.updateActionButton.textContent =
-            message.action === "install"
-                ? "Установить обновление"
-                : (message.action === "check"
-                    ? "Проверить ещё раз"
-                    : (message.label || "Подождите…"));
+        let actionLabel = message.label || "Подождите…";
+        if (message.action === "install") {
+            actionLabel = "Установить обновление";
+        } else if (message.action === "download") {
+            actionLabel = "Скачать последнюю версию";
+        } else if (message.action === "check") {
+            actionLabel = "Проверить ещё раз";
+        }
+        elements.updateActionButton.textContent = actionLabel;
         if (message.details) {
             elements.statusText.textContent = message.details;
         }
@@ -790,9 +795,10 @@
             applyUpdateStatus({
                 type: "movebook-update-status",
                 state: "idle",
-                action: "",
+                action: "download",
                 label: "Обновления",
-                details: "Проверка обновлений доступна в desktop-приложении"
+                details:
+                    "Обновления веб-версии устанавливаются вручную."
             });
             return;
         }
@@ -840,8 +846,13 @@
     elements.updateActionButton.addEventListener("click", () => {
         const bridge = updateBridge();
         if (!bridge) {
+            window.open(
+                latestReleaseUrl,
+                "_blank",
+                "noopener,noreferrer"
+            );
             elements.statusText.textContent =
-                "Проверка обновлений доступна в desktop-приложении";
+                "Открыта страница последней версии";
             return;
         }
         const action = elements.updateActionButton.dataset.action === "install"

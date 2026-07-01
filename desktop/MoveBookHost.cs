@@ -53,6 +53,11 @@ namespace MK3MoveBook
             );
             if (answer != DialogResult.Yes)
             {
+                BrowserFallback.Offer(
+                    "WebView2 Runtime не установлен.",
+                    "MK3 MoveBook",
+                    MessageBoxIcon.Information
+                );
                 return false;
             }
 
@@ -62,12 +67,11 @@ namespace MK3MoveBook
             );
             if (!File.Exists(bootstrapperPath))
             {
-                MessageBox.Show(
+                BrowserFallback.Offer(
                     "Не найден установщик " + BootstrapperFileName + ".\n\n" +
                     "Скачайте полный архив MK3 MoveBook заново и не " +
                     "переносите отдельный EXE из папки программы.",
                     "Не найден установщик WebView2",
-                    MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
                 return false;
@@ -101,23 +105,21 @@ namespace MK3MoveBook
                     Thread.Sleep(500);
                 }
 
-                MessageBox.Show(
+                BrowserFallback.Offer(
                     "WebView2 Runtime не был установлен.\n\n" +
                     "Запустите " + BootstrapperFileName +
                     " вручную из папки программы и затем снова откройте книгу.",
                     "Установка WebView2 не завершена",
-                    MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
                 );
                 return false;
             }
             catch (Exception exception)
             {
-                MessageBox.Show(
+                BrowserFallback.Offer(
                     "Не удалось установить WebView2 Runtime.\n\n" +
                     exception.Message,
                     "Ошибка установки WebView2",
-                    MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
                 return false;
@@ -140,6 +142,109 @@ namespace MK3MoveBook
             {
                 return false;
             }
+        }
+    }
+
+    internal static class BrowserFallback
+    {
+        public static void Offer(
+            string message,
+            string title,
+            MessageBoxIcon icon
+        )
+        {
+            Offer(null, message, title, icon);
+        }
+
+        public static void Offer(
+            IWin32Window owner,
+            string message,
+            string title,
+            MessageBoxIcon icon
+        )
+        {
+            string prompt =
+                message + "\n\nОткрыть веб-версию книги в браузере?";
+            DialogResult answer = owner == null
+                ? MessageBox.Show(
+                    prompt,
+                    title,
+                    MessageBoxButtons.YesNo,
+                    icon
+                )
+                : MessageBox.Show(
+                    owner,
+                    prompt,
+                    title,
+                    MessageBoxButtons.YesNo,
+                    icon
+                );
+
+            if (answer == DialogResult.Yes)
+            {
+                Open(owner);
+            }
+        }
+
+        public static bool Open(IWin32Window owner)
+        {
+            string webDirectory = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                "web"
+            );
+            string indexPath = Path.Combine(webDirectory, "index.html");
+            if (!File.Exists(indexPath))
+            {
+                ShowError(
+                    owner,
+                    "Не найден файл веб-версии:\n" + indexPath
+                );
+                return false;
+            }
+
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.FileName = indexPath;
+                startInfo.WorkingDirectory = webDirectory;
+                startInfo.UseShellExecute = true;
+                Process.Start(startInfo);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                ShowError(
+                    owner,
+                    "Не удалось открыть веб-версию.\n\n" +
+                    exception.Message
+                );
+                return false;
+            }
+        }
+
+        private static void ShowError(
+            IWin32Window owner,
+            string message
+        )
+        {
+            if (owner == null)
+            {
+                MessageBox.Show(
+                    message,
+                    "MK3 MoveBook",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return;
+            }
+
+            MessageBox.Show(
+                owner,
+                message,
+                "MK3 MoveBook",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
         }
     }
 
@@ -726,14 +831,13 @@ namespace MK3MoveBook
             catch (Exception exception)
             {
                 loadingView.Visible = false;
-                MessageBox.Show(
+                BrowserFallback.Offer(
                     this,
                     "Не удалось открыть MK3 MoveBook.\n\n" +
                     "Этап: " + initializationStage + ".\n" +
                     exception.Message +
                     "\n\nУбедитесь, что Microsoft Edge WebView2 Runtime установлен в Windows.",
                     "MK3 MoveBook",
-                    MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
                 Close();

@@ -14,8 +14,11 @@ $formsAssembly = Join-Path $webViewDirectory "lib\net462\Microsoft.Web.WebView2.
 $loader = Join-Path $webViewDirectory "runtimes\win-x64\native\WebView2Loader.dll"
 $bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
+$webLauncherSource = Join-Path $desktopDirectory "MoveBookWebLauncher.cs"
 $icon = Join-Path $sourceDirectory "web\assets\icon.ico"
+$webIcon = Join-Path $sourceDirectory "web\assets\iconweb.ico"
 $executable = Join-Path $OutputDirectory "MK3 MoveBook.exe"
+$webLauncherExecutable = Join-Path $OutputDirectory "MK3 MoveBook Web.exe"
 
 $requiredFiles = @(
     $compiler,
@@ -24,7 +27,9 @@ $requiredFiles = @(
     $loader,
     $bootstrapper,
     $source,
-    $icon
+    $webLauncherSource,
+    $icon,
+    $webIcon
 )
 foreach ($file in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $file)) {
@@ -55,9 +60,25 @@ if ($LASTEXITCODE -ne 0) {
     throw "Компилятор завершился с кодом $LASTEXITCODE"
 }
 
+& $compiler `
+    /nologo `
+    /target:winexe `
+    /platform:anycpu `
+    /optimize+ `
+    "/win32icon:$webIcon" `
+    "/out:$webLauncherExecutable" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Windows.Forms.dll')" `
+    $webLauncherSource
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Компилятор веб-запуска завершился с кодом $LASTEXITCODE"
+}
+
 Copy-Item -LiteralPath $coreAssembly -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $formsAssembly -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $loader -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $bootstrapper -Destination $OutputDirectory -Force
 
 Write-Host "Готово: $executable"
+Write-Host "Готово: $webLauncherExecutable"
