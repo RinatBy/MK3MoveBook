@@ -63,7 +63,7 @@ button {
 
 .topbar {
     display: grid;
-    grid-template-columns: 54px 230px auto minmax(180px, 1fr) auto auto 136px;
+    grid-template-columns: 54px 230px auto minmax(220px, 1fr) auto 136px;
     align-items: center;
     gap: 12px;
     padding: 8px 18px;
@@ -306,28 +306,6 @@ button {
     padding-left: 18px;
     color: #cfc1d4;
     font: 580 11px/1.4 "Literata", serif;
-}
-
-.library-button {
-    height: 40px;
-    padding: 0 13px;
-    color: #d7c4df;
-    background: #30203e;
-    border: 1px solid #604671;
-    border-radius: 6px;
-    cursor: pointer;
-    font: 11px/1 "Russo One", sans-serif;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.library-button:hover,
-.library-button[aria-selected="true"] {
-    color: #241521;
-    background: linear-gradient(#f0ce55, #c89c2d);
-    border-color: #f3d86d;
-    box-shadow: 0 0 16px rgba(226, 189, 76, .2);
 }
 
 .version-picker {
@@ -1489,7 +1467,7 @@ button {
     }
 
     .topbar {
-        grid-template-columns: 46px 175px auto minmax(100px, 1fr) auto auto 128px;
+        grid-template-columns: 46px 175px auto minmax(140px, 1fr) auto 128px;
         gap: 8px;
         padding-inline: 12px;
     }
@@ -1505,11 +1483,6 @@ button {
 
     .book {
         grid-template-columns: 215px 18px minmax(0, 1fr);
-    }
-
-    .library-button {
-        padding-inline: 9px;
-        font-size: 9px;
     }
 
     .move-card {

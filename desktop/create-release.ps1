@@ -50,7 +50,8 @@ $runtimeFiles = @(
     "MK3 MoveBook.exe",
     "Microsoft.Web.WebView2.Core.dll",
     "Microsoft.Web.WebView2.WinForms.dll",
-    "WebView2Loader.dll"
+    "WebView2Loader.dll",
+    "MicrosoftEdgeWebview2Setup.exe"
 )
 foreach ($fileName in $runtimeFiles) {
     Copy-Item -LiteralPath (Join-Path $buildDirectory $fileName) `

@@ -12,11 +12,20 @@ $compiler = Join-Path $frameworkDirectory "csc.exe"
 $coreAssembly = Join-Path $webViewDirectory "lib\net462\Microsoft.Web.WebView2.Core.dll"
 $formsAssembly = Join-Path $webViewDirectory "lib\net462\Microsoft.Web.WebView2.WinForms.dll"
 $loader = Join-Path $webViewDirectory "runtimes\win-x64\native\WebView2Loader.dll"
+$bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
 $icon = Join-Path $sourceDirectory "web\assets\icon.ico"
 $executable = Join-Path $OutputDirectory "MK3 MoveBook.exe"
 
-$requiredFiles = @($compiler, $coreAssembly, $formsAssembly, $loader, $source, $icon)
+$requiredFiles = @(
+    $compiler,
+    $coreAssembly,
+    $formsAssembly,
+    $loader,
+    $bootstrapper,
+    $source,
+    $icon
+)
 foreach ($file in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $file)) {
         throw "Не найден обязательный файл: $file"
@@ -49,5 +58,6 @@ if ($LASTEXITCODE -ne 0) {
 Copy-Item -LiteralPath $coreAssembly -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $formsAssembly -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $loader -Destination $OutputDirectory -Force
+Copy-Item -LiteralPath $bootstrapper -Destination $OutputDirectory -Force
 
 Write-Host "Готово: $executable"

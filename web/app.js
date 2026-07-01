@@ -240,7 +240,6 @@
         const fighterLore = lore.fighters[fighter.id] || {};
         const accent = fighterAccents[fighter.name] || "#c39032";
         document.documentElement.style.setProperty("--accent", accent);
-        elements.secretsButton.setAttribute("aria-selected", "false");
         elements.fighterSeal.classList.remove("is-secrets");
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
@@ -258,7 +257,7 @@
         elements.bookNoteValue.textContent =
             state.tab === "moves" ? "command.dat" : lore.source.title;
 
-        [...elements.sectionTabs.querySelectorAll("button")].forEach(button => {
+        [...elements.sectionTabs.querySelectorAll("[data-tab]")].forEach(button => {
             button.setAttribute("aria-selected", String(button.dataset.tab === state.tab));
         });
         renderRouteBar(fighter);
@@ -308,10 +307,12 @@
             ["Открытие бойцов", "codes-unlocks"]
         ];
         document.documentElement.style.setProperty("--accent", "#d8ad31");
-        elements.secretsButton.setAttribute("aria-selected", "true");
         elements.fighterSeal.classList.add("is-secrets");
-        elements.sectionTabs.hidden = true;
-        elements.sectionTabs.parentElement.classList.add("is-global-page");
+        elements.sectionTabs.hidden = false;
+        elements.sectionTabs.parentElement.classList.remove("is-global-page");
+        [...elements.sectionTabs.querySelectorAll("[data-tab]")].forEach(button => {
+            button.setAttribute("aria-selected", String(button.dataset.tab === "secrets"));
+        });
         elements.categoryNav.hidden = false;
         elements.heroPortrait.src = "assets/mk-dragon-logo.png";
         elements.heroPortrait.alt = "Эмблема Mortal Kombat";
@@ -824,12 +825,6 @@
         }
         state.fighterId = card.dataset.fighter;
         state.tab = "moves";
-        state.selectedMoveKey = "";
-        setRoute();
-    });
-
-    elements.secretsButton.addEventListener("click", () => {
-        state.tab = "secrets";
         state.selectedMoveKey = "";
         setRoute();
     });

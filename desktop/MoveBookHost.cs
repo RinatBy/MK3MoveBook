@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
@@ -16,13 +18,128 @@ namespace MK3MoveBook
 {
     internal static class Program
     {
+        private const string BootstrapperFileName =
+            "MicrosoftEdgeWebview2Setup.exe";
+
         [STAThread]
         private static void Main()
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            if (!EnsureWebView2Runtime())
+            {
+                return;
+            }
             Application.Run(new MoveBookWindow());
+        }
+
+        private static bool EnsureWebView2Runtime()
+        {
+            if (WebView2RuntimeIsAvailable())
+            {
+                return true;
+            }
+
+            DialogResult answer = MessageBox.Show(
+                "Для работы MK3 MoveBook нужен системный компонент " +
+                "Microsoft Edge WebView2 Runtime.\n\n" +
+                "На этом компьютере компонент не найден. Установить " +
+                "официальный компонент Microsoft сейчас?\n\n" +
+                "Для установки требуется подключение к интернету.",
+                "Требуется WebView2 Runtime",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information
+            );
+            if (answer != DialogResult.Yes)
+            {
+                return false;
+            }
+
+            string bootstrapperPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                BootstrapperFileName
+            );
+            if (!File.Exists(bootstrapperPath))
+            {
+                MessageBox.Show(
+                    "Не найден установщик " + BootstrapperFileName + ".\n\n" +
+                    "Скачайте полный архив MK3 MoveBook заново и не " +
+                    "переносите отдельный EXE из папки программы.",
+                    "Не найден установщик WebView2",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return false;
+            }
+
+            try
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.FileName = bootstrapperPath;
+                startInfo.WorkingDirectory =
+                    AppDomain.CurrentDomain.BaseDirectory;
+                startInfo.UseShellExecute = true;
+
+                using (Process installer = Process.Start(startInfo))
+                {
+                    if (installer == null)
+                    {
+                        throw new InvalidOperationException(
+                            "Не удалось запустить установщик."
+                        );
+                    }
+                    installer.WaitForExit();
+                }
+
+                for (int attempt = 0; attempt < 10; attempt++)
+                {
+                    if (WebView2RuntimeIsAvailable())
+                    {
+                        return true;
+                    }
+                    Thread.Sleep(500);
+                }
+
+                MessageBox.Show(
+                    "WebView2 Runtime не был установлен.\n\n" +
+                    "Запустите " + BootstrapperFileName +
+                    " вручную из папки программы и затем снова откройте книгу.",
+                    "Установка WebView2 не завершена",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return false;
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(
+                    "Не удалось установить WebView2 Runtime.\n\n" +
+                    exception.Message,
+                    "Ошибка установки WebView2",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return false;
+            }
+        }
+
+        private static bool WebView2RuntimeIsAvailable()
+        {
+            try
+            {
+                string version =
+                    CoreWebView2Environment.GetAvailableBrowserVersionString();
+                return !string.IsNullOrWhiteSpace(version);
+            }
+            catch (WebView2RuntimeNotFoundException)
+            {
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 
