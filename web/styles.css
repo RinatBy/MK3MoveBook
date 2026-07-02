@@ -1731,10 +1731,6 @@ button {
         margin: 8px 0 6px;
     }
 
-    .move-preview video {
-        max-height: 140px;
-    }
-
     .book-note {
         padding: 7px 10px;
     }
