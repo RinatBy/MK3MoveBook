@@ -804,8 +804,14 @@ button {
     letter-spacing: .03em;
 }
 
+.book-note span[hidden],
+.book-note strong[hidden],
 .book-note small[hidden] {
     display: none;
+}
+
+.book-note span[hidden] ~ small {
+    margin-top: 0;
 }
 
 .section-tabs {
@@ -1628,10 +1634,6 @@ button {
     font: 700 10px/1 "Literata", serif;
 }
 
-.book-page-left .page-number {
-    left: 24px;
-}
-
 .book-page-right .page-number {
     right: 24px;
 }
@@ -1686,6 +1688,56 @@ button {
         grid-template-columns: 400px 24px minmax(0, 1fr);
     }
 
+}
+
+@media (max-height: 900px) {
+    .book-page-left {
+        padding: 20px;
+    }
+
+    .fighter-seal {
+        width: 96px;
+        height: 96px;
+        padding: 6px;
+    }
+
+    .edition-label {
+        margin: 12px 0 5px;
+    }
+
+    .ornament {
+        margin: 10px 0 7px;
+    }
+
+    .fighter-subtitle {
+        margin-bottom: 10px;
+    }
+
+    .contents-title {
+        margin-bottom: 4px;
+    }
+
+    .category-nav {
+        flex: 0 0 auto;
+        max-height: 82px;
+    }
+
+    .category-link {
+        padding: 6px 5px;
+        font-size: 11px;
+    }
+
+    .move-preview {
+        margin: 8px 0 6px;
+    }
+
+    .move-preview video {
+        max-height: 140px;
+    }
+
+    .book-note {
+        padding: 7px 10px;
+    }
 }
 
 @media (max-width: 1120px) {

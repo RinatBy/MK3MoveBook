@@ -102,7 +102,6 @@
         comboFocus: document.querySelector("#comboFocus"),
         communityButton: document.querySelector("#communityButton"),
         statusText: document.querySelector("#statusText"),
-        leftPageNumber: document.querySelector("#leftPageNumber"),
         rightPageNumber: document.querySelector("#rightPageNumber"),
         editionLabel: document.querySelector(".edition-label"),
         contentsTitle: document.querySelector(".contents-title"),
@@ -283,12 +282,13 @@
         const categories = visibleCategoryEntries(fighter);
         const moveCount = categories.reduce((sum, category) => sum + category.moves.length, 0);
         elements.fighterSubtitle.textContent = `${moveCount} приёмов`;
-        elements.leftPageNumber.textContent = `БОЕЦ ${String(fighter.number).padStart(2, "0")}`;
         elements.rightPageNumber.textContent = (tabLabels[state.tab] || "").toUpperCase();
         elements.bookNoteLabel.textContent =
             state.tab === "moves" ? "Источник комбинаций" : "Источник перевода";
         elements.bookNoteValue.textContent =
             state.tab === "moves" ? "command.dat" : lore.source.title;
+        elements.bookNoteLabel.hidden = state.tab === "moves";
+        elements.bookNoteValue.hidden = state.tab === "moves";
         elements.bookNoteMeta.hidden = state.tab !== "moves";
         elements.bookNoteMeta.textContent =
             state.tab === "moves"
@@ -360,7 +360,6 @@
         elements.fighterTitle.textContent = "Секреты и коды";
         elements.fighterSubtitle.hidden = false;
         elements.fighterSubtitle.textContent = "Аркадная UMK3 · справочник ввода";
-        elements.leftPageNumber.textContent = "СЕКРЕТЫ";
         elements.rightPageNumber.textContent = "KOMBAT KODES";
         elements.bookNoteLabel.textContent = "Источник";
         elements.bookNoteValue.textContent = "Книга UMK3 · стр. 27–29";
@@ -392,7 +391,6 @@
         elements.fighterSubtitle.hidden = true;
         elements.fighterSubtitle.textContent = "";
         elements.contentsTitle.textContent = "Сообщество";
-        elements.leftPageNumber.textContent = "ОНЛАЙН РЕТРО-ИГРЫ";
         elements.rightPageNumber.textContent = "СВЯЗАТЬСЯ С НАМИ";
         elements.bookNoteLabel.textContent = "MK3 MoveBook";
         elements.bookNoteValue.textContent = "Сделано сообществом игроков";
