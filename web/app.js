@@ -133,6 +133,28 @@
         return fighters.find(fighter => fighter.id === state.fighterId) || fighters[0];
     }
 
+    function hasTrilogyMarker(value) {
+        return /\btrilogy\b/i.test(String(value || ""));
+    }
+
+    function visibleMoveEntries(category) {
+        return category.moves
+            .map((move, moveIndex) => ({ move, moveIndex }))
+            .filter(({ move }) => !hasTrilogyMarker(move.label));
+    }
+
+    function visibleCategoryEntries(fighter) {
+        return fighter.categories
+            .map((category, categoryIndex) => ({
+                category,
+                categoryIndex,
+                moves: visibleMoveEntries(category)
+            }))
+            .filter(({ category, moves }) =>
+                !hasTrilogyMarker(category.name) && moves.length
+            );
+    }
+
     function setRoute(replace = false) {
         const route = state.tab === "community"
             ? "#/community"
@@ -205,9 +227,9 @@
         if (loreText.includes(needle)) {
             return true;
         }
-        return fighter.categories.some(category =>
+        return visibleCategoryEntries(fighter).some(({ category, moves }) =>
             category.name.toLocaleLowerCase("ru").includes(needle) ||
-            category.moves.some(move =>
+            moves.some(({ move }) =>
                 `${move.label} ${move.notation}`.toLocaleLowerCase("ru").includes(needle)
             )
         );
@@ -257,7 +279,8 @@
         elements.heroPortrait.alt = fighter.name;
         elements.fighterTitle.textContent = fighter.name;
         elements.fighterSubtitle.hidden = false;
-        const moveCount = fighter.categories.reduce((sum, category) => sum + category.moves.length, 0);
+        const categories = visibleCategoryEntries(fighter);
+        const moveCount = categories.reduce((sum, category) => sum + category.moves.length, 0);
         elements.fighterSubtitle.textContent = `${moveCount} приёмов`;
         elements.leftPageNumber.textContent = `БОЕЦ ${String(fighter.number).padStart(2, "0")}`;
         elements.rightPageNumber.textContent = (tabLabels[state.tab] || "").toUpperCase();
@@ -276,10 +299,10 @@
         });
         renderRouteBar(fighter);
         if (state.tab === "moves") {
-            elements.categoryNav.innerHTML = fighter.categories.map(category => `
+            elements.categoryNav.innerHTML = categories.map(({ category, moves }) => `
                 <button class="category-link" type="button" data-category="${slug(category.name)}">
                     <span>${escapeHtml(category.name)}</span>
-                    <b>${category.moves.length}</b>
+                    <b>${moves.length}</b>
                 </button>`).join("");
             renderMoves(fighter);
         } else if (state.tab === "history") {
@@ -437,11 +460,12 @@
     function renderMoves(fighter) {
         hideMovePreview();
         elements.comboFocus.hidden = true;
-        elements.pageContent.innerHTML = fighter.categories.map((category, categoryIndex) => `
+        const categories = visibleCategoryEntries(fighter);
+        elements.pageContent.innerHTML = categories.map(({ category, categoryIndex, moves }) => `
             <section class="chapter" id="category-${slug(category.name)}">
                 <h2 class="chapter-heading">${escapeHtml(category.name)}</h2>
                 <div class="move-list">
-                    ${category.moves.map((move, moveIndex) => {
+                    ${moves.map(({ move, moveIndex }) => {
                         const key = `${categoryIndex}:${moveIndex}`;
                         return `
                             <article class="move-card" tabindex="0" data-move="${key}">
@@ -455,7 +479,9 @@
             && elements.pageContent.querySelector(`[data-move="${state.selectedMoveKey}"]`);
         const initialKey = selectedCard
             ? state.selectedMoveKey
-            : (fighter.categories[0]?.moves.length ? "0:0" : "");
+            : (categories[0]?.moves[0]
+                ? `${categories[0].categoryIndex}:${categories[0].moves[0].moveIndex}`
+                : "");
         if (initialKey) {
             selectMove(initialKey);
         }
