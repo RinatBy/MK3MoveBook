@@ -51,7 +51,7 @@ button {
 
 .app-shell {
     display: grid;
-    grid-template-rows: 72px minmax(0, 1fr) 28px;
+    grid-template-rows: 72px minmax(0, 1fr) 44px;
     width: 100%;
     height: 100%;
     min-width: 980px;
@@ -442,6 +442,12 @@ button {
     border-right: 1px solid rgba(255, 255, 255, .14);
 }
 
+.fighter-card img[src$="noob-saibot.png"],
+.fighter-seal img[src$="noob-saibot.png"] {
+    background: #08070b;
+    object-fit: contain;
+}
+
 .fighter-card span {
     padding: 0 10px;
     overflow: hidden;
@@ -575,6 +581,24 @@ button {
 .fighter-seal.is-secrets img {
     opacity: 1;
     object-fit: contain;
+}
+
+.fighter-seal.is-community {
+    width: 132px;
+    height: 132px;
+    padding: 8px;
+    background: #180f21;
+    border-color: #8d4a31;
+    border-radius: 18px;
+    box-shadow:
+        0 0 0 4px #c5914d,
+        0 10px 22px rgba(52, 24, 30, .32);
+}
+
+.fighter-seal.is-community img {
+    border-radius: 10px;
+    object-fit: contain;
+    image-rendering: auto;
 }
 
 .edition-label {
@@ -1417,6 +1441,122 @@ button {
     font-size: 28px;
 }
 
+.community-page {
+    display: grid;
+    align-content: center;
+    min-height: 100%;
+    gap: 26px;
+    padding: 28px clamp(8px, 3vw, 36px) 34px;
+}
+
+.community-intro {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.community-kicker {
+    margin: 0 0 10px;
+    color: #9a263a;
+    font: 11px/1 "Russo One", sans-serif;
+    letter-spacing: .14em;
+}
+
+.community-intro h2 {
+    margin: 0 0 14px;
+    color: #ad5f2c;
+    font: 34px/1.05 "Russo One", sans-serif;
+    text-shadow: 0 2px 0 rgba(105, 60, 38, .18);
+}
+
+.community-intro > p:last-child {
+    max-width: 650px;
+    margin: 0 auto;
+    color: #5f4d53;
+    font: 600 16px/1.55 "Literata", serif;
+}
+
+.community-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    scroll-margin-top: 10px;
+}
+
+.community-card {
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    min-height: 134px;
+    padding: 18px;
+    color: #33252d;
+    text-decoration: none;
+    background: rgba(255, 253, 245, .68);
+    border: 1px solid rgba(105, 70, 62, .22);
+    border-left: 5px solid var(--community-color);
+    border-radius: 9px;
+    box-shadow: 0 8px 18px rgba(66, 39, 38, .1);
+    transition:
+        transform .14s ease,
+        box-shadow .14s ease,
+        background .14s ease;
+}
+
+.community-card:hover {
+    transform: translateY(-3px);
+    background: #fffaf0;
+    box-shadow: 0 13px 24px rgba(66, 39, 38, .16);
+}
+
+.community-card.is-telegram {
+    --community-color: #2aabee;
+}
+
+.community-card.is-discord {
+    --community-color: #5865f2;
+}
+
+.community-card img {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+}
+
+.community-card span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.community-card small {
+    color: var(--community-color);
+    font: 11px/1 "Russo One", sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.community-card strong {
+    margin-top: 8px;
+    color: #34262c;
+    font: 17px/1.2 "Russo One", sans-serif;
+}
+
+.community-card em {
+    margin-top: 8px;
+    color: #806c71;
+    font: 650 12px/1.2 "Literata", serif;
+    font-style: normal;
+}
+
+.community-footer-note {
+    max-width: 620px;
+    margin: 0 auto;
+    color: #78656a;
+    font: 650 12px/1.45 "Literata", serif;
+    text-align: center;
+}
+
 .page-number {
     position: absolute;
     bottom: 13px;
@@ -1436,7 +1576,7 @@ button {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 16px 0 10px;
     color: #a998b5;
     background: #0e0815;
     border-top: 1px solid rgba(141, 102, 157, .25);
@@ -1444,14 +1584,36 @@ button {
     letter-spacing: .04em;
 }
 
-.status-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    margin-right: 7px;
-    background: #52c978;
-    border-radius: 50%;
-    box-shadow: 0 0 7px rgba(82, 201, 120, .7);
+.community-entry {
+    display: inline-flex;
+    align-self: stretch;
+    height: 100%;
+    align-items: center;
+    gap: 11px;
+    padding: 0 15px 0 6px;
+    color: #e5c95e;
+    background: transparent;
+    cursor: pointer;
+    font: 13px/1 "Russo One", sans-serif;
+    letter-spacing: .02em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .7);
+}
+
+.community-entry:hover,
+.community-entry[aria-pressed="true"] {
+    color: #ffe277;
+    background: transparent;
+}
+
+.community-entry img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    image-rendering: auto;
+}
+
+.community-entry[aria-pressed="true"] img {
+    filter: drop-shadow(0 0 5px rgba(226, 189, 76, .42));
 }
 
 @media (min-width: 1600px) and (min-height: 850px) {
@@ -1459,6 +1621,7 @@ button {
         width: min(1260px, 100%);
         grid-template-columns: 400px 24px minmax(0, 1fr);
     }
+
 }
 
 @media (max-width: 1120px) {
@@ -1505,5 +1668,13 @@ button {
 
     .unlock-grid {
         grid-template-columns: 1fr;
+    }
+
+    .community-links {
+        grid-template-columns: 1fr;
+    }
+
+    .community-card {
+        min-height: 108px;
     }
 }

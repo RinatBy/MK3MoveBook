@@ -964,6 +964,30 @@ window.MOVEBOOK_DATA = {
               ]
             }
           ]
+        },
+        {
+          "id": "noob-saibot",
+          "name": "Noob Saibot",
+          "number": 27,
+          "categories": [
+            {
+              "name": "Special Moves",
+              "moves": [
+                {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"}
+              ]
+            },
+            {
+              "name": "Autokombos",
+              "moves": [
+                {"label":"(15%)","notation":"HK,LP(juggle)","pretty":"HK,LP(juggle)"},
+                {"label":"(18%)","notation":"HP,HP,LP(juggle)","pretty":"HP,HP,LP(juggle)"},
+                {"label":"(19%)","notation":"HK,_2_+LP,_2_+HP(juggle)","pretty":"HK,↓+LP,↓+HP(juggle)"},
+                {"label":"(22%)","notation":"HP,HP,_2_+LP,_2_+HP(juggle)","pretty":"HP,HP,↓+LP,↓+HP(juggle)"},
+                {"label":"(23%)","notation":"[LK/HK],HK,LK,_4_+HK","pretty":"[LK/HK],HK,LK,←+HK"},
+                {"label":"(27%)","notation":"HP,HP,HK,HK,LK,_4_+HK","pretty":"HP,HP,HK,HK,LK,←+HK"}
+              ]
+            }
+          ]
         }
       ]
     },

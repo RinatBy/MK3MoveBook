@@ -1,5 +1,15 @@
 window.MOVEBOOK_CHANGELOG = [
     {
+        version: "1.1.3",
+        date: "1 июля 2026",
+        title: "Сообщество и Noob Saibot",
+        items: [
+            "Добавлена страница сообщества «Онлайн ретро-игры» со ссылками на Telegram и Discord.",
+            "В список бойцов UMK3 UK добавлен Noob Saibot.",
+            "Для Noob Saibot добавлены Teleport и шесть автокомбо."
+        ]
+    },
+    {
         version: "1.1.2",
         date: "1 июля 2026",
         title: "Запуск через браузер",

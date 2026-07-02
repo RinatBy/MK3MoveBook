@@ -39,7 +39,8 @@
         "Unmasked Sub-Zero": "#2f95bd",
         "Jade": "#32a867",
         "Liu Kang": "#c93337",
-        "Sektor": "#d13a3d"
+        "Sektor": "#d13a3d",
+        "Noob Saibot": "#3d3747"
     };
     const segaLabels = {
         HP: "X",
@@ -103,9 +104,12 @@
         notationToggle: document.querySelector("#notationToggle"),
         pageContent: document.querySelector("#pageContent"),
         comboFocus: document.querySelector("#comboFocus"),
+        communityButton: document.querySelector("#communityButton"),
         statusText: document.querySelector("#statusText"),
         leftPageNumber: document.querySelector("#leftPageNumber"),
         rightPageNumber: document.querySelector("#rightPageNumber"),
+        editionLabel: document.querySelector(".edition-label"),
+        contentsTitle: document.querySelector(".contents-title"),
         bookNoteLabel: document.querySelector("#bookNoteLabel"),
         bookNoteValue: document.querySelector("#bookNoteValue"),
         backButton: document.querySelector("#backButton"),
@@ -134,9 +138,11 @@
     }
 
     function setRoute(replace = false) {
-        const route = state.tab === "secrets"
-            ? `#/${state.version}/secrets`
-            : `#/${state.version}/${state.fighterId}/${state.tab}`;
+        const route = state.tab === "community"
+            ? "#/community"
+            : (state.tab === "secrets"
+                ? `#/${state.version}/secrets`
+                : `#/${state.version}/${state.fighterId}/${state.tab}`);
         if (window.location.hash === route) {
             render();
             return;
@@ -154,6 +160,14 @@
         const requestedVersion = parts[0];
         const requestedFighter = parts[1];
         const requestedTab = parts[2];
+        if (requestedVersion === "community") {
+            const fighters = currentVersion().fighters;
+            if (!fighters.some(item => item.id === state.fighterId)) {
+                state.fighterId = fighters[0].id;
+            }
+            state.tab = "community";
+            return;
+        }
         if (requestedVersion === "umk3tm60") {
             state.version = "umk3tm";
         } else if (requestedVersion && visibleVersions.includes(requestedVersion)) {
@@ -219,7 +233,8 @@
         const filtered = fighters.filter(fighter => fighterMatches(fighter, state.query));
         elements.fighterCount.textContent = `${filtered.length} / ${fighters.length}`;
         elements.rosterList.innerHTML = filtered.map(fighter => {
-            const selected = state.tab !== "secrets" && fighter.id === state.fighterId;
+            const selected = !["secrets", "community"].includes(state.tab)
+                && fighter.id === state.fighterId;
             const accent = fighterAccents[fighter.name] || "#a62a42";
             return `
                 <button class="fighter-card" type="button" role="option"
@@ -233,6 +248,10 @@
     }
 
     function renderFighterPage() {
+        if (state.tab === "community") {
+            renderCommunityPage();
+            return;
+        }
         if (state.tab === "secrets") {
             renderSecretsPage();
             return;
@@ -242,10 +261,12 @@
         const fighterLore = lore.fighters[fighter.id] || {};
         const accent = fighterAccents[fighter.name] || "#c39032";
         document.documentElement.style.setProperty("--accent", accent);
-        elements.fighterSeal.classList.remove("is-secrets");
+        elements.fighterSeal.classList.remove("is-secrets", "is-community");
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
         elements.categoryNav.hidden = false;
+        elements.editionLabel.textContent = "ULTIMATE KOMBAT DOSSIER";
+        elements.contentsTitle.textContent = "Содержание";
         elements.heroPortrait.src = portraitPath(fighter);
         elements.heroPortrait.alt = fighter.name;
         elements.fighterTitle.textContent = fighter.name;
@@ -309,6 +330,7 @@
             ["Открытие бойцов", "codes-unlocks"]
         ];
         document.documentElement.style.setProperty("--accent", "#d8ad31");
+        elements.fighterSeal.classList.remove("is-community");
         elements.fighterSeal.classList.add("is-secrets");
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
@@ -316,6 +338,8 @@
             button.setAttribute("aria-selected", String(button.dataset.tab === "secrets"));
         });
         elements.categoryNav.hidden = false;
+        elements.editionLabel.textContent = "ULTIMATE KOMBAT DOSSIER";
+        elements.contentsTitle.textContent = "Содержание";
         elements.heroPortrait.src = "assets/mk-dragon-logo.png";
         elements.heroPortrait.alt = "Эмблема Mortal Kombat";
         elements.fighterTitle.textContent = "Секреты и коды";
@@ -333,6 +357,84 @@
             `&nbsp;&nbsp;/&nbsp;&nbsp;<b>СЕКРЕТЫ И КОДЫ</b>`;
         elements.statusText.textContent = "Коды аркадной Ultimate Mortal Kombat 3";
         renderSecrets();
+    }
+
+    function renderCommunityPage() {
+        hideMovePreview();
+        document.documentElement.style.setProperty("--accent", "#b66b32");
+        elements.fighterSeal.classList.remove("is-secrets");
+        elements.fighterSeal.classList.add("is-community");
+        elements.sectionTabs.hidden = true;
+        elements.sectionTabs.parentElement.classList.add("is-global-page");
+        elements.categoryNav.hidden = false;
+        elements.heroPortrait.src = "assets/community/ori-logo.gif";
+        elements.heroPortrait.alt = "Логотип сообщества Онлайн ретро-игры";
+        elements.editionLabel.textContent = "СООБЩЕСТВО РЕТРО-ИГР";
+        elements.fighterTitle.textContent = "Онлайн ретро-игры";
+        elements.fighterSubtitle.textContent =
+            "Играем вместе · сохраняем классику";
+        elements.contentsTitle.textContent = "Сообщество";
+        elements.leftPageNumber.textContent = "ОНЛАЙН РЕТРО-ИГРЫ";
+        elements.rightPageNumber.textContent = "СВЯЗАТЬСЯ С НАМИ";
+        elements.bookNoteLabel.textContent = "MK3 MoveBook";
+        elements.bookNoteValue.textContent = "Сделано сообществом игроков";
+        elements.categoryNav.innerHTML = `
+            <button class="category-link" type="button"
+                data-category="community-about">
+                <span>О нас</span><b>◆</b>
+            </button>
+            <button class="category-link" type="button"
+                data-category="community-links">
+                <span>Telegram и Discord</span><b>◆</b>
+            </button>`;
+        elements.routeBar.innerHTML =
+            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>ОНЛАЙН РЕТРО-ИГРЫ</b>`;
+        elements.comboFocus.hidden = true;
+        elements.pageContent.innerHTML = `
+            <div class="community-page">
+                <section id="category-community-about"
+                    class="community-intro">
+                    <p class="community-kicker">СДЕЛАНО ИГРОКАМИ ДЛЯ ИГРОКОВ</p>
+                    <h2>Онлайн ретро-игры</h2>
+                    <p>
+                        MK3 MoveBook создан сообществом «Онлайн ретро-игры».
+                        Мы собираем поклонников классических игр, играем
+                        вместе и помогаем ретро-играм оставаться живыми.
+                    </p>
+                </section>
+                <section id="category-community-links"
+                    class="community-links">
+                    <a class="community-card is-telegram"
+                        href="https://t.me/uPlay2ru" target="_blank"
+                        rel="noopener noreferrer">
+                        <img src="assets/community/telegram.webp"
+                            alt="Telegram">
+                        <span>
+                            <small>Telegram</small>
+                            <strong>@uPlay2ru</strong>
+                            <em>Открыть канал</em>
+                        </span>
+                    </a>
+                    <a class="community-card is-discord"
+                        href="https://discord.com/invite/r3kCQNxX5Z"
+                        target="_blank" rel="noopener noreferrer">
+                        <img src="assets/community/discord.png"
+                            alt="Discord">
+                        <span>
+                            <small>Discord</small>
+                            <strong>Сервер сообщества</strong>
+                            <em>Присоединиться</em>
+                        </span>
+                    </a>
+                </section>
+                <p class="community-footer-note">
+                    Заходите знакомиться, находить соперников и играть
+                    в любимую классику вместе.
+                </p>
+            </div>`;
+        elements.pageContent.scrollTop = 0;
+        elements.statusText.textContent =
+            "MK3 MoveBook · сообщество Онлайн ретро-игры";
     }
 
     function renderMoves(fighter) {
@@ -677,6 +779,10 @@
         renderVersionSelect();
         renderRoster();
         updateNotationSwitch();
+        elements.communityButton.setAttribute(
+            "aria-pressed",
+            String(state.tab === "community")
+        );
         renderFighterPage();
     }
 
@@ -831,6 +937,12 @@
         }
         state.fighterId = card.dataset.fighter;
         state.tab = "moves";
+        state.selectedMoveKey = "";
+        setRoute();
+    });
+
+    elements.communityButton.addEventListener("click", () => {
+        state.tab = "community";
         state.selectedMoveKey = "";
         setRoute();
     });
