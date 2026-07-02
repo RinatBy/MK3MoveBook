@@ -63,7 +63,7 @@ button {
 
 .topbar {
     display: grid;
-    grid-template-columns: 54px 230px auto minmax(220px, 1fr) auto 136px;
+    grid-template-columns: 54px 230px auto minmax(220px, 1fr) auto;
     align-items: center;
     gap: 12px;
     padding: 8px 18px;
@@ -308,27 +308,6 @@ button {
     font: 580 11px/1.4 "Literata", serif;
 }
 
-.version-picker {
-    display: block;
-}
-
-.version-picker select {
-    width: 100%;
-    height: 40px;
-    padding: 0 9px;
-    color: #fff;
-    background: #382649;
-    border: 1px solid #69517d;
-    border-radius: 5px;
-    outline: 0;
-    font: 11px/1 "Russo One", sans-serif;
-    letter-spacing: .02em;
-}
-
-.version-picker option {
-    font: 11px/1.3 "Russo One", sans-serif;
-}
-
 .workspace {
     display: grid;
     grid-template-columns: 282px minmax(0, 1fr);
@@ -440,12 +419,6 @@ button {
     object-fit: cover;
     image-rendering: auto;
     border-right: 1px solid rgba(255, 255, 255, .14);
-}
-
-.fighter-card img[src$="noob-saibot.png"],
-.fighter-seal img[src$="noob-saibot.png"] {
-    background: #08070b;
-    object-fit: contain;
 }
 
 .fighter-card span {
@@ -721,7 +694,8 @@ button {
 }
 
 .book-note span,
-.book-note strong {
+.book-note strong,
+.book-note small {
     display: block;
 }
 
@@ -729,6 +703,17 @@ button {
     margin-top: 3px;
     color: #3c2b31;
     letter-spacing: .05em;
+}
+
+.book-note small {
+    margin-top: 6px;
+    color: #8a6f60;
+    font: 700 9px/1.2 "Literata", serif;
+    letter-spacing: .03em;
+}
+
+.book-note small[hidden] {
+    display: none;
 }
 
 .section-tabs {
@@ -781,6 +766,10 @@ button {
     background: rgba(74, 48, 67, .09);
     border: 1px solid rgba(111, 73, 80, .25);
     border-radius: 18px;
+}
+
+.notation-switch[hidden] {
+    display: none;
 }
 
 .notation-switch > span {
@@ -1452,28 +1441,11 @@ button {
 .community-intro {
     max-width: 720px;
     margin: 0 auto;
-    text-align: center;
+    text-align: left;
 }
 
-.community-kicker {
-    margin: 0 0 10px;
-    color: #9a263a;
-    font: 11px/1 "Russo One", sans-serif;
-    letter-spacing: .14em;
-}
-
-.community-intro h2 {
-    margin: 0 0 14px;
-    color: #ad5f2c;
-    font: 34px/1.05 "Russo One", sans-serif;
-    text-shadow: 0 2px 0 rgba(105, 60, 38, .18);
-}
-
-.community-intro > p:last-child {
-    max-width: 650px;
-    margin: 0 auto;
-    color: #5f4d53;
-    font: 600 16px/1.55 "Literata", serif;
+.community-intro > p {
+    margin: 0;
 }
 
 .community-links {
@@ -1630,7 +1602,7 @@ button {
     }
 
     .topbar {
-        grid-template-columns: 46px 175px auto minmax(140px, 1fr) auto 128px;
+        grid-template-columns: 46px 175px auto minmax(140px, 1fr) auto;
         gap: 8px;
         padding-inline: 12px;
     }

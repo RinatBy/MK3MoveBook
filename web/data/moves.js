@@ -903,6 +903,7 @@ window.MOVEBOOK_DATA = {
           "id": "rain",
           "name": "Rain",
           "number": 24,
+          "availability": "UMK3 UK",
           "categories": [
             {
               "name": "Special Moves",
@@ -933,42 +934,10 @@ window.MOVEBOOK_DATA = {
           ]
         },
         {
-          "id": "motaro",
-          "name": "Motaro",
-          "number": 25,
-          "categories": [
-            {
-              "name": "Special Moves",
-              "moves": [
-                {"label":"Fireball:","notation":"_6,_2,_4,HP","pretty":"→,↓,←,HP"},
-                {"label":"Teleport:","notation":"_2,_8","pretty":"↓,↑"},
-                {"label":"Grab And Smash:","notation":"_6,_6,HP","pretty":"→,→,HP"}
-              ]
-            }
-          ]
-        },
-        {
-          "id": "shao-kahn",
-          "name": "Shao Kahn",
-          "number": 26,
-          "categories": [
-            {
-              "name": "Special Moves",
-              "moves": [
-                {"label":"Fireball:","notation":"_4,_4,_6,LP","pretty":"←,←,→,LP"},
-                {"label":"Slam:","notation":"_2,_6,LP","pretty":"↓,→,LP"},
-                {"label":"Upper Slam:","notation":"_2,_6,HP","pretty":"↓,→,HP"},
-                {"label":"Hammer:","notation":"_4,_6,HP","pretty":"←,→,HP"},
-                {"label":"Taunt 1:","notation":"_2,_2,LK","pretty":"↓,↓,LK"},
-                {"label":"Taunt 2:","notation":"_2,_2,HK","pretty":"↓,↓,HK"}
-              ]
-            }
-          ]
-        },
-        {
           "id": "noob-saibot",
           "name": "Noob Saibot",
-          "number": 27,
+          "number": 25,
+          "availability": "Team Edition",
           "categories": [
             {
               "name": "Special Moves",
@@ -985,6 +954,41 @@ window.MOVEBOOK_DATA = {
                 {"label":"(22%)","notation":"HP,HP,_2_+LP,_2_+HP(juggle)","pretty":"HP,HP,↓+LP,↓+HP(juggle)"},
                 {"label":"(23%)","notation":"[LK/HK],HK,LK,_4_+HK","pretty":"[LK/HK],HK,LK,←+HK"},
                 {"label":"(27%)","notation":"HP,HP,HK,HK,LK,_4_+HK","pretty":"HP,HP,HK,HK,LK,←+HK"}
+              ]
+            }
+          ]
+        },
+        {
+          "id": "motaro",
+          "name": "Motaro",
+          "number": 26,
+          "availability": "UMK3 UK · скрытый боец",
+          "categories": [
+            {
+              "name": "Special Moves",
+              "moves": [
+                {"label":"Fireball:","notation":"_6,_2,_4,HP","pretty":"→,↓,←,HP"},
+                {"label":"Teleport:","notation":"_2,_8","pretty":"↓,↑"},
+                {"label":"Grab And Smash:","notation":"_6,_6,HP","pretty":"→,→,HP"}
+              ]
+            }
+          ]
+        },
+        {
+          "id": "shao-kahn",
+          "name": "Shao Kahn",
+          "number": 27,
+          "availability": "UMK3 UK · скрытый боец",
+          "categories": [
+            {
+              "name": "Special Moves",
+              "moves": [
+                {"label":"Fireball:","notation":"_4,_4,_6,LP","pretty":"←,←,→,LP"},
+                {"label":"Slam:","notation":"_2,_6,LP","pretty":"↓,→,LP"},
+                {"label":"Upper Slam:","notation":"_2,_6,HP","pretty":"↓,→,HP"},
+                {"label":"Hammer:","notation":"_4,_6,HP","pretty":"←,→,HP"},
+                {"label":"Taunt 1:","notation":"_2,_2,LK","pretty":"↓,↓,LK"},
+                {"label":"Taunt 2:","notation":"_2,_2,HK","pretty":"↓,↓,HK"}
               ]
             }
           ]

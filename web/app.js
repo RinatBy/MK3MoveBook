@@ -3,11 +3,6 @@
 
     const data = window.MOVEBOOK_DATA;
     const lore = window.MOVEBOOK_LORE;
-    const versionLabels = {
-        umk3uk: "UMK3 UK",
-        umk3tm: "Team Edition"
-    };
-    const visibleVersions = ["umk3uk", "umk3tm"];
     const tabLabels = {
         moves: "Приёмы",
         history: "История",
@@ -79,7 +74,6 @@
     };
 
     const elements = {
-        versionSelect: document.querySelector("#versionSelect"),
         searchInput: document.querySelector("#searchInput"),
         rosterList: document.querySelector("#rosterList"),
         fighterCount: document.querySelector("#fighterCount"),
@@ -101,6 +95,7 @@
         movePreview: document.querySelector("#movePreview"),
         movePreviewVideo: document.querySelector("#movePreviewVideo"),
         sectionTabs: document.querySelector("#sectionTabs"),
+        notationSwitch: document.querySelector(".notation-switch"),
         notationToggle: document.querySelector("#notationToggle"),
         pageContent: document.querySelector("#pageContent"),
         comboFocus: document.querySelector("#comboFocus"),
@@ -112,6 +107,7 @@
         contentsTitle: document.querySelector(".contents-title"),
         bookNoteLabel: document.querySelector("#bookNoteLabel"),
         bookNoteValue: document.querySelector("#bookNoteValue"),
+        bookNoteMeta: document.querySelector("#bookNoteMeta"),
         backButton: document.querySelector("#backButton"),
         forwardButton: document.querySelector("#forwardButton")
     };
@@ -160,6 +156,7 @@
         const requestedVersion = parts[0];
         const requestedFighter = parts[1];
         const requestedTab = parts[2];
+        state.version = "umk3uk";
         if (requestedVersion === "community") {
             const fighters = currentVersion().fighters;
             if (!fighters.some(item => item.id === state.fighterId)) {
@@ -167,11 +164,6 @@
             }
             state.tab = "community";
             return;
-        }
-        if (requestedVersion === "umk3tm60") {
-            state.version = "umk3tm";
-        } else if (requestedVersion && visibleVersions.includes(requestedVersion)) {
-            state.version = requestedVersion;
         }
         const fighters = currentVersion().fighters;
         if (requestedFighter === "secrets") {
@@ -221,13 +213,6 @@
         );
     }
 
-    function renderVersionSelect() {
-        elements.versionSelect.innerHTML = visibleVersions
-            .map(version => `<option value="${version}">${versionLabels[version] || version}</option>`)
-            .join("");
-        elements.versionSelect.value = state.version;
-    }
-
     function renderRoster() {
         const fighters = currentVersion().fighters;
         const filtered = fighters.filter(fighter => fighterMatches(fighter, state.query));
@@ -264,21 +249,27 @@
         elements.fighterSeal.classList.remove("is-secrets", "is-community");
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
+        elements.notationSwitch.hidden = state.tab !== "moves";
         elements.categoryNav.hidden = false;
         elements.editionLabel.textContent = "ULTIMATE KOMBAT DOSSIER";
         elements.contentsTitle.textContent = "Содержание";
         elements.heroPortrait.src = portraitPath(fighter);
         elements.heroPortrait.alt = fighter.name;
         elements.fighterTitle.textContent = fighter.name;
+        elements.fighterSubtitle.hidden = false;
         const moveCount = fighter.categories.reduce((sum, category) => sum + category.moves.length, 0);
-        elements.fighterSubtitle.textContent =
-            `${versionLabels[state.version] || state.version} · ${moveCount} приёмов`;
+        elements.fighterSubtitle.textContent = `${moveCount} приёмов`;
         elements.leftPageNumber.textContent = `БОЕЦ ${String(fighter.number).padStart(2, "0")}`;
         elements.rightPageNumber.textContent = (tabLabels[state.tab] || "").toUpperCase();
         elements.bookNoteLabel.textContent =
             state.tab === "moves" ? "Источник комбинаций" : "Источник перевода";
         elements.bookNoteValue.textContent =
             state.tab === "moves" ? "command.dat" : lore.source.title;
+        elements.bookNoteMeta.hidden = state.tab !== "moves";
+        elements.bookNoteMeta.textContent =
+            state.tab === "moves"
+                ? `MAME 0.129 · ${fighter.availability || "UMK3 UK / Team Edition"}`
+                : "";
 
         [...elements.sectionTabs.querySelectorAll("[data-tab]")].forEach(button => {
             button.setAttribute("aria-selected", String(button.dataset.tab === state.tab));
@@ -313,8 +304,7 @@
 
     function renderRouteBar(fighter) {
         elements.routeBar.innerHTML =
-            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;${escapeHtml(versionLabels[state.version] || state.version)}` +
-            `&nbsp;&nbsp;/&nbsp;&nbsp;<b>${escapeHtml(fighter.name)}</b>` +
+            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>${escapeHtml(fighter.name)}</b>` +
             `&nbsp;&nbsp;/&nbsp;&nbsp;${tabLabels[state.tab]}`;
     }
 
@@ -334,6 +324,7 @@
         elements.fighterSeal.classList.add("is-secrets");
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
+        elements.notationSwitch.hidden = true;
         [...elements.sectionTabs.querySelectorAll("[data-tab]")].forEach(button => {
             button.setAttribute("aria-selected", String(button.dataset.tab === "secrets"));
         });
@@ -343,18 +334,20 @@
         elements.heroPortrait.src = "assets/mk-dragon-logo.png";
         elements.heroPortrait.alt = "Эмблема Mortal Kombat";
         elements.fighterTitle.textContent = "Секреты и коды";
+        elements.fighterSubtitle.hidden = false;
         elements.fighterSubtitle.textContent = "Аркадная UMK3 · справочник ввода";
         elements.leftPageNumber.textContent = "СЕКРЕТЫ";
         elements.rightPageNumber.textContent = "KOMBAT KODES";
         elements.bookNoteLabel.textContent = "Источник";
         elements.bookNoteValue.textContent = "Книга UMK3 · стр. 27–29";
+        elements.bookNoteMeta.hidden = true;
+        elements.bookNoteMeta.textContent = "";
         elements.categoryNav.innerHTML = sections.map(item => `
             <button class="category-link" type="button" data-category="${item[1]}">
                 <span>${item[0]}</span><b>◆</b>
             </button>`).join("");
         elements.routeBar.innerHTML =
-            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;${escapeHtml(versionLabels[state.version] || state.version)}` +
-            `&nbsp;&nbsp;/&nbsp;&nbsp;<b>СЕКРЕТЫ И КОДЫ</b>`;
+            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>СЕКРЕТЫ И КОДЫ</b>`;
         elements.statusText.textContent = "Коды аркадной Ultimate Mortal Kombat 3";
         renderSecrets();
     }
@@ -366,18 +359,21 @@
         elements.fighterSeal.classList.add("is-community");
         elements.sectionTabs.hidden = true;
         elements.sectionTabs.parentElement.classList.add("is-global-page");
+        elements.notationSwitch.hidden = true;
         elements.categoryNav.hidden = false;
         elements.heroPortrait.src = "assets/community/ori-logo.gif";
         elements.heroPortrait.alt = "Логотип сообщества Онлайн ретро-игры";
         elements.editionLabel.textContent = "СООБЩЕСТВО РЕТРО-ИГР";
         elements.fighterTitle.textContent = "Онлайн ретро-игры";
-        elements.fighterSubtitle.textContent =
-            "Играем вместе · сохраняем классику";
+        elements.fighterSubtitle.hidden = true;
+        elements.fighterSubtitle.textContent = "";
         elements.contentsTitle.textContent = "Сообщество";
         elements.leftPageNumber.textContent = "ОНЛАЙН РЕТРО-ИГРЫ";
         elements.rightPageNumber.textContent = "СВЯЗАТЬСЯ С НАМИ";
         elements.bookNoteLabel.textContent = "MK3 MoveBook";
         elements.bookNoteValue.textContent = "Сделано сообществом игроков";
+        elements.bookNoteMeta.hidden = true;
+        elements.bookNoteMeta.textContent = "";
         elements.categoryNav.innerHTML = `
             <button class="category-link" type="button"
                 data-category="community-about">
@@ -393,13 +389,14 @@
         elements.pageContent.innerHTML = `
             <div class="community-page">
                 <section id="category-community-about"
-                    class="community-intro">
-                    <p class="community-kicker">СДЕЛАНО ИГРОКАМИ ДЛЯ ИГРОКОВ</p>
-                    <h2>Онлайн ретро-игры</h2>
+                    class="community-intro lore-chapter">
                     <p>
                         MK3 MoveBook создан сообществом «Онлайн ретро-игры».
-                        Мы собираем поклонников классических игр, играем
-                        вместе и помогаем ретро-играм оставаться живыми.
+                        Мы — небольшое сообщество поклонников классических
+                        игр: играем вместе, делимся опытом и помогаем
+                        ретро-играм оставаться живыми. Мы всегда рады новым
+                        участникам, которые ценят уважительное общение и
+                        хотят разделить с нами любовь к классическим играм.
                     </p>
                 </section>
                 <section id="category-community-links"
@@ -776,7 +773,6 @@
     }
 
     function render() {
-        renderVersionSelect();
         renderRoster();
         updateNotationSwitch();
         elements.communityButton.setAttribute(
@@ -914,16 +910,6 @@
         elements.updateButton.dataset.action = "check";
         bridge.postMessage("check-updates");
     }
-
-    elements.versionSelect.addEventListener("change", event => {
-        const keepSecretsOpen = state.tab === "secrets";
-        state.version = event.target.value;
-        state.fighterId = currentVersion().fighters[0].id;
-        state.tab = keepSecretsOpen ? "secrets" : "moves";
-        state.query = "";
-        elements.searchInput.value = "";
-        setRoute();
-    });
 
     elements.searchInput.addEventListener("input", event => {
         state.query = event.target.value.trim();
