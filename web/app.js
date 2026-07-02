@@ -94,6 +94,7 @@
         categoryNav: document.querySelector("#categoryNav"),
         movePreview: document.querySelector("#movePreview"),
         movePreviewVideo: document.querySelector("#movePreviewVideo"),
+        moveRequirement: document.querySelector("#moveRequirement"),
         sectionTabs: document.querySelector("#sectionTabs"),
         notationSwitch: document.querySelector(".notation-switch"),
         notationToggle: document.querySelector("#notationToggle"),
@@ -771,6 +772,43 @@
         return moveAnimations[notationKey] ? notationKey : baseKey;
     }
 
+    function renderMoveRequirement(move) {
+        const isAnimality = /\banimality\b/i.test(String(move.label || ""));
+        if (!isAnimality) {
+            elements.moveRequirement.innerHTML = "";
+            elements.moveRequirement.hidden = true;
+            return;
+        }
+
+        elements.moveRequirement.innerHTML = `
+            <div class="move-requirement-heading">
+                <span aria-hidden="true">!</span>
+                <strong>Условия выполнения</strong>
+            </div>
+            <p class="move-requirement-lead">
+                Только решающий третий раунд:
+                <b>итоговый счёт 2:1</b>.
+            </p>
+            <ol>
+                <li>На первом <b>FINISH HIM / HER</b> выполните <b>MERCY</b>.</li>
+                <li>
+                    <b>MERCY:</b>
+                    <div class="move-requirement-command"
+                        aria-label="Удерживать RUN, вниз, вниз, вниз, отпустить RUN">
+                        <span class="move-requirement-action">Удерживать</span>
+                        ${renderSequence("RUN,_2,_2,_2")}
+                        <span class="move-requirement-action">и отпустить</span>
+                        ${renderSequence("RUN")}
+                    </div>
+                </li>
+                <li>
+                    Снова победите соперника и на втором
+                    <b>FINISH HIM / HER</b> выполните Animality.
+                </li>
+            </ol>`;
+        elements.moveRequirement.hidden = false;
+    }
+
     function showMovePreview(fighter, category, move) {
         const source = moveAnimations[moveAnimationKey(fighter, category, move)];
         if (!source) {
@@ -783,6 +821,7 @@
             elements.movePreviewVideo.src = source;
             elements.movePreviewVideo.load();
         }
+        renderMoveRequirement(move);
         elements.movePreview.hidden = false;
         elements.movePreviewVideo.muted = true;
         const playback = elements.movePreviewVideo.play();
@@ -795,6 +834,8 @@
 
     function hideMovePreview() {
         elements.movePreviewVideo.pause();
+        elements.moveRequirement.innerHTML = "";
+        elements.moveRequirement.hidden = true;
         elements.movePreview.hidden = true;
     }
 
