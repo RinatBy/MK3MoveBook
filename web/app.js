@@ -786,24 +786,20 @@
                 <strong>Условия выполнения</strong>
             </div>
             <p class="move-requirement-lead">
-                Только решающий третий раунд:
-                <b>итоговый счёт 2:1</b>.
+                Только <b>3-й раунд</b> — счёт <b>2:1</b>.
             </p>
             <ol>
-                <li>На первом <b>FINISH HIM / HER</b> выполните <b>MERCY</b>.</li>
                 <li>
-                    <b>MERCY:</b>
-                    <div class="move-requirement-command"
+                    На первом <b>FINISH HIM</b> — <b>MERCY:</b>
+                    <span class="move-requirement-command"
                         aria-label="Удерживать RUN, вниз, вниз, вниз, отпустить RUN">
                         <span class="move-requirement-action">Удерживать</span>
                         ${renderSequence("RUN,_2,_2,_2")}
-                        <span class="move-requirement-action">и отпустить</span>
-                        ${renderSequence("RUN")}
-                    </div>
+                        <span class="move-requirement-action">и отпустить.</span>
+                    </span>
                 </li>
                 <li>
-                    Снова победите соперника и на втором
-                    <b>FINISH HIM / HER</b> выполните Animality.
+                    Снова победите соперника и выполните <b>Animality</b>.
                 </li>
             </ol>`;
         elements.moveRequirement.hidden = false;
