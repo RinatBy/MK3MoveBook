@@ -272,9 +272,10 @@
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
         elements.notationSwitch.hidden = state.tab !== "moves";
-        elements.categoryNav.hidden = false;
+        elements.categoryNav.hidden = state.tab === "moves";
         elements.editionLabel.textContent = "ULTIMATE KOMBAT DOSSIER";
         elements.contentsTitle.textContent = "Содержание";
+        elements.contentsTitle.hidden = state.tab === "moves";
         elements.heroPortrait.src = portraitPath(fighter);
         elements.heroPortrait.alt = fighter.name;
         elements.fighterTitle.textContent = fighter.name;
@@ -300,11 +301,7 @@
         });
         renderRouteBar(fighter);
         if (state.tab === "moves") {
-            elements.categoryNav.innerHTML = categories.map(({ category, moves }) => `
-                <button class="category-link" type="button" data-category="${slug(category.name)}">
-                    <span>${escapeHtml(category.name)}</span>
-                    <b>${moves.length}</b>
-                </button>`).join("");
+            elements.categoryNav.innerHTML = "";
             renderMoves(fighter);
         } else if (state.tab === "history") {
             const historyLinks = [
@@ -355,6 +352,7 @@
         elements.categoryNav.hidden = false;
         elements.editionLabel.textContent = "ULTIMATE KOMBAT DOSSIER";
         elements.contentsTitle.textContent = "Содержание";
+        elements.contentsTitle.hidden = false;
         elements.heroPortrait.src = "assets/mk-dragon-logo.png";
         elements.heroPortrait.alt = "Эмблема Mortal Kombat";
         elements.fighterTitle.textContent = "Секреты и коды";
@@ -363,6 +361,8 @@
         elements.rightPageNumber.textContent = "KOMBAT KODES";
         elements.bookNoteLabel.textContent = "Источник";
         elements.bookNoteValue.textContent = "Книга UMK3 · стр. 27–29";
+        elements.bookNoteLabel.hidden = false;
+        elements.bookNoteValue.hidden = false;
         elements.bookNoteMeta.hidden = true;
         elements.bookNoteMeta.textContent = "";
         elements.categoryNav.innerHTML = sections.map(item => `
@@ -391,9 +391,12 @@
         elements.fighterSubtitle.hidden = true;
         elements.fighterSubtitle.textContent = "";
         elements.contentsTitle.textContent = "Сообщество";
+        elements.contentsTitle.hidden = false;
         elements.rightPageNumber.textContent = "СВЯЗАТЬСЯ С НАМИ";
         elements.bookNoteLabel.textContent = "MK3 MoveBook";
         elements.bookNoteValue.textContent = "Сделано сообществом игроков";
+        elements.bookNoteLabel.hidden = false;
+        elements.bookNoteValue.hidden = false;
         elements.bookNoteMeta.hidden = true;
         elements.bookNoteMeta.textContent = "";
         elements.categoryNav.innerHTML = `
