@@ -41,6 +41,18 @@
                             title="Закрыть">×</button>
                     </header>
                     <p id="updatePanelStatus">Проверяем обновления…</p>
+                    <div id="updateProgress" class="update-progress"
+                        role="progressbar" aria-label="Загрузка обновления"
+                        aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow="0" hidden>
+                        <div class="update-progress-track">
+                            <span id="updateProgressBar"></span>
+                        </div>
+                        <div class="update-progress-meta">
+                            <strong id="updateProgressPercent">0%</strong>
+                            <span id="updateProgressBytes"></span>
+                        </div>
+                    </div>
                     <button id="updateActionButton" class="update-action-button"
                         type="button">Проверить обновления</button>
                     <div class="update-notes">

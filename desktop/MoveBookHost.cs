@@ -1170,8 +1170,24 @@ namespace MK3MoveBook
                     "Загружаем версию " + manifest.Version + "…",
                     ""
                 );
+                int lastReportedProgress = -1;
                 using (WebClient client = CreateWebClient())
                 {
+                    client.DownloadProgressChanged += (sender, eventArgs) =>
+                    {
+                        int progress = eventArgs.ProgressPercentage;
+                        if (progress == lastReportedProgress)
+                        {
+                            return;
+                        }
+                        lastReportedProgress = progress;
+                        SendDownloadProgress(
+                            manifest.Version,
+                            progress,
+                            eventArgs.BytesReceived,
+                            eventArgs.TotalBytesToReceive
+                        );
+                    };
                     await client.DownloadFileTaskAsync(
                         new Uri(manifest.PackageUrl),
                         archivePath
@@ -1401,6 +1417,36 @@ namespace MK3MoveBook
             {
                 // Cleanup is best-effort only.
             }
+        }
+
+        private void SendDownloadProgress(
+            string version,
+            int progress,
+            long bytesReceived,
+            long totalBytes
+        )
+        {
+            if (browser.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            progress = Math.Max(0, Math.Min(100, progress));
+            Dictionary<string, object> payload =
+                new Dictionary<string, object>();
+            payload["type"] = "movebook-update-status";
+            payload["state"] = "downloading";
+            payload["label"] = "Загрузка " + progress + "%";
+            payload["details"] =
+                "Загружаем версию " + version + ": " + progress + "%.";
+            payload["action"] = "";
+            payload["currentVersion"] = currentContentVersion;
+            payload["progressPercent"] = progress;
+            payload["bytesReceived"] = bytesReceived;
+            payload["totalBytes"] = totalBytes;
+            browser.CoreWebView2.PostWebMessageAsJson(
+                jsonSerializer.Serialize(payload)
+            );
         }
 
         private void SendUpdateState(

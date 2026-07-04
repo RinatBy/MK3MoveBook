@@ -82,6 +82,10 @@
         updatePanel: document.querySelector("#updatePanel"),
         updatePanelClose: document.querySelector("#updatePanelClose"),
         updatePanelStatus: document.querySelector("#updatePanelStatus"),
+        updateProgress: document.querySelector("#updateProgress"),
+        updateProgressBar: document.querySelector("#updateProgressBar"),
+        updateProgressPercent: document.querySelector("#updateProgressPercent"),
+        updateProgressBytes: document.querySelector("#updateProgressBytes"),
         updatePanelVersion: document.querySelector("#updatePanelVersion"),
         updateActionButton: document.querySelector("#updateActionButton"),
         updateNotesTitle: document.querySelector("#updateNotesTitle"),
@@ -924,10 +928,47 @@
         }
     }
 
+    function formatDownloadSize(bytes) {
+        return `${(bytes / (1024 * 1024)).toLocaleString("ru-RU", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        })} МБ`;
+    }
+
+    function applyDownloadProgress(message) {
+        const received = Number(message.bytesReceived);
+        const total = Number(message.totalBytes);
+        const hasRealProgress =
+            message.state === "downloading" &&
+            Number.isFinite(received) &&
+            Number.isFinite(total) &&
+            total > 0;
+        elements.updateProgress.hidden = !hasRealProgress;
+        if (!hasRealProgress) {
+            elements.updateProgressBar.style.width = "0%";
+            elements.updateProgress.setAttribute("aria-valuenow", "0");
+            return;
+        }
+
+        const reportedPercent = Number(message.progressPercent);
+        const percent = Math.max(0, Math.min(
+            100,
+            Number.isFinite(reportedPercent)
+                ? reportedPercent
+                : Math.round(received * 100 / total)
+        ));
+        elements.updateProgressBar.style.width = `${percent}%`;
+        elements.updateProgressPercent.textContent = `${percent}%`;
+        elements.updateProgressBytes.textContent =
+            `${formatDownloadSize(received)} / ${formatDownloadSize(total)}`;
+        elements.updateProgress.setAttribute("aria-valuenow", String(percent));
+    }
+
     function applyUpdateStatus(message) {
         if (!message || message.type !== "movebook-update-status") {
             return;
         }
+        applyDownloadProgress(message);
         const label = elements.updateButton.querySelector("b");
         elements.updateButton.dataset.state = message.state || "idle";
         elements.updateButton.dataset.action = message.action || "";
