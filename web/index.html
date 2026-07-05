@@ -150,7 +150,9 @@
 
     <script src="data/moves.js"></script>
     <script src="data/lore.js"></script>
-    <script src="data/animations.js"></script>
+    <script>
+        document.write('<script src="data/animations.js?v=' + Date.now() + '"><\/script>');
+    </script>
     <script src="data/changelog.js"></script>
     <script src="app.js"></script>
 </body>
