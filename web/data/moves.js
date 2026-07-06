@@ -78,6 +78,38 @@ window.MOVEBOOK_DATA = {
       ]
     }
   },
+  "seo": {
+    "siteName": "MK3 MoveBook",
+    "fighters": {
+      "kabal": "Кабал",
+      "human-smoke": "Хьюман Смоук",
+      "kung-lao": "Кун Лао",
+      "kano": "Кано",
+      "reptile": "Рептилия",
+      "ermac": "Ермак",
+      "nightwolf": "Ночной Волк",
+      "robot-smoke": "Робот Смоук",
+      "sindel": "Синдел",
+      "jax": "Джакс",
+      "sonya": "Соня",
+      "kitana": "Китана",
+      "stryker": "Страйкер",
+      "scorpion": "Скорпион",
+      "unmasked-sub-zero": "Саб-Зиро без маски",
+      "jade": "Джейд",
+      "liu-kang": "Лю Кан",
+      "sektor": "Сектор",
+      "classic-sub-zero": "Классический Саб-Зиро",
+      "cyrax": "Сайракс",
+      "shang-tsung": "Шан Цзун",
+      "mileena": "Милина",
+      "sheeva": "Шива",
+      "rain": "Рейн",
+      "noob-saibot": "Нуб Сайбот",
+      "motaro": "Мотаро",
+      "shao-kahn": "Шао Кан"
+    }
+  },
   "versions": {
     "umk3uk": {
       "id": "umk3uk",

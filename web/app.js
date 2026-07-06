@@ -13,6 +13,10 @@
             overrides: {}
         }
     };
+    const seoData = data.seo || {
+        siteName: "MK3 MoveBook",
+        fighters: {}
+    };
     const lore = window.MOVEBOOK_LORE;
     const tabLabels = {
         moves: "Приёмы",
@@ -91,6 +95,7 @@
         platformSwitch: document.querySelector("#platformSwitch"),
         rosterList: document.querySelector("#rosterList"),
         fighterCount: document.querySelector("#fighterCount"),
+        metaDescription: document.querySelector("#metaDescription"),
         routeBar: document.querySelector("#routeBar"),
         updateButton: document.querySelector("#updateButton"),
         updatePanel: document.querySelector("#updatePanel"),
@@ -195,6 +200,40 @@
         return platformModel.platforms?.[platform]?.label || platform.toUpperCase();
     }
 
+    function updatePageMetadata(title, description) {
+        document.title = title;
+        if (elements.metaDescription) {
+            elements.metaDescription.setAttribute("content", description);
+        }
+    }
+
+    function updateFighterMetadata(fighter, platformInfo) {
+        const name = seoData.fighters?.[fighter.id] || fighter.name;
+        const siteName = seoData.siteName || "MK3 MoveBook";
+        const available = platformInfo.platforms.includes(state.platform);
+        if (!available) {
+            updatePageMetadata(
+                `${name} — недоступен в UMK3 на SEGA | ${siteName}`,
+                `${name} отсутствует в стандартной Ultimate Mortal Kombat 3 ` +
+                    "для SEGA. На странице сохранены аркадные приёмы для справки."
+            );
+            return;
+        }
+
+        const titlePlatform = state.platform === "sega" ? "на SEGA" : "в аркаде";
+        const description = state.platform === "sega"
+            ? `Справочник персонажа «${name}» в Ultimate Mortal Kombat 3 ` +
+                "для SEGA: доступность приёмов, комбинации для проверки, " +
+                "фаталити, комбо и видеодемонстрации."
+            : `Все приёмы персонажа «${name}» в аркадной Ultimate Mortal ` +
+                "Kombat 3: комбинации кнопок, фаталити, комбо и " +
+                "видеодемонстрации.";
+        updatePageMetadata(
+            `${name} — приёмы и фаталити UMK3 ${titlePlatform} | ${siteName}`,
+            description
+        );
+    }
+
     function fighterUnavailableBadge(platformInfo) {
         if (state.platform === "sega" &&
             platformInfo.platforms.includes("arcade")) {
@@ -240,12 +279,81 @@
             );
     }
 
+    function directPathRoute() {
+        const parts = window.location.pathname
+            .split("/")
+            .filter(Boolean)
+            .map(part => {
+                try {
+                    return decodeURIComponent(part);
+                } catch {
+                    return part;
+                }
+            });
+        const platformIndex = parts.findIndex(part =>
+            Object.prototype.hasOwnProperty.call(platformModel.platforms, part)
+        );
+        if (platformIndex < 0) {
+            return null;
+        }
+
+        const fighterId = parts[platformIndex + 1];
+        const fighters = data.versions.umk3uk.fighters;
+        if (!fighters.some(fighter => fighter.id === fighterId)) {
+            return null;
+        }
+
+        const prefix = parts.slice(0, platformIndex);
+        return {
+            platform: parts[platformIndex],
+            fighterId,
+            basePath: prefix.length ? `/${prefix.join("/")}/` : "/"
+        };
+    }
+
+    function applyRoutePlatform(platform) {
+        if (!Object.prototype.hasOwnProperty.call(
+            platformModel.platforms,
+            platform
+        )) {
+            return;
+        }
+        const changed = state.platform !== platform;
+        state.platform = platform;
+        if (changed) {
+            state.notation = loadNotation(platform);
+        }
+        try {
+            localStorage.setItem("movebook-platform", platform);
+        } catch {
+            // Deep links still select the requested platform for this session.
+        }
+    }
+
     function setRoute(replace = false) {
+        const directRoute = directPathRoute();
+        const isFighterPage = !["community", "secrets"].includes(state.tab);
+        if (directRoute && isFighterPage) {
+            const tabHash = state.tab === "moves" ? "" : `#${state.tab}`;
+            const route =
+                `${directRoute.basePath}${state.platform}/${state.fighterId}/` +
+                tabHash;
+            const currentRoute =
+                `${window.location.pathname}${window.location.hash}`;
+            if (currentRoute === route) {
+                render();
+                return;
+            }
+            history[replace ? "replaceState" : "pushState"](null, "", route);
+            render();
+            return;
+        }
+
         const route = state.tab === "community"
             ? "#/community"
             : (state.tab === "secrets"
-                ? `#/${state.version}/secrets`
-                : `#/${state.version}/${state.fighterId}/${state.tab}`);
+                ? `#/${state.platform}/secrets`
+                : `#/${state.platform}/${state.fighterId}/${state.tab}`);
         if (window.location.hash === route) {
             render();
             return;
@@ -259,27 +367,52 @@
     }
 
     function readRoute() {
-        const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
-        const requestedVersion = parts[0];
-        const requestedFighter = parts[1];
-        const requestedTab = parts[2];
+        const parts = window.location.hash
+            .replace(/^#\/?/, "")
+            .split("/")
+            .filter(Boolean);
         state.version = "umk3uk";
-        if (requestedVersion === "community") {
-            const fighters = currentVersion().fighters;
+        const fighters = currentVersion().fighters;
+        if (parts[0] === "community") {
             if (!fighters.some(item => item.id === state.fighterId)) {
                 state.fighterId = fighters[0].id;
             }
             state.tab = "community";
             return;
         }
-        const fighters = currentVersion().fighters;
-        if (requestedFighter === "secrets") {
+
+        const hashPlatform = Object.prototype.hasOwnProperty.call(
+            platformModel.platforms,
+            parts[0]
+        ) ? parts[0] : "";
+        if ((hashPlatform && parts[1] === "secrets") ||
+            (parts[0] === "umk3uk" && parts[1] === "secrets")) {
+            if (hashPlatform) {
+                applyRoutePlatform(hashPlatform);
+            }
             if (!fighters.some(item => item.id === state.fighterId)) {
                 state.fighterId = fighters[0].id;
             }
             state.tab = "secrets";
             return;
         }
+
+        const directRoute = directPathRoute();
+        if (directRoute) {
+            applyRoutePlatform(directRoute.platform);
+            state.fighterId = directRoute.fighterId;
+            const directTab = parts[0];
+            state.tab = Object.prototype.hasOwnProperty.call(tabLabels, directTab)
+                ? directTab
+                : "moves";
+            return;
+        }
+
+        if (hashPlatform) {
+            applyRoutePlatform(hashPlatform);
+        }
+        const requestedFighter = parts[1];
+        const requestedTab = parts[2];
         state.fighterId = fighters.some(item => item.id === requestedFighter)
             ? requestedFighter
             : fighters[0].id;
@@ -379,10 +512,18 @@
         elements.platformNotice.innerHTML = "";
         elements.platformNotice.hidden = true;
         if (state.tab === "community") {
+            updatePageMetadata(
+                `Онлайн ретро-игры | ${seoData.siteName || "MK3 MoveBook"}`,
+                "Сообщество любителей классических файтингов и ретро-игр."
+            );
             renderCommunityPage();
             return;
         }
         if (state.tab === "secrets") {
+            updatePageMetadata(
+                `Секреты и коды UMK3 | ${seoData.siteName || "MK3 MoveBook"}`,
+                "Секреты, коды, арены и скрытые бойцы аркадной Ultimate Mortal Kombat 3."
+            );
             renderSecretsPage();
             return;
         }
@@ -391,6 +532,7 @@
         const fighterLore = lore.fighters[fighter.id] || {};
         const platformInfo = fighterPlatformData(fighter);
         const fighterAvailable = platformInfo.platforms.includes(state.platform);
+        updateFighterMetadata(fighter, platformInfo);
         const accent = fighterAccents[fighter.name] || "#c39032";
         document.documentElement.style.setProperty("--accent", accent);
         elements.fighterSeal.classList.remove("is-secrets", "is-community");
@@ -1173,7 +1315,7 @@
         } catch {
             // The selected platform still works for the current session.
         }
-        render();
+        setRoute();
     });
 
     elements.rosterList.addEventListener("click", event => {
@@ -1286,10 +1428,18 @@
             setUpdatePanel(false, true);
         }
     });
-    window.addEventListener("hashchange", () => {
+    let lastHandledRoute = "";
+    function handleLocationChange() {
+        const route = `${window.location.pathname}${window.location.hash}`;
+        if (route === lastHandledRoute) {
+            return;
+        }
+        lastHandledRoute = route;
         readRoute();
         render();
-    });
+    }
+    window.addEventListener("hashchange", handleLocationChange);
+    window.addEventListener("popstate", handleLocationChange);
 
     initializeUpdater();
     readRoute();
