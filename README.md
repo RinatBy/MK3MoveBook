@@ -81,8 +81,22 @@ Microsoft Edge WebView2 Runtime, который обычно уже устано
 - динамические `title` и `meta description` с учётом платформы;
 - отдельное честное описание, если боец недоступен в выбранной версии.
 
-Статические страницы по этим адресам генерируются на следующем этапе
-подготовки GitHub Pages.
+Статические страницы по этим адресам создаются генератором и затем могут
+публиковаться в GitHub Pages.
+
+Генерация полного сайта:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\generate-site.ps1 `
+  -WebRoot .\web `
+  -OutputRoot .\.site-dist `
+  -BaseUrl https://rinatby.github.io/MK3MoveBook/
+```
+
+Скрипт создаёт главную, страницы платформ и бойцов, `robots.txt`,
+`sitemap.xml`, canonical и Open Graph. В HTML заранее находятся видимые H1,
+список бойцов и приёмы; JavaScript поверх них включает интерактивную книгу.
+Каталог `.site-dist` является проверочным результатом и не коммитится.
 
 Сборка EXE:
 

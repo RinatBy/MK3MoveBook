@@ -9,3 +9,4 @@ tools/video_temp/
 tools/ocr_*.exe
 tools/ocr_*.png
 web/assets/moves/
+.site-dist/

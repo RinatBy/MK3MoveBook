@@ -297,17 +297,22 @@
             return null;
         }
 
-        const fighterId = parts[platformIndex + 1];
         const fighters = data.versions.umk3uk.fighters;
-        if (!fighters.some(fighter => fighter.id === fighterId)) {
+        const requestedFighter = parts[platformIndex + 1];
+        const landing = !requestedFighter ||
+            requestedFighter.toLowerCase() === "index.html";
+        if (!landing &&
+            !fighters.some(fighter => fighter.id === requestedFighter)) {
             return null;
         }
+        const fighterId = landing ? fighters[0].id : requestedFighter;
 
         const prefix = parts.slice(0, platformIndex);
         return {
             platform: parts[platformIndex],
             fighterId,
-            basePath: prefix.length ? `/${prefix.join("/")}/` : "/"
+            basePath: prefix.length ? `/${prefix.join("/")}/` : "/",
+            landing
         };
     }
 
@@ -334,6 +339,13 @@
         const directRoute = directPathRoute();
         const isFighterPage = !["community", "secrets"].includes(state.tab);
         if (directRoute && isFighterPage) {
+            if (replace && directRoute.landing &&
+                state.platform === directRoute.platform &&
+                state.fighterId === directRoute.fighterId &&
+                state.tab === "moves") {
+                render();
+                return;
+            }
             const tabHash = state.tab === "moves" ? "" : `#${state.tab}`;
             const route =
                 `${directRoute.basePath}${state.platform}/${state.fighterId}/` +
