@@ -1,4 +1,83 @@
 window.MOVEBOOK_DATA = {
+  "platformModel": {
+    "base": "arcade",
+    "platforms": {
+      "arcade": {
+        "label": "АРКАДА",
+        "description": "Аркадная Ultimate Mortal Kombat 3 через MAME",
+        "defaultNotation": "arcade"
+      },
+      "sega": {
+        "label": "SEGA",
+        "description": "Стандартная Ultimate Mortal Kombat 3 для SEGA",
+        "defaultNotation": "sega"
+      }
+    },
+    "fighters": {
+      "default": {
+        "platforms": ["arcade", "sega"]
+      },
+      "overrides": {
+        "human-smoke": {
+          "platformNotes": {
+            "sega": "Скрытый персонаж, доступный через Robot Smoke."
+          }
+        },
+        "sheeva": {
+          "platforms": ["arcade"],
+          "platformStatus": {
+            "sega": "unavailable"
+          },
+          "platformNotes": {
+            "sega": "Нет в стандартной Ultimate Mortal Kombat 3 для SEGA."
+          }
+        },
+        "rain": {
+          "platformNotes": {
+            "sega": "Присутствует в стандартной Ultimate Mortal Kombat 3 для SEGA."
+          }
+        },
+        "noob-saibot": {
+          "platformNotes": {
+            "sega": "Присутствует в стандартной Ultimate Mortal Kombat 3 для SEGA."
+          }
+        },
+        "motaro": {
+          "platformNotes": {
+            "sega": "Открывается отдельно."
+          }
+        },
+        "shao-kahn": {
+          "platformNotes": {
+            "sega": "Открывается отдельно."
+          }
+        }
+      }
+    },
+    "moves": {
+      "default": {
+        "platforms": ["arcade"],
+        "platformStatus": {
+          "sega": "unverified"
+        },
+        "platformNotes": {
+          "sega": "Комбинация для SEGA ещё не проверена."
+        }
+      },
+      "rules": [
+        {
+          "labelPattern": "^Animality\\b",
+          "platforms": ["arcade"],
+          "platformStatus": {
+            "sega": "unavailable"
+          },
+          "platformNotes": {
+            "sega": "Mercy и Animality отсутствуют в стандартной Ultimate Mortal Kombat 3 для SEGA."
+          }
+        }
+      ]
+    }
+  },
   "versions": {
     "umk3uk": {
       "id": "umk3uk",

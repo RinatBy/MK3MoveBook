@@ -37,6 +37,39 @@ Microsoft Edge WebView2 Runtime, который обычно уже устано
 `desktop/MoveBookHost.cs`; браузерный запуск:
 `desktop/MoveBookWebLauncher.cs`.
 
+### Платформенная модель данных
+
+`web/data/moves.js` остаётся единой аркадной базой приёмов. Объект
+`platformModel` добавляет поверх неё доступность для `arcade` и `sega`:
+
+- `fighters.default` задаёт обычную доступность бойца, а
+  `fighters.overrides` хранит только исключения и примечания;
+- `moves.default` считает существующий приём аркадным и не подтверждает его
+  для SEGA до ручной проверки;
+- `moves.rules` описывает общие проверенные исключения, например отсутствие
+  Animality в стандартной версии для SEGA;
+- конкретный боец или приём может переопределить модель полями `platforms`,
+  `platformStatus` и `platformNotes`.
+
+Для подтверждённого отличия приёма на SEGA в сам приём добавляется
+`platformOverrides.sega`. В нём можно независимо указать `notation`,
+`requirements` и `video`, не копируя остальные данные бойца:
+
+```js
+{
+  "label": "Example",
+  "notation": "_4,_6,HP",
+  "platforms": ["arcade", "sega"],
+  "platformOverrides": {
+    "sega": {
+      "notation": "_4,_6,LP",
+      "requirements": "Условие для версии SEGA",
+      "video": "assets/animations/sega/example.webm"
+    }
+  }
+}
+```
+
 Сборка EXE:
 
 ```powershell
