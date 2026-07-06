@@ -411,7 +411,7 @@ function New-StaticPage {
     $Html = $Template
     $Html = [regex]::Replace(
         $Html,
-        '(<a id="portableDownload" class="portable-download"\s+href="[^"]+")\s+hidden>',
+        '(<a id="portableDownload" class="portable-download"[\s\S]*?)\s+hidden>',
         '$1>'
     )
     $Html = [regex]::Replace(
