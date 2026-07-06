@@ -1842,6 +1842,32 @@ button {
     letter-spacing: .04em;
 }
 
+.portable-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 14px;
+    color: #fff5cf;
+    background: linear-gradient(#ae2942, #76182b);
+    border: 1px solid #d9b84e;
+    border-radius: 5px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, .3);
+    font: 10px/1 "Russo One", sans-serif;
+    letter-spacing: .05em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.portable-download:hover {
+    color: #fffbe8;
+    background: linear-gradient(#c73450, #8e1e34);
+}
+
+.portable-download[hidden] {
+    display: none;
+}
+
 .community-entry {
     display: inline-flex;
     align-self: stretch;

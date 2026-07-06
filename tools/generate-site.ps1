@@ -286,6 +286,11 @@ function New-StaticPage {
 "@
 
     $Html = $Template
+    $Html = [regex]::Replace(
+        $Html,
+        '(<a id="portableDownload" class="portable-download"\s+href="[^"]+")\s+hidden>',
+        '$1>'
+    )
     $Html = $Html -replace "<head>", "<head>`r`n    <base href=`"$BaseHref`">"
     $Html = [regex]::Replace(
         $Html,

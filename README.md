@@ -98,6 +98,15 @@ powershell -ExecutionPolicy Bypass -File .\tools\generate-site.ps1 `
 список бойцов и приёмы; JavaScript поверх них включает интерактивную книгу.
 Каталог `.site-dist` является проверочным результатом и не коммитится.
 
+### Публикация GitHub Pages
+
+Workflow `.github/workflows/deploy-pages.yml` запускается после публикации релиза,
+скачивает из него архив `MK3MoveBook-web-<version>.zip`, генерирует статические
+страницы и публикует их по адресу `https://rinatby.github.io/MK3MoveBook/`.
+Ручной запуск требует точный тег релиза. Кнопка «Скачать Portable» показывается
+только на опубликованном сайте и ведёт на последний релиз; в локальной книге она
+скрыта.
+
 Сборка EXE:
 
 ```powershell
