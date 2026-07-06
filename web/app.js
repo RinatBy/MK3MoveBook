@@ -2,6 +2,17 @@
     "use strict";
 
     const data = window.MOVEBOOK_DATA;
+    const platformModel = data.platformModel || {
+        base: "arcade",
+        platforms: {
+            arcade: { label: "АРКАДА" },
+            sega: { label: "SEGA" }
+        },
+        fighters: {
+            default: { platforms: ["arcade", "sega"] },
+            overrides: {}
+        }
+    };
     const lore = window.MOVEBOOK_LORE;
     const tabLabels = {
         moves: "Приёмы",
@@ -68,6 +79,7 @@
         version: "umk3uk",
         fighterId: "kabal",
         tab: "moves",
+        platform: loadPlatform(),
         notation: loadNotation(),
         query: "",
         selectedMoveKey: ""
@@ -75,6 +87,7 @@
 
     const elements = {
         searchInput: document.querySelector("#searchInput"),
+        platformSwitch: document.querySelector("#platformSwitch"),
         rosterList: document.querySelector("#rosterList"),
         fighterCount: document.querySelector("#fighterCount"),
         routeBar: document.querySelector("#routeBar"),
@@ -92,6 +105,7 @@
         updateNotesList: document.querySelector("#updateNotesList"),
         secretsButton: document.querySelector("#secretsButton"),
         fighterSeal: document.querySelector(".fighter-seal"),
+        book: document.querySelector(".book"),
         heroPortrait: document.querySelector("#heroPortrait"),
         fighterTitle: document.querySelector("#fighterTitle"),
         fighterSubtitle: document.querySelector("#fighterSubtitle"),
@@ -102,6 +116,7 @@
         sectionTabs: document.querySelector("#sectionTabs"),
         notationSwitch: document.querySelector(".notation-switch"),
         notationToggle: document.querySelector("#notationToggle"),
+        platformNotice: document.querySelector("#platformNotice"),
         pageContent: document.querySelector("#pageContent"),
         comboFocus: document.querySelector("#comboFocus"),
         communityButton: document.querySelector("#communityButton"),
@@ -124,6 +139,66 @@
         } catch {
             return "umk3";
         }
+    }
+
+    function loadPlatform() {
+        const fallback = platformModel.base || "arcade";
+        try {
+            const saved = localStorage.getItem("movebook-platform");
+            return Object.prototype.hasOwnProperty.call(
+                platformModel.platforms,
+                saved
+            ) ? saved : fallback;
+        } catch {
+            return fallback;
+        }
+    }
+
+    function mergePlatformData(...layers) {
+        return layers.filter(Boolean).reduce((result, layer) => {
+            if (Array.isArray(layer.platforms)) {
+                result.platforms = [...layer.platforms];
+            }
+            ["platformStatus", "platformNotes", "platformOverrides"].forEach(key => {
+                if (layer[key]) {
+                    result[key] = { ...result[key], ...layer[key] };
+                }
+            });
+            return result;
+        }, {
+            platforms: [],
+            platformStatus: {},
+            platformNotes: {},
+            platformOverrides: {}
+        });
+    }
+
+    function fighterPlatformData(fighter) {
+        return mergePlatformData(
+            platformModel.fighters?.default,
+            platformModel.fighters?.overrides?.[fighter.id],
+            fighter
+        );
+    }
+
+    function fighterAvailableOnPlatform(fighter, platform = state.platform) {
+        return fighterPlatformData(fighter).platforms.includes(platform);
+    }
+
+    function platformLabel(platform = state.platform) {
+        return platformModel.platforms?.[platform]?.label || platform.toUpperCase();
+    }
+
+    function fighterUnavailableBadge(platformInfo) {
+        if (state.platform === "sega" &&
+            platformInfo.platforms.includes("arcade")) {
+            return "НЕТ В SEGA";
+        }
+        if (state.platform === "arcade" &&
+            platformInfo.platforms.includes("sega")) {
+            return "ТОЛЬКО НА SEGA";
+        }
+        return "НЕТ В ВЕРСИИ";
     }
 
     const slug = value => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -242,23 +317,61 @@
     function renderRoster() {
         const fighters = currentVersion().fighters;
         const filtered = fighters.filter(fighter => fighterMatches(fighter, state.query));
+        const availableCount = filtered.filter(fighter =>
+            fighterAvailableOnPlatform(fighter)
+        ).length;
         elements.fighterCount.textContent = `${filtered.length} / ${fighters.length}`;
+        elements.fighterCount.title =
+            `${availableCount} доступны в версии ${platformLabel()}`;
         elements.rosterList.innerHTML = filtered.map(fighter => {
             const selected = !["secrets", "community"].includes(state.tab)
                 && fighter.id === state.fighterId;
             const accent = fighterAccents[fighter.name] || "#a62a42";
+            const platformInfo = fighterPlatformData(fighter);
+            const available = platformInfo.platforms.includes(state.platform);
+            const badge = available ? "" : fighterUnavailableBadge(platformInfo);
+            const platformNote = platformInfo.platformNotes[state.platform] || "";
+            const accessibleLabel = available
+                ? fighter.name
+                : `${fighter.name}. ${badge}. ${platformNote}`;
             return `
-                <button class="fighter-card" type="button" role="option"
+                <button class="fighter-card${available ? "" : " is-platform-unavailable"}"
+                    type="button" role="option"
                     data-fighter="${fighter.id}" aria-selected="${selected}"
+                    aria-label="${escapeHtml(accessibleLabel)}"
                     style="--card-accent:${accent}">
                     <img src="${portraitPath(fighter)}" alt="">
-                    <span>${escapeHtml(fighter.name)}</span>
+                    <span>
+                        <b>${escapeHtml(fighter.name)}</b>
+                        ${badge ? `<em>${badge}</em>` : ""}
+                    </span>
                     <small>${String(fighter.number).padStart(2, "0")}</small>
                 </button>`;
         }).join("");
     }
 
+    function renderFighterPlatformNotice(fighter, platformInfo) {
+        const available = platformInfo.platforms.includes(state.platform);
+        elements.book.classList.toggle("is-platform-unavailable", !available);
+        if (available) {
+            elements.platformNotice.innerHTML = "";
+            elements.platformNotice.hidden = true;
+            return;
+        }
+
+        const badge = fighterUnavailableBadge(platformInfo);
+        const note = platformInfo.platformNotes[state.platform] ||
+            `${fighter.name} недоступен в выбранной версии игры.`;
+        elements.platformNotice.innerHTML = `
+            <strong>${escapeHtml(badge)}</strong>
+            <span>${escapeHtml(note)}</span>`;
+        elements.platformNotice.hidden = false;
+    }
+
     function renderFighterPage() {
+        elements.book.classList.remove("is-platform-unavailable");
+        elements.platformNotice.innerHTML = "";
+        elements.platformNotice.hidden = true;
         if (state.tab === "community") {
             renderCommunityPage();
             return;
@@ -270,6 +383,8 @@
 
         const fighter = currentFighter();
         const fighterLore = lore.fighters[fighter.id] || {};
+        const platformInfo = fighterPlatformData(fighter);
+        const fighterAvailable = platformInfo.platforms.includes(state.platform);
         const accent = fighterAccents[fighter.name] || "#c39032";
         document.documentElement.style.setProperty("--accent", accent);
         elements.fighterSeal.classList.remove("is-secrets", "is-community");
@@ -286,7 +401,9 @@
         elements.fighterSubtitle.hidden = false;
         const categories = visibleCategoryEntries(fighter);
         const moveCount = categories.reduce((sum, category) => sum + category.moves.length, 0);
-        elements.fighterSubtitle.textContent = `${moveCount} приёмов`;
+        elements.fighterSubtitle.textContent = fighterAvailable
+            ? `${moveCount} приёмов`
+            : `${fighterUnavailableBadge(platformInfo)} · ${moveCount} аркадных приёмов`;
         elements.rightPageNumber.textContent = (tabLabels[state.tab] || "").toUpperCase();
         elements.bookNoteLabel.textContent =
             state.tab === "moves" ? "Источник комбинаций" : "Источник перевода";
@@ -297,12 +414,16 @@
         elements.bookNoteMeta.hidden = state.tab !== "moves";
         elements.bookNoteMeta.textContent =
             state.tab === "moves"
-                ? `MAME 0.129 · ${fighter.availability || "UMK3 UK / Team Edition"}`
+                ? (state.platform === "arcade"
+                    ? `MAME 0.129 · ${fighter.availability || "UMK3 UK / Team Edition"}`
+                    : (platformInfo.platformNotes.sega ||
+                        "SEGA · комбинации проверяются вручную"))
                 : "";
 
         [...elements.sectionTabs.querySelectorAll("[data-tab]")].forEach(button => {
             button.setAttribute("aria-selected", String(button.dataset.tab === state.tab));
         });
+        renderFighterPlatformNotice(fighter, platformInfo);
         renderRouteBar(fighter);
         if (state.tab === "moves") {
             elements.categoryNav.innerHTML = "";
@@ -329,7 +450,8 @@
 
     function renderRouteBar(fighter) {
         elements.routeBar.innerHTML =
-            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>${escapeHtml(fighter.name)}</b>` +
+            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;${platformLabel()}` +
+            `&nbsp;&nbsp;/&nbsp;&nbsp;<b>${escapeHtml(fighter.name)}</b>` +
             `&nbsp;&nbsp;/&nbsp;&nbsp;${tabLabels[state.tab]}`;
     }
 
@@ -841,6 +963,7 @@
     }
 
     function render() {
+        updatePlatformSwitch();
         renderRoster();
         updateNotationSwitch();
         elements.communityButton.setAttribute(
@@ -848,6 +971,16 @@
             String(state.tab === "community")
         );
         renderFighterPage();
+    }
+
+    function updatePlatformSwitch() {
+        elements.platformSwitch.querySelectorAll("[data-platform]").forEach(button => {
+            button.setAttribute(
+                "aria-pressed",
+                String(button.dataset.platform === state.platform)
+            );
+        });
+        document.documentElement.dataset.platform = state.platform;
     }
 
     function updateNotationSwitch() {
@@ -1019,6 +1152,21 @@
     elements.searchInput.addEventListener("input", event => {
         state.query = event.target.value.trim();
         renderRoster();
+    });
+
+    elements.platformSwitch.addEventListener("click", event => {
+        const button = event.target.closest("[data-platform]");
+        if (!button || button.dataset.platform === state.platform) {
+            return;
+        }
+        state.platform = button.dataset.platform;
+        state.selectedMoveKey = "";
+        try {
+            localStorage.setItem("movebook-platform", state.platform);
+        } catch {
+            // The selected platform still works for the current session.
+        }
+        render();
     });
 
     elements.rosterList.addEventListener("click", event => {

@@ -75,6 +75,19 @@
                     <span aria-hidden="true">⌕</span>
                     <input id="searchInput" type="search" placeholder="Персонаж или приём">
                 </label>
+                <div id="platformSwitch" class="platform-switch"
+                    role="group" aria-label="Версия игры">
+                    <button type="button" data-platform="arcade"
+                        aria-pressed="true" title="Аркадная версия через MAME">
+                        <b>АРКАДА</b>
+                        <small>MAME</small>
+                    </button>
+                    <button type="button" data-platform="sega"
+                        aria-pressed="false" title="Ultimate Mortal Kombat 3 для SEGA">
+                        <b>SEGA</b>
+                        <small>UMK3</small>
+                    </button>
+                </div>
                 <div id="rosterList" class="roster-list" role="listbox"></div>
             </aside>
 
@@ -130,6 +143,8 @@
                             </div>
                         </nav>
 
+                        <div id="platformNotice" class="platform-notice"
+                            role="note" hidden></div>
                         <div id="pageContent" class="page-content"></div>
                         <div id="comboFocus" class="combo-focus" hidden></div>
                         <div class="page-number" id="rightPageNumber"></div>

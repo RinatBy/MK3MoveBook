@@ -357,7 +357,7 @@ button {
 
 .roster-panel {
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
     gap: 10px;
     padding: 16px 12px 12px;
     overflow: hidden;
@@ -414,6 +414,61 @@ button {
     color: #8f7d9c;
 }
 
+.platform-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    background: #130b1b;
+    border: 1px solid #5f496f;
+    border-radius: 7px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, .3);
+}
+
+.platform-switch button {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    height: 34px;
+    padding: 0 7px;
+    color: #9d8aaa;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.platform-switch button:hover {
+    color: #f5e8f7;
+    background: #30203e;
+    border-color: #684e78;
+}
+
+.platform-switch button[aria-pressed="true"] {
+    color: #fff7df;
+    background:
+        linear-gradient(135deg, rgba(181, 42, 66, .96), rgba(94, 27, 55, .98));
+    border-color: #dfbd52;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .2),
+        0 3px 10px rgba(0, 0, 0, .28);
+}
+
+.platform-switch button b {
+    font: 11px/1 "Russo One", sans-serif;
+    letter-spacing: .06em;
+}
+
+.platform-switch button small {
+    color: currentColor;
+    font: 700 7px/1 "Literata", serif;
+    letter-spacing: .08em;
+    opacity: .72;
+}
+
 .roster-list {
     display: grid;
     align-content: start;
@@ -463,7 +518,13 @@ button {
 }
 
 .fighter-card span {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
     padding: 0 10px;
+}
+
+.fighter-card span b {
     overflow: hidden;
     font: 14px/1.1 "Russo One", sans-serif;
     text-overflow: ellipsis;
@@ -471,9 +532,47 @@ button {
     white-space: nowrap;
 }
 
-.fighter-card small {
+.fighter-card span em {
+    width: max-content;
+    max-width: 100%;
+    padding: 3px 5px 2px;
+    overflow: hidden;
+    color: #f7e5ad;
+    background: rgba(111, 26, 43, .9);
+    border: 1px solid rgba(235, 190, 75, .5);
+    border-radius: 3px;
+    font: 8px/1 "Russo One", sans-serif;
+    font-style: normal;
+    letter-spacing: .04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fighter-card > small {
     color: rgba(255, 255, 255, .55);
     font: 700 10px/1 "Literata", serif;
+}
+
+.fighter-card.is-platform-unavailable {
+    opacity: .7;
+    background: linear-gradient(90deg, rgba(52, 48, 57, .96), rgba(35, 31, 40, .92));
+    border-color: #605963;
+}
+
+.fighter-card.is-platform-unavailable:hover {
+    opacity: .9;
+    border-color: #958a99;
+    background: #464047;
+}
+
+.fighter-card.is-platform-unavailable[aria-selected="true"] {
+    opacity: .88;
+    background: linear-gradient(90deg, #4f464d, #342d35);
+    border-color: #dfbd52;
+}
+
+.fighter-card.is-platform-unavailable img {
+    filter: grayscale(1) brightness(.72) contrast(1.08);
 }
 
 .reader {
@@ -534,7 +633,7 @@ button {
 
 .book-page-right {
     display: grid;
-    grid-template-rows: 54px minmax(0, 1fr) auto;
+    grid-template-rows: 54px auto minmax(0, 1fr) auto;
     padding: 20px 24px 34px;
     border-radius: 3px 12px 12px 3px;
     box-shadow: inset 18px 0 28px rgba(84, 52, 36, .09);
@@ -542,6 +641,14 @@ button {
 
 .book-page-right.is-global-page {
     grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.book-page-right.is-global-page .page-content {
+    grid-row: 1;
+}
+
+.book-page-right.is-global-page .combo-focus {
+    grid-row: 2;
 }
 
 .book-gutter {
@@ -585,6 +692,10 @@ button {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.book.is-platform-unavailable .fighter-seal img {
+    filter: grayscale(1) brightness(.75) contrast(1.08);
 }
 
 .fighter-seal.is-secrets {
@@ -858,6 +969,7 @@ button {
 .section-tabs {
     position: relative;
     z-index: 2;
+    grid-row: 1;
     display: flex;
     align-items: end;
     gap: 5px;
@@ -892,6 +1004,42 @@ button {
     background: linear-gradient(#b52a42, #811b2e);
     border-color: #651424;
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, .25);
+}
+
+.platform-notice {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-row: 2;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    margin: 10px 10px 0;
+    padding: 10px 12px;
+    color: #4b2b31;
+    background:
+        linear-gradient(90deg, rgba(176, 41, 61, .16), rgba(117, 82, 68, .08));
+    border: 1px solid rgba(151, 35, 53, .38);
+    border-left: 5px solid #a5263c;
+    border-radius: 5px;
+}
+
+.platform-notice[hidden] {
+    display: none;
+}
+
+.platform-notice strong {
+    padding: 5px 7px 4px;
+    color: #fff4d4;
+    background: #8f2135;
+    border-radius: 3px;
+    font: 10px/1 "Russo One", sans-serif;
+    letter-spacing: .05em;
+    white-space: nowrap;
+}
+
+.platform-notice span {
+    font: 700 11px/1.35 "Literata", serif;
 }
 
 .notation-switch {
@@ -971,6 +1119,7 @@ button {
 .page-content {
     position: relative;
     z-index: 1;
+    grid-row: 3;
     min-height: 0;
     padding: 14px 10px 30px;
     overflow-y: auto;
@@ -1087,6 +1236,7 @@ button {
 .combo-focus {
     position: relative;
     z-index: 3;
+    grid-row: 4;
     margin: 0 10px;
     padding: 12px 14px 14px;
     color: #fff9ed;
