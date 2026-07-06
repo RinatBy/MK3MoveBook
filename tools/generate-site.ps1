@@ -204,7 +204,7 @@ function Get-MovePlatformInfo {
     if ($OnlySega) {
         $Badge = "ТОЛЬКО НА SEGA"
         $BadgeKind = "sega-only"
-    } elseif ($Status -eq "unavailable" -or $Platforms -notcontains $Platform) {
+    } elseif ($Status -eq "unavailable") {
         $Badge = if ($Platform -eq "sega") {
             "НЕТ НА SEGA"
         } else {

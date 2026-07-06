@@ -287,7 +287,7 @@
                 note: ""
             };
         }
-        if (status === "unavailable" || !platforms.includes(platform)) {
+        if (status === "unavailable") {
             return {
                 kind: "unavailable",
                 label: platform === "sega"
