@@ -86,7 +86,7 @@
         fighterId: "kabal",
         tab: "moves",
         platform: initialPlatform,
-        notation: loadNotation(initialPlatform),
+        notation: loadNotation(),
         query: "",
         selectedMoveKey: ""
     };
@@ -184,18 +184,12 @@
         }
     }
 
-    function loadNotation(platform) {
-        const fallback =
-            platformModel.platforms?.[platform]?.defaultNotation === "sega"
-                ? "sega"
-                : "arcade";
+    function loadNotation() {
         try {
-            const saved = localStorage.getItem(
-                `movebook-notation-${platform}`
-            );
-            return ["arcade", "sega"].includes(saved) ? saved : fallback;
+            const saved = localStorage.getItem("movebook-notation");
+            return ["arcade", "sega"].includes(saved) ? saved : "arcade";
         } catch {
-            return fallback;
+            return "arcade";
         }
     }
 
@@ -430,11 +424,7 @@
         )) {
             return;
         }
-        const changed = state.platform !== platform;
         state.platform = platform;
-        if (changed) {
-            state.notation = loadNotation(platform);
-        }
         try {
             localStorage.setItem("movebook-platform", platform);
         } catch {
@@ -1455,7 +1445,6 @@
             return;
         }
         state.platform = button.dataset.platform;
-        state.notation = loadNotation(state.platform);
         state.selectedMoveKey = "";
         try {
             localStorage.setItem("movebook-platform", state.platform);
@@ -1528,10 +1517,7 @@
     elements.notationToggle.addEventListener("click", () => {
         state.notation = state.notation === "arcade" ? "sega" : "arcade";
         try {
-            localStorage.setItem(
-                `movebook-notation-${state.platform}`,
-                state.notation
-            );
+            localStorage.setItem("movebook-notation", state.notation);
         } catch {
             // The selected notation still works for the current session.
         }
