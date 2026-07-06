@@ -417,8 +417,8 @@ button {
 .platform-switch {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    padding: 4px;
+    gap: 3px;
+    padding: 3px;
     background: #130b1b;
     border: 1px solid #5f496f;
     border-radius: 7px;
@@ -426,14 +426,13 @@ button {
 }
 
 .platform-switch button {
-    display: grid;
-    grid-template-columns: auto auto;
-    align-items: baseline;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
-    height: 34px;
-    padding: 0 7px;
+    height: 28px;
+    padding: 1px 6px 0;
     color: #9d8aaa;
     background: transparent;
     border: 1px solid transparent;
@@ -458,13 +457,15 @@ button {
 }
 
 .platform-switch button b {
-    font: 11px/1 "Russo One", sans-serif;
+    display: block;
+    font: 10px/1 "Russo One", sans-serif;
     letter-spacing: .06em;
 }
 
 .platform-switch button small {
+    display: block;
     color: currentColor;
-    font: 700 7px/1 "Literata", serif;
+    font: 700 6px/1 "Literata", serif;
     letter-spacing: .08em;
     opacity: .72;
 }
