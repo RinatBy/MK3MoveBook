@@ -1,0 +1,81 @@
+name: Deploy GitHub Pages from release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Exact release tag to deploy (for example v1.1.8)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out site tooling
+        uses: actions/checkout@v4
+
+      - name: Resolve and download web release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ inputs.release_tag }}"
+          if ("${{ github.event_name }}" -eq "release") {
+            $tag = "${{ github.event.release.tag_name }}"
+          }
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw "A release tag is required"
+          }
+          $version = $tag.TrimStart("v")
+          $asset = "MK3MoveBook-web-$version.zip"
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          gh release download $tag --pattern $asset --dir release
+          $archive = Join-Path release $asset
+          if (-not (Test-Path -LiteralPath $archive)) {
+            throw "Release asset not found: $asset"
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath release/extracted
+          $webRoot = Join-Path $PWD "release/extracted/web"
+          if (-not (Test-Path -LiteralPath (Join-Path $webRoot "index.html"))) {
+            throw "The release archive does not contain web/index.html"
+          }
+          "WEB_ROOT=$webRoot" >> $env:GITHUB_ENV
+
+      - name: Generate static site
+        shell: pwsh
+        run: |
+          ./tools/generate-site.ps1 `
+            -WebRoot $env:WEB_ROOT `
+            -OutputRoot .site-dist `
+            -BaseUrl https://rinatby.github.io/MK3MoveBook/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .site-dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

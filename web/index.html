@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta id="metaDescription" name="description"
+        content="Интерактивная книга приёмов Ultimate Mortal Kombat 3.">
+    <meta name="theme-color" content="#140c1d">
+    <title>MK3 MoveBook</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="brand-mark" aria-hidden="true"></div>
+            <div class="brand-copy">
+                <strong>MK3 MOVEBOOK</strong>
+                <span>интерактивная книга бойца</span>
+            </div>
+
+            <nav class="history-controls" aria-label="Навигация">
+                <button id="backButton" class="chrome-button" type="button" title="Назад">←</button>
+                <button id="forwardButton" class="chrome-button" type="button" title="Вперёд">→</button>
+            </nav>
+
+            <div id="routeBar" class="route-bar" aria-label="Текущая страница"></div>
+
+            <div class="update-control">
+                <button id="updateButton" class="update-button" type="button"
+                    data-state="idle" title="Открыть обновления"
+                    aria-expanded="false" aria-controls="updatePanel">
+                    <span aria-hidden="true">↻</span>
+                    <b>Обновления</b>
+                </button>
+                <section id="updatePanel" class="update-panel" role="dialog"
+                    aria-label="Обновления MK3 MoveBook" hidden>
+                    <header class="update-panel-heading">
+                        <div>
+                            <span>Центр обновлений</span>
+                            <strong id="updatePanelVersion"></strong>
+                        </div>
+                        <button id="updatePanelClose" type="button"
+                            title="Закрыть">×</button>
+                    </header>
+                    <p id="updatePanelStatus">Проверяем обновления…</p>
+                    <div id="updateProgress" class="update-progress"
+                        role="progressbar" aria-label="Загрузка обновления"
+                        aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow="0" hidden>
+                        <div class="update-progress-track">
+                            <span id="updateProgressBar"></span>
+                        </div>
+                        <div class="update-progress-meta">
+                            <strong id="updateProgressPercent">0%</strong>
+                            <span id="updateProgressBytes"></span>
+                        </div>
+                    </div>
+                    <button id="updateActionButton" class="update-action-button"
+                        type="button">Проверить обновления</button>
+                    <div class="update-notes">
+                        <span>Что нового</span>
+                        <h3 id="updateNotesTitle"></h3>
+                        <ul id="updateNotesList"></ul>
+                    </div>
+                </section>
+            </div>
+
+        </header>
+
+        <div class="workspace">
+            <aside class="roster-panel">
+                <div class="roster-heading">
+                    <p>Выберите бойца</p>
+                    <strong id="fighterCount"></strong>
+                </div>
+                <label class="search-box">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="searchInput" type="search" placeholder="Персонаж или приём">
+                </label>
+                <div id="platformSwitch" class="platform-switch"
+                    role="group" aria-label="Версия игры">
+                    <button type="button" data-platform="arcade"
+                        aria-pressed="true" title="Аркадная версия через MAME">
+                        <b>АРКАДА</b>
+                        <small>MAME</small>
+                    </button>
+                    <button type="button" data-platform="sega"
+                        aria-pressed="false" title="Ultimate Mortal Kombat 3 для SEGA">
+                        <b>SEGA</b>
+                        <small>UMK3</small>
+                    </button>
+                </div>
+                <div id="rosterList" class="roster-list" role="listbox"></div>
+            </aside>
+
+            <main class="reader">
+                <div class="reader-backdrop" aria-hidden="true"></div>
+                <article class="book" aria-label="Книга приёмов">
+                    <section class="book-page book-page-left">
+                        <div class="page-corner page-corner-left" aria-hidden="true"></div>
+                        <div class="fighter-seal">
+                            <img id="heroPortrait" alt="">
+                        </div>
+                        <p class="edition-label">ULTIMATE KOMBAT DOSSIER</p>
+                        <h1 id="fighterTitle"></h1>
+                        <div class="ornament" aria-hidden="true"><span>◆</span></div>
+                        <p id="fighterSubtitle" class="fighter-subtitle"></p>
+
+                        <div class="contents-title">Содержание</div>
+                        <nav id="categoryNav" class="category-nav"></nav>
+
+                        <section id="movePreview" class="move-preview" hidden>
+                            <video id="movePreviewVideo" muted loop playsinline
+                                preload="metadata"></video>
+                            <div id="moveRequirement" class="move-requirement"
+                                role="note" hidden></div>
+                        </section>
+
+                        <div class="book-note">
+                            <span id="bookNoteLabel">Источник комбинаций</span>
+                            <strong id="bookNoteValue">command.dat</strong>
+                            <small id="bookNoteMeta">Набор приёмов для MAME 0.129</small>
+                        </div>
+                    </section>
+
+                    <div class="book-gutter" aria-hidden="true"></div>
+
+                    <section class="book-page book-page-right">
+                        <div class="page-corner page-corner-right" aria-hidden="true"></div>
+                        <nav id="sectionTabs" class="section-tabs" aria-label="Разделы персонажа">
+                            <button type="button" data-tab="moves">Приёмы</button>
+                            <button type="button" data-tab="history">История</button>
+                            <button type="button" data-tab="facts">Факты</button>
+                            <button id="secretsButton" type="button"
+                                data-tab="secrets">Секреты и коды</button>
+                            <div class="notation-switch">
+                                <span>Кнопки</span>
+                                <button id="notationToggle" class="notation-toggle"
+                                    type="button" role="switch" aria-checked="false"
+                                    title="Переключить обозначения АРКАДА / SEGA">
+                                    <i aria-hidden="true"></i>
+                                    <b>АРКАДА</b>
+                                    <b>SEGA</b>
+                                </button>
+                            </div>
+                        </nav>
+
+                        <div id="platformNotice" class="platform-notice"
+                            role="note" hidden></div>
+                        <div id="pageContent" class="page-content"></div>
+                        <div id="comboFocus" class="combo-focus" hidden></div>
+                        <div class="page-number" id="rightPageNumber"></div>
+                    </section>
+                </article>
+            </main>
+        </div>
+
+        <footer class="statusbar">
+            <button id="communityButton" class="community-entry" type="button"
+                aria-pressed="false" title="Открыть страницу сообщества">
+                <img src="assets/community/ori-logo.gif" alt="">
+                <span>Онлайн ретро-игры</span>
+            </button>
+            <a id="portableDownload" class="portable-download"
+                href="https://github.com/RinatBy/MK3MoveBook/releases/latest"
+                hidden>Скачать Portable</a>
+            <span id="statusText">Готово</span>
+        </footer>
+    </div>
+
+    <script src="data/moves.js"></script>
+    <script src="data/lore.js"></script>
+    <script>
+        document.write('<script src="data/animations.js?v=' + Date.now() + '"><\/script>');
+    </script>
+    <script src="data/changelog.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
