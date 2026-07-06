@@ -1054,7 +1054,15 @@ window.MOVEBOOK_DATA = {
             {
               "name": "Special Moves",
               "moves": [
-                {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"}
+                {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"},
+                {"label":"Special Move 1","notation":"_6,_6,HP","pretty":"→,→,HP","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация для SEGA добавлена по присланному списку и требует проверки."}},
+                {"label":"Special Move 2","notation":"_2,_6,LP","pretty":"↓,→,LP","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация для SEGA добавлена по присланному списку и требует проверки."}}
+              ]
+            },
+            {
+              "name": "Finishing Moves",
+              "moves": [
+                {"label":"Brutality","notation":"HP,LK,LP,BL,LK,HK,HP,LP,BL,LK,HK","pretty":"HP,LK,LP,BL,LK,HK,HP,LP,BL,LK,HK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация Brutality для SEGA добавлена по присланному списку и требует проверки."}}
               ]
             },
             {
@@ -1065,7 +1073,12 @@ window.MOVEBOOK_DATA = {
                 {"label":"(19%)","notation":"HK,_2_+LP,_2_+HP(juggle)","pretty":"HK,↓+LP,↓+HP(juggle)"},
                 {"label":"(22%)","notation":"HP,HP,_2_+LP,_2_+HP(juggle)","pretty":"HP,HP,↓+LP,↓+HP(juggle)"},
                 {"label":"(23%)","notation":"[LK/HK],HK,LK,_4_+HK","pretty":"[LK/HK],HK,LK,←+HK"},
-                {"label":"(27%)","notation":"HP,HP,HK,HK,LK,_4_+HK","pretty":"HP,HP,HK,HK,LK,←+HK"}
+                {"label":"(27%)","notation":"HP,HP,HK,HK,LK,_4_+HK","pretty":"HP,HP,HK,HK,LK,←+HK"},
+                {"label":"Combo 1","notation":"LK,LK,LK","pretty":"LK,LK,LK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
+                {"label":"Combo 2","notation":"HP,HP,LP,HK","pretty":"HP,HP,LP,HK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
+                {"label":"Combo 3","notation":"HP,HP,LP,HK,_2,_8,_6","pretty":"HP,HP,LP,HK,↓,↑,→","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
+                {"label":"Combo 4","notation":"_8,HK,LK,LP,HP,HP,HP,LP,HK,_2,_8,_6","pretty":"↑,HK,LK,LP,HP,HP,HP,LP,HK,↓,↑,→","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
+                {"label":"Combo 5","notation":"_8,LP,HP,LK,HK,HK,LK,LK,LK","pretty":"↑,LP,HP,LK,HK,HK,LK,LK,LK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}}
               ]
             }
           ]

@@ -724,6 +724,23 @@ button {
     object-fit: contain;
 }
 
+.fighter-seal.is-toasty-trigger {
+    cursor: pointer;
+    transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.fighter-seal.is-toasty-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 0 0 4px #f0c95c,
+        0 10px 20px rgba(52, 24, 30, .4);
+}
+
+.fighter-seal.is-toasty-trigger:focus-visible {
+    outline: 3px solid rgba(242, 205, 83, .75);
+    outline-offset: 6px;
+}
+
 .fighter-seal.is-community {
     width: 132px;
     height: 132px;
@@ -1202,8 +1219,35 @@ button {
 }
 
 .move-name {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
     color: #34262b;
     font: 750 16px/1.2 "Literata", serif;
+}
+
+.move-platform-badge {
+    display: inline-flex;
+    padding: 3px 6px;
+    color: #fff8dc;
+    background: #775824;
+    border: 1px solid rgba(113, 72, 23, .35);
+    border-radius: 3px;
+    font: 8px/1 "Russo One", sans-serif;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.move-platform-badge.is-sega-only {
+    background: #5f3c77;
+    border-color: #8764a0;
+}
+
+.move-platform-badge.is-unavailable {
+    color: #f5e9e9;
+    background: #6f3d45;
+    border-color: #96616a;
 }
 
 .move-command,
@@ -1883,6 +1927,33 @@ button {
     display: none;
 }
 
+.toasty-easter-egg {
+    position: fixed;
+    right: 0;
+    bottom: 34px;
+    z-index: 80;
+    width: min(24vw, 220px);
+    max-width: 42vh;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(calc(100% + 24px));
+    transition:
+        transform .18s cubic-bezier(.18, .9, .2, 1.2),
+        opacity .08s linear;
+}
+
+.toasty-easter-egg.is-visible {
+    opacity: 1;
+    transform: translateX(8px);
+}
+
+.toasty-easter-egg img {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(-8px 8px 10px rgba(0, 0, 0, .5));
+}
+
 .community-entry {
     display: inline-flex;
     align-self: stretch;
@@ -2021,5 +2092,10 @@ button {
 
     .community-card {
         min-height: 108px;
+    }
+
+    .toasty-easter-egg {
+        bottom: 46px;
+        width: min(36vw, 170px);
     }
 }

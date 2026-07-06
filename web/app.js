@@ -134,9 +134,55 @@
         bookNoteLabel: document.querySelector("#bookNoteLabel"),
         bookNoteValue: document.querySelector("#bookNoteValue"),
         bookNoteMeta: document.querySelector("#bookNoteMeta"),
+        toastyEasterEgg: document.querySelector("#toastyEasterEgg"),
         backButton: document.querySelector("#backButton"),
         forwardButton: document.querySelector("#forwardButton")
     };
+
+    let toastyAudio = null;
+    let toastyTimer = 0;
+
+    function setToastyTrigger(enabled) {
+        elements.fighterSeal.classList.toggle("is-toasty-trigger", enabled);
+        if (enabled) {
+            elements.fighterSeal.setAttribute("role", "button");
+            elements.fighterSeal.setAttribute("tabindex", "0");
+            elements.fighterSeal.setAttribute("aria-label", "Toasty");
+            elements.fighterSeal.setAttribute("title", "Toasty!");
+        } else {
+            elements.fighterSeal.removeAttribute("role");
+            elements.fighterSeal.removeAttribute("tabindex");
+            elements.fighterSeal.removeAttribute("aria-label");
+            elements.fighterSeal.removeAttribute("title");
+        }
+    }
+
+    function triggerToasty() {
+        if (!elements.toastyEasterEgg) {
+            return;
+        }
+        elements.toastyEasterEgg.classList.remove("is-visible");
+        // Restart the short pop-out animation on quick repeated clicks.
+        void elements.toastyEasterEgg.offsetWidth;
+        elements.toastyEasterEgg.classList.add("is-visible");
+        clearTimeout(toastyTimer);
+        toastyTimer = window.setTimeout(() => {
+            elements.toastyEasterEgg.classList.remove("is-visible");
+        }, 1450);
+
+        try {
+            if (!toastyAudio) {
+                toastyAudio = new Audio("assets/easter-eggs/toasty.mp3");
+            }
+            toastyAudio.currentTime = 0;
+            const playPromise = toastyAudio.play();
+            if (playPromise?.catch) {
+                playPromise.catch(() => {});
+            }
+        } catch {
+            // Some browsers can block audio; the visual easter egg still works.
+        }
+    }
 
     function loadNotation(platform) {
         const fallback =
@@ -195,6 +241,62 @@
 
     function fighterAvailableOnPlatform(fighter, platform = state.platform) {
         return fighterPlatformData(fighter).platforms.includes(platform);
+    }
+
+    function movePlatformData(move) {
+        const matchingRules = (platformModel.moves?.rules || []).filter(rule => {
+            if (!rule.labelPattern) {
+                return false;
+            }
+            try {
+                return new RegExp(rule.labelPattern, "i")
+                    .test(String(move.label || ""));
+            } catch {
+                return false;
+            }
+        });
+        return mergePlatformData(
+            platformModel.moves?.default,
+            ...matchingRules,
+            move
+        );
+    }
+
+    function resolvedMoveData(move, platform = state.platform) {
+        const platformInfo = movePlatformData(move);
+        const platformOverride =
+            platformInfo.platformOverrides?.[platform] || {};
+        return {
+            move: { ...move, ...platformOverride },
+            platformInfo
+        };
+    }
+
+    function movePlatformBadge(platformInfo, platform = state.platform) {
+        const platforms = platformInfo.platforms || [];
+        const status = platformInfo.platformStatus?.[platform] || "";
+        const onlySega =
+            platforms.length === 1 && platforms.includes("sega");
+        const note = platformInfo.platformNotes?.[platform] ||
+            platformInfo.platformNotes?.sega || "";
+
+        if (onlySega) {
+            return {
+                kind: "sega-only",
+                label: "ТОЛЬКО НА SEGA",
+                note: ""
+            };
+        }
+        if (status === "unavailable" || !platforms.includes(platform)) {
+            return {
+                kind: "unavailable",
+                label: platform === "sega"
+                    ? "НЕТ НА SEGA"
+                    : "НЕТ В ЭТОЙ ВЕРСИИ",
+                note
+            };
+        }
+        return null;
     }
 
     function platformLabel(platform = state.platform) {
@@ -264,7 +366,11 @@
 
     function visibleMoveEntries(category) {
         return category.moves
-            .map((move, moveIndex) => ({ move, moveIndex }))
+            .map((sourceMove, moveIndex) => ({
+                sourceMove,
+                moveIndex,
+                ...resolvedMoveData(sourceMove)
+            }))
             .filter(({ move }) => !hasTrilogyMarker(move.label));
     }
 
@@ -549,6 +655,7 @@
         const accent = fighterAccents[fighter.name] || "#c39032";
         document.documentElement.style.setProperty("--accent", accent);
         elements.fighterSeal.classList.remove("is-secrets", "is-community");
+        setToastyTrigger(false);
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
         elements.notationSwitch.hidden = state.tab !== "moves";
@@ -630,6 +737,7 @@
         document.documentElement.style.setProperty("--accent", "#d8ad31");
         elements.fighterSeal.classList.remove("is-community");
         elements.fighterSeal.classList.add("is-secrets");
+        setToastyTrigger(true);
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
         elements.notationSwitch.hidden = true;
@@ -667,6 +775,7 @@
         document.documentElement.style.setProperty("--accent", "#b66b32");
         elements.fighterSeal.classList.remove("is-secrets");
         elements.fighterSeal.classList.add("is-community");
+        setToastyTrigger(false);
         elements.sectionTabs.hidden = true;
         elements.sectionTabs.parentElement.classList.add("is-global-page");
         elements.notationSwitch.hidden = true;
@@ -756,9 +865,20 @@
                 <div class="move-list">
                     ${moves.map(({ move, moveIndex }) => {
                         const key = `${categoryIndex}:${moveIndex}`;
+                        const badge = movePlatformBadge(
+                            movePlatformData(category.moves[moveIndex])
+                        );
+                        const badgeMarkup = badge
+                            ? `<em class="move-platform-badge is-${badge.kind}" ` +
+                                `${badge.note ? `title="${escapeHtml(badge.note)}" ` : ""}>` +
+                                `${escapeHtml(badge.label)}</em>`
+                            : "";
                         return `
                             <article class="move-card" tabindex="0" data-move="${key}">
-                                <div class="move-name">${escapeHtml(move.label || "Без названия")}</div>
+                                <div class="move-name">
+                                    <span>${escapeHtml(move.label || "Без названия")}</span>
+                                    ${badgeMarkup}
+                                </div>
                                 <div class="move-command">${renderSequence(move.notation)}</div>
                             </article>`;
                     }).join("")}
@@ -1031,10 +1151,12 @@
         const fighter = currentFighter();
         const [categoryIndex, moveIndex] = key.split(":").map(Number);
         const category = fighter.categories[categoryIndex];
-        const move = category?.moves[moveIndex];
-        if (!move) {
+        const sourceMove = category?.moves[moveIndex];
+        if (!sourceMove) {
             return;
         }
+        const { move, platformInfo } = resolvedMoveData(sourceMove);
+        const badge = movePlatformBadge(platformInfo);
         state.selectedMoveKey = key;
         elements.pageContent.querySelectorAll(".move-card").forEach(card => {
             card.classList.toggle("is-selected", card.dataset.move === key);
@@ -1042,7 +1164,9 @@
         elements.comboFocus.innerHTML = `
             <div class="combo-focus-header">
                 <strong>${escapeHtml(move.label || "Комбинация")}</strong>
-                <span>${escapeHtml(category.name)}</span>
+                <span>${escapeHtml(
+                    category.name + (badge ? ` · ${badge.label}` : "")
+                )}</span>
             </div>
             <div class="combo-keys">${renderSequence(move.notation)}</div>`;
         elements.comboFocus.hidden = false;
@@ -1094,7 +1218,8 @@
     }
 
     function showMovePreview(fighter, category, move) {
-        const source = moveAnimations[moveAnimationKey(fighter, category, move)];
+        const source = move.video ||
+            moveAnimations[moveAnimationKey(fighter, category, move)];
         if (!source) {
             hideMovePreview();
             return;
@@ -1355,6 +1480,20 @@
         state.tab = "community";
         state.selectedMoveKey = "";
         setRoute();
+    });
+
+    elements.fighterSeal.addEventListener("click", () => {
+        if (state.tab === "secrets") {
+            triggerToasty();
+        }
+    });
+
+    elements.fighterSeal.addEventListener("keydown", event => {
+        if (state.tab === "secrets" &&
+            (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            triggerToasty();
+        }
     });
 
     elements.updateButton.addEventListener("click", () => {

@@ -121,6 +121,116 @@ function Convert-Notation {
     return $Result
 }
 
+function Get-MovePlatformInfo {
+    param(
+        [object]$Move,
+        [string]$Platform
+    )
+    $Layers = New-Object System.Collections.Generic.List[object]
+    $Default = Get-PropertyValue -Object $Data.platformModel.moves -Name "default"
+    if ($null -ne $Default) {
+        $Layers.Add($Default)
+    }
+    $Rules = Get-PropertyValue -Object $Data.platformModel.moves -Name "rules"
+    foreach ($Rule in @($Rules)) {
+        $Pattern = Get-PropertyValue -Object $Rule -Name "labelPattern"
+        if ($Pattern -and [string]$Move.label -match [string]$Pattern) {
+            $Layers.Add($Rule)
+        }
+    }
+    $Layers.Add($Move)
+
+    $Platforms = @()
+    $Statuses = @{}
+    $Notes = @{}
+    $Overrides = @{}
+    foreach ($Layer in $Layers) {
+        $LayerPlatforms = Get-PropertyValue -Object $Layer -Name "platforms"
+        if ($null -ne $LayerPlatforms) {
+            $Platforms = @($LayerPlatforms)
+        }
+        $LayerStatuses = Get-PropertyValue -Object $Layer -Name "platformStatus"
+        $LayerNotes = Get-PropertyValue -Object $Layer -Name "platformNotes"
+        $LayerOverrides = Get-PropertyValue -Object $Layer -Name "platformOverrides"
+        foreach ($PlatformName in @("arcade", "sega")) {
+            $Status = Get-PropertyValue -Object $LayerStatuses -Name $PlatformName
+            if ($null -ne $Status) {
+                $Statuses[$PlatformName] = [string]$Status
+            }
+            $Note = Get-PropertyValue -Object $LayerNotes -Name $PlatformName
+            if ($null -ne $Note) {
+                $Notes[$PlatformName] = [string]$Note
+            }
+            $Override = Get-PropertyValue -Object $LayerOverrides -Name $PlatformName
+            if ($null -ne $Override) {
+                $Overrides[$PlatformName] = $Override
+            }
+        }
+    }
+
+    $PlatformOverride = if ($Overrides.ContainsKey($Platform)) {
+        $Overrides[$Platform]
+    } else {
+        $null
+    }
+    $Label = Get-PropertyValue -Object $PlatformOverride -Name "label"
+    if (-not $Label) {
+        $Label = $Move.label
+    }
+    $Notation = Get-PropertyValue -Object $PlatformOverride -Name "notation"
+    if (-not $Notation) {
+        $Notation = $Move.notation
+    }
+    $Pretty = Get-PropertyValue -Object $PlatformOverride -Name "pretty"
+    if (-not $Pretty) {
+        $Pretty = if (Get-PropertyValue -Object $PlatformOverride -Name "notation") {
+            $Notation
+        } else {
+            Get-PropertyValue -Object $Move -Name "pretty"
+        }
+    }
+    if (-not $Pretty) {
+        $Pretty = $Notation
+    }
+
+    $Status = if ($Statuses.ContainsKey($Platform)) {
+        $Statuses[$Platform]
+    } else {
+        ""
+    }
+    $OnlySega = $Platforms.Count -eq 1 -and $Platforms -contains "sega"
+    $Badge = ""
+    $BadgeKind = ""
+    if ($OnlySega) {
+        $Badge = "ТОЛЬКО НА SEGA"
+        $BadgeKind = "sega-only"
+    } elseif ($Status -eq "unavailable" -or $Platforms -notcontains $Platform) {
+        $Badge = if ($Platform -eq "sega") {
+            "НЕТ НА SEGA"
+        } else {
+            "НЕТ В ЭТОЙ ВЕРСИИ"
+        }
+        $BadgeKind = "unavailable"
+    }
+    $Note = if ($OnlySega) {
+        ""
+    } elseif ($Notes.ContainsKey($Platform)) {
+        $Notes[$Platform]
+    } elseif ($Notes.ContainsKey("sega")) {
+        $Notes["sega"]
+    } else {
+        ""
+    }
+
+    return [pscustomobject]@{
+        Label = [string]$Label
+        Pretty = [string]$Pretty
+        Badge = $Badge
+        BadgeKind = $BadgeKind
+        Note = $Note
+    }
+}
+
 function New-MoveMarkup {
     param(
         [object]$Fighter,
@@ -138,14 +248,27 @@ function New-MoveMarkup {
                 continue
             }
             $MoveCount++
-            $Pretty = Get-PropertyValue -Object $Move -Name "pretty"
-            if (-not $Pretty) {
-                $Pretty = $Move.notation
+            $MoveInfo = Get-MovePlatformInfo -Move $Move -Platform $Platform
+            $Pretty = Convert-Notation `
+                -Notation $MoveInfo.Pretty `
+                -Platform $Platform
+            $BadgeMarkup = if ($MoveInfo.Badge) {
+                $Title = if ($MoveInfo.Note) {
+                    " title=""$(ConvertTo-HtmlText $MoveInfo.Note)"""
+                } else {
+                    ""
+                }
+                "<em class=""move-platform-badge is-$($MoveInfo.BadgeKind)""$Title>" +
+                    "$(ConvertTo-HtmlText $MoveInfo.Badge)</em>"
+            } else {
+                ""
             }
-            $Pretty = Convert-Notation -Notation ([string]$Pretty) -Platform $Platform
             $MoveRows.Add(@"
                             <article class="move-card">
-                                <div class="move-name">$(ConvertTo-HtmlText $Move.label)</div>
+                                <div class="move-name">
+                                    <span>$(ConvertTo-HtmlText $MoveInfo.Label)</span>
+                                    $BadgeMarkup
+                                </div>
                                 <div class="move-command">
                                     <span class="sequence-text">$(ConvertTo-HtmlText $Pretty)</span>
                                 </div>
