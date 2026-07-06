@@ -1071,7 +1071,7 @@ button {
     position: relative;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    width: 104px;
+    width: 124px;
     height: 28px;
     padding: 2px;
     overflow: hidden;
@@ -1967,7 +1967,7 @@ button {
     }
 
     .notation-toggle {
-        width: 90px;
+        width: 112px;
     }
 
     .unlock-grid {

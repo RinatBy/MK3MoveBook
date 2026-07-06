@@ -75,12 +75,13 @@
     const latestReleaseUrl =
         "https://github.com/RinatBy/MK3MoveBook/releases/latest";
 
+    const initialPlatform = loadPlatform();
     const state = {
         version: "umk3uk",
         fighterId: "kabal",
         tab: "moves",
-        platform: loadPlatform(),
-        notation: loadNotation(),
+        platform: initialPlatform,
+        notation: loadNotation(initialPlatform),
         query: "",
         selectedMoveKey: ""
     };
@@ -131,13 +132,18 @@
         forwardButton: document.querySelector("#forwardButton")
     };
 
-    function loadNotation() {
-        try {
-            return localStorage.getItem("movebook-notation") === "sega"
+    function loadNotation(platform) {
+        const fallback =
+            platformModel.platforms?.[platform]?.defaultNotation === "sega"
                 ? "sega"
-                : "umk3";
+                : "arcade";
+        try {
+            const saved = localStorage.getItem(
+                `movebook-notation-${platform}`
+            );
+            return ["arcade", "sega"].includes(saved) ? saved : fallback;
         } catch {
-            return "umk3";
+            return fallback;
         }
     }
 
@@ -990,8 +996,8 @@
             String(segaSelected)
         );
         elements.notationToggle.title = segaSelected
-            ? "Сейчас SEGA: переключить на обозначения UMK3"
-            : "Сейчас UMK3: переключить на обозначения SEGA";
+            ? "Сейчас обозначения SEGA: переключить на АРКАДА"
+            : "Сейчас обозначения АРКАДА: переключить на SEGA";
     }
 
     function escapeHtml(value) {
@@ -1160,6 +1166,7 @@
             return;
         }
         state.platform = button.dataset.platform;
+        state.notation = loadNotation(state.platform);
         state.selectedMoveKey = "";
         try {
             localStorage.setItem("movebook-platform", state.platform);
@@ -1213,9 +1220,12 @@
     });
 
     elements.notationToggle.addEventListener("click", () => {
-        state.notation = state.notation === "umk3" ? "sega" : "umk3";
+        state.notation = state.notation === "arcade" ? "sega" : "arcade";
         try {
-            localStorage.setItem("movebook-notation", state.notation);
+            localStorage.setItem(
+                `movebook-notation-${state.platform}`,
+                state.notation
+            );
         } catch {
             // The selected notation still works for the current session.
         }
