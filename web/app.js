@@ -76,6 +76,7 @@
     ]);
     const moveAnimations = window.MOVEBOOK_ANIMATIONS || {};
     const changelogEntries = window.MOVEBOOK_CHANGELOG || [];
+    const hostedSite = document.body.classList.contains("hosted-site");
     const latestReleaseUrl =
         "https://github.com/RinatBy/MK3MoveBook/releases/latest";
 
@@ -1277,7 +1278,7 @@
         if (message.action === "install") {
             actionLabel = "Установить обновление";
         } else if (message.action === "download") {
-            actionLabel = "Скачать последнюю версию";
+            actionLabel = "Скачать Portable версию";
         } else if (message.action === "check") {
             actionLabel = "Проверить ещё раз";
         }
@@ -1292,13 +1293,22 @@
         showNewChangelogOnce();
         const bridge = updateBridge();
         if (!bridge) {
+            if (hostedSite) {
+                elements.updateButton.dataset.state = "idle";
+                elements.updateButton.dataset.action = "";
+                elements.updateButton.querySelector("b").textContent =
+                    "Обновления";
+                elements.updateButton.title = "Открыть список изменений";
+                elements.updatePanelStatus.hidden = true;
+                elements.updateActionButton.hidden = true;
+                return;
+            }
             applyUpdateStatus({
                 type: "movebook-update-status",
                 state: "idle",
                 action: "download",
                 label: "Обновления",
-                details:
-                    "Обновления веб-версии устанавливаются вручную."
+                details: "Для обновления скачайте Portable версию."
             });
             return;
         }
@@ -1358,13 +1368,16 @@
     elements.updateActionButton.addEventListener("click", () => {
         const bridge = updateBridge();
         if (!bridge) {
+            if (hostedSite) {
+                return;
+            }
             window.open(
                 latestReleaseUrl,
                 "_blank",
                 "noopener,noreferrer"
             );
             elements.statusText.textContent =
-                "Открыта страница последней версии";
+                "Открыт раздел загрузки Portable";
             return;
         }
         const action = elements.updateActionButton.dataset.action === "install"

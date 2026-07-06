@@ -172,6 +172,21 @@ button {
     text-transform: uppercase;
 }
 
+.hosted-site .update-button {
+    gap: 0;
+}
+
+.hosted-site .update-button > span,
+.hosted-site #updatePanelStatus,
+.hosted-site .update-progress,
+.hosted-site .update-action-button {
+    display: none;
+}
+
+.hosted-site .update-notes {
+    margin-top: 0;
+}
+
 .update-button:hover {
     color: #fff;
     background: #4b315f;
