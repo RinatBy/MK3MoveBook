@@ -165,7 +165,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Spear","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch","notation":"_2,_4,HP","pretty":"↓,←,HP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -199,7 +199,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Hat Throw","notation":"_4,_6,LP","pretty":"←,→,LP"},
                 {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"},
-                {"label":"Torpedo Kick (in air)","notation":"_2_+HK","pretty":"↓+HK"},
+                {"label":"Torpedo Kick (in air)","notation":"_2_+HK in air","pretty":"↓+HK in air"},
                 {"label":"Spin Attack (tap RUN to spin)","notation":"_6,_2,_6,RUN","pretty":"→,↓,→,RUN"}
               ]
             },
@@ -239,7 +239,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Cannonball-upward","notation":"_6,_2,_6,HK","pretty":"→,↓,→,HK"},
                 {"label":"Cannonball-random         (TRILOGY)","notation":"_6,_2,_6,LK","pretty":"→,↓,→,LK"},
                 {"label":"Neck Choke","notation":"_2,_6,LP","pretty":"↓,→,LP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -389,7 +389,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Harpoon","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch (also in  air)","notation":"_6,_6,LK","pretty":"→,→,LK"},
                 {"label":"Invisibility","notation":"_8,_8,RUN","pretty":"↑,↑,RUN"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -424,7 +424,7 @@ window.MOVEBOOK_DATA = {
               "name": "Special Moves",
               "moves": [
                 {"label":"Fireball-ground","notation":"_6,_6,LP","pretty":"→,→,LP"},
-                {"label":"Fireball-air","notation":"_2,_6,LK","pretty":"↓,→,LK"},
+                {"label":"Fireball-air","notation":"_2,_6,LK in air","pretty":"↓,→,LK in air"},
                 {"label":"Fly","notation":"_4,_4,_6,HK","pretty":"←,←,→,HK"},
                 {"label":"Scream","notation":"_6,_6,_6,HP","pretty":"→,→,→,HP"},
                 {"label":"Double Fireball           (TRILOGY)","notation":"_4,_4,_6,LP","pretty":"←,←,→,LP"}
@@ -465,7 +465,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Missile-single","notation":"_4,_6,HP","pretty":"←,→,HP"},
                 {"label":"Missile-double","notation":"_6,_6,_4,_4,HP","pretty":"→,→,←,←,HP"},
                 {"label":"Gotcha Grab","notation":"_6,_6_+LP, LPx3","pretty":"→,→+LP, LPx3"},
-                {"label":"Backbreaker (in air)","notation":"BL","pretty":"BL"},
+                {"label":"Backbreaker (in air)","notation":"BL in air","pretty":"BL in air"},
                 {"label":"Quad Slam","notation":"throw, HPx4","pretty":"throw, HPx4"},
                 {"label":"Ground Smash","notation":"hold LK for 3 sec","pretty":"hold LK for 3 sec"},
                 {"label":"Dashing Pound","notation":"_6,_6,HK","pretty":"→,→,HK"}
@@ -616,7 +616,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Spear","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch","notation":"_2,_4,HP","pretty":"↓,←,HP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"},
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"},
                 {"label":"Forward Teleport             (TRILOGY)","notation":"_2,_6,HP","pretty":"↓,→,HP"}
               ]
             },
@@ -1054,9 +1054,9 @@ window.MOVEBOOK_DATA = {
             {
               "name": "Special Moves",
               "moves": [
-                {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"},
-                {"label":"Special Move 1","notation":"_6,_6,HP","pretty":"→,→,HP","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация для SEGA добавлена по присланному списку и требует проверки."}},
-                {"label":"Special Move 2","notation":"_2,_6,LP","pretty":"↓,→,LP","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация для SEGA добавлена по присланному списку и требует проверки."}}
+                {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑","platformOverrides":{"sega":{"label":"Pile Driver"}}},
+                {"label":"Shadow Throw","notation":"_6,_6,HP","pretty":"→,→,HP","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация для SEGA добавлена по присланному списку и требует проверки."}},
+                {"label":"Disabler","notation":"_2,_6,LP","pretty":"↓,→,LP","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация для SEGA добавлена по присланному списку и требует проверки."}}
               ]
             },
             {
@@ -1075,7 +1075,8 @@ window.MOVEBOOK_DATA = {
                 {"label":"(23%)","notation":"[LK/HK],HK,LK,_4_+HK","pretty":"[LK/HK],HK,LK,←+HK"},
                 {"label":"(27%)","notation":"HP,HP,HK,HK,LK,_4_+HK","pretty":"HP,HP,HK,HK,LK,←+HK"},
                 {"label":"Combo 1","notation":"LK,LK,LK","pretty":"LK,LK,LK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
-                {"label":"Combo 2","notation":"HP,HP,LP,HK","pretty":"HP,HP,LP,HK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
+                {"label":"(23%)","notation":"LK,LK,LK,LK","pretty":"LK,LK,LK,LK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено из таблицы UMK3 Sega."}},
+                {"label":"(22%)","notation":"HP,HP,LP,HK","pretty":"HP,HP,LP,HK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и сверено с таблицей UMK3 Sega."}},
                 {"label":"Combo 3","notation":"HP,HP,LP,HK,_2,_8,_6","pretty":"HP,HP,LP,HK,↓,↑,→","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
                 {"label":"Combo 4","notation":"_8,HK,LK,LP,HP,HP,HP,LP,HK,_2,_8,_6","pretty":"↑,HK,LK,LP,HP,HP,HP,LP,HK,↓,↑,→","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}},
                 {"label":"Combo 5","notation":"_8,LP,HP,LK,HK,HK,LK,LK,LK","pretty":"↑,LP,HP,LK,HK,HK,LK,LK,LK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Автокомбо для SEGA добавлено со скриншота и требует проверки."}}
@@ -1173,7 +1174,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Spear","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch","notation":"_2,_4,HP","pretty":"↓,←,HP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -1207,7 +1208,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Hat Throw","notation":"_4,_6,LP","pretty":"←,→,LP"},
                 {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"},
-                {"label":"Torpedo Kick (in air)","notation":"_2_+HK","pretty":"↓+HK"},
+                {"label":"Torpedo Kick (in air)","notation":"_2_+HK in air","pretty":"↓+HK in air"},
                 {"label":"Spin Attack (tap RUN to spin)","notation":"_6,_2,_6,RUN","pretty":"→,↓,→,RUN"}
               ]
             },
@@ -1246,7 +1247,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Cannonball-straight","notation":"hold LK for 3 sec","pretty":"hold LK for 3 sec"},
                 {"label":"Cannonball-upward","notation":"_6,_2,_6,HK","pretty":"→,↓,→,HK"},
                 {"label":"Neck Choke","notation":"_2,_6,LP","pretty":"↓,→,LP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -1395,7 +1396,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Harpoon","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch (also in  air)","notation":"_6,_6,LK","pretty":"→,→,LK"},
                 {"label":"Invisibility","notation":"_8,_8,RUN","pretty":"↑,↑,RUN"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -1430,7 +1431,7 @@ window.MOVEBOOK_DATA = {
               "name": "Special Moves",
               "moves": [
                 {"label":"Fireball-ground","notation":"_6,_6,LP","pretty":"→,→,LP"},
-                {"label":"Fireball-air","notation":"_2,_6,LK","pretty":"↓,→,LK"},
+                {"label":"Fireball-air","notation":"_2,_6,LK in air","pretty":"↓,→,LK in air"},
                 {"label":"Fly","notation":"_4,_4,_6,HK","pretty":"←,←,→,HK"},
                 {"label":"Scream","notation":"_6,_6,_6,HP","pretty":"→,→,→,HP"}
               ]
@@ -1470,7 +1471,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Missile-single","notation":"_4,_6,HP","pretty":"←,→,HP"},
                 {"label":"Missile-double","notation":"_6,_6,_4,_4,HP","pretty":"→,→,←,←,HP"},
                 {"label":"Gotcha Grab","notation":"_6,_6_+LP, LPx3","pretty":"→,→+LP, LPx3"},
-                {"label":"Backbreaker (in air)","notation":"BL","pretty":"BL"},
+                {"label":"Backbreaker (in air)","notation":"BL in air","pretty":"BL in air"},
                 {"label":"Quad Slam","notation":"throw, HPx4","pretty":"throw, HPx4"},
                 {"label":"Ground Smash","notation":"hold LK for 3 sec","pretty":"hold LK for 3 sec"},
                 {"label":"Dashing Pound","notation":"_6,_6,HK","pretty":"→,→,HK"}
@@ -1619,7 +1620,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Spear","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch","notation":"_2,_4,HP","pretty":"↓,←,HP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -2057,7 +2058,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Spear","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch","notation":"_2,_4,HP","pretty":"↓,←,HP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -2091,7 +2092,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Hat Throw","notation":"_4,_6,LP","pretty":"←,→,LP"},
                 {"label":"Teleport","notation":"_2,_8","pretty":"↓,↑"},
-                {"label":"Torpedo Kick (in air)","notation":"_2_+HK","pretty":"↓+HK"},
+                {"label":"Torpedo Kick (in air)","notation":"_2_+HK in air","pretty":"↓+HK in air"},
                 {"label":"Spin Attack (tap RUN to spin)","notation":"_6,_2,_6,RUN","pretty":"→,↓,→,RUN"}
               ]
             },
@@ -2130,7 +2131,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Cannonball-straight","notation":"hold LK for 3 sec","pretty":"hold LK for 3 sec"},
                 {"label":"Cannonball-upward","notation":"_6,_2,_6,HK","pretty":"→,↓,→,HK"},
                 {"label":"Neck Choke","notation":"_2,_6,LP","pretty":"↓,→,LP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -2279,7 +2280,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Harpoon","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch (also in  air)","notation":"_6,_6,LK","pretty":"→,→,LK"},
                 {"label":"Invisibility","notation":"_8,_8,RUN","pretty":"↑,↑,RUN"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {
@@ -2314,7 +2315,7 @@ window.MOVEBOOK_DATA = {
               "name": "Special Moves",
               "moves": [
                 {"label":"Fireball-ground","notation":"_6,_6,LP","pretty":"→,→,LP"},
-                {"label":"Fireball-air","notation":"_2,_6,LK","pretty":"↓,→,LK"},
+                {"label":"Fireball-air","notation":"_2,_6,LK in air","pretty":"↓,→,LK in air"},
                 {"label":"Fly","notation":"_4,_4,_6,HK","pretty":"←,←,→,HK"},
                 {"label":"Scream","notation":"_6,_6,_6,HP","pretty":"→,→,→,HP"}
               ]
@@ -2354,7 +2355,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Missile-single","notation":"_4,_6,HP","pretty":"←,→,HP"},
                 {"label":"Missile-double","notation":"_6,_6,_4,_4,HP","pretty":"→,→,←,←,HP"},
                 {"label":"Gotcha Grab","notation":"_6,_6_+LP, LPx3","pretty":"→,→+LP, LPx3"},
-                {"label":"Backbreaker (in air)","notation":"BL","pretty":"BL"},
+                {"label":"Backbreaker (in air)","notation":"BL in air","pretty":"BL in air"},
                 {"label":"Quad Slam","notation":"throw, HPx4","pretty":"throw, HPx4"},
                 {"label":"Ground Smash","notation":"hold LK for 3 sec","pretty":"hold LK for 3 sec"},
                 {"label":"Dashing Pound","notation":"_6,_6,HK","pretty":"→,→,HK"}
@@ -2503,7 +2504,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Spear","notation":"_4,_4,LP","pretty":"←,←,LP"},
                 {"label":"Teleport Punch","notation":"_2,_4,HP","pretty":"↓,←,HP"},
-                {"label":"Air Throw","notation":"BL","pretty":"BL"}
+                {"label":"Air Throw","notation":"BL in air","pretty":"BL in air"}
               ]
             },
             {

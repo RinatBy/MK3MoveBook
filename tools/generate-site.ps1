@@ -36,12 +36,21 @@ if (-not $BaseHref.EndsWith("/")) {
 }
 
 $MovesPath = Join-Path $WebPath "data\moves.js"
+$SegaMovesPath = Join-Path $WebPath "data\sega-moves.js"
 $TemplatePath = Join-Path $WebPath "index.html"
 $MovesSource = [IO.File]::ReadAllText($MovesPath, [Text.Encoding]::UTF8)
 $MovesJson = $MovesSource `
     -replace "^\s*window\.MOVEBOOK_DATA\s*=\s*", "" `
     -replace ";\s*$", ""
 $Data = $MovesJson | ConvertFrom-Json
+$SegaMoves = $null
+if (Test-Path -LiteralPath $SegaMovesPath) {
+    $SegaMovesSource = [IO.File]::ReadAllText($SegaMovesPath, [Text.Encoding]::UTF8)
+    $SegaMovesJson = $SegaMovesSource `
+        -replace "^\s*window\.MOVEBOOK_SEGA_MOVES\s*=\s*", "" `
+        -replace ";\s*$", ""
+    $SegaMoves = $SegaMovesJson | ConvertFrom-Json
+}
 $Template = [IO.File]::ReadAllText($TemplatePath, [Text.Encoding]::UTF8)
 $Fighters = @($Data.versions.umk3uk.fighters)
 
@@ -74,6 +83,46 @@ function Get-SeoName {
     return [string]$Fighter.name
 }
 
+$SegaPortraits = @{
+    "classic-sub-zero" = "subzero2.jpg"
+    "cyrax" = "cyrax.jpg"
+    "ermac" = "ermak.jpg"
+    "human-smoke" = "smoke2.jpg"
+    "jade" = "jade.jpg"
+    "jax" = "jax.jpg"
+    "kabal" = "kabal.jpg"
+    "kano" = "kano.jpg"
+    "kitana" = "kitana.jpg"
+    "kung-lao" = "kunglao.jpg"
+    "liu-kang" = "liukang.jpg"
+    "mileena" = "meelena.jpg"
+    "motaro" = "motaro.jpg"
+    "nightwolf" = "nightwoolf.jpg"
+    "noob-saibot" = "noobsaibot.jpg"
+    "rain" = "rain.jpg"
+    "reptile" = "reptile.jpg"
+    "robot-smoke" = "smoke.jpg"
+    "scorpion" = "scorpion.jpg"
+    "sektor" = "sektor.jpg"
+    "shang-tsung" = "shangtsung.jpg"
+    "shao-kahn" = "shaokahn.jpg"
+    "sindel" = "sindel.jpg"
+    "sonya" = "sonya.jpg"
+    "stryker" = "stryker.jpg"
+    "unmasked-sub-zero" = "subzero1.jpg"
+}
+
+function Get-PortraitPath {
+    param(
+        [object]$Fighter,
+        [string]$Platform
+    )
+    if ($Platform -eq "sega" -and $SegaPortraits.ContainsKey($Fighter.id)) {
+        return "assets/portraits_sega/$($SegaPortraits[$Fighter.id])"
+    }
+    return "assets/portraits/$($Fighter.id).png"
+}
+
 function Get-FighterPlatformInfo {
     param(
         [object]$Fighter,
@@ -92,6 +141,73 @@ function Get-FighterPlatformInfo {
         Available = $Platforms -contains $Platform
         Note = [string](Get-PropertyValue -Object $Notes -Name $Platform)
     }
+}
+
+function Get-CategoryMoves {
+    param(
+        [object]$Fighter,
+        [object]$Category,
+        [string]$Platform
+    )
+    if ($Platform -ne "sega" -or $null -eq $SegaMoves) {
+        return @($Category.moves)
+    }
+
+    $FighterMoves = Get-PropertyValue -Object $SegaMoves -Name $Fighter.id
+    $PlatformMoves = Get-PropertyValue -Object $FighterMoves -Name $Category.name
+    if ($null -eq $PlatformMoves) {
+        return @($Category.moves)
+    }
+
+    $Moves = New-Object System.Collections.Generic.List[object]
+    $ExistingNotations = @{}
+    foreach ($Move in @($PlatformMoves)) {
+        $Moves.Add($Move)
+        $ExistingNotations[[string]$Move.notation] = $true
+    }
+    foreach ($Move in @($Category.moves)) {
+        $MovePlatforms = @(Get-PropertyValue -Object $Move -Name "platforms")
+        if ($MovePlatforms -contains "sega" -and
+            -not $ExistingNotations.ContainsKey([string]$Move.notation)) {
+            $Moves.Add($Move)
+        }
+    }
+    return $Moves.ToArray()
+}
+
+function Test-SortedMoveCategory {
+    param([object]$Category)
+    return [string]$Category.name -match "^(?i:Special Moves|Morphs)$"
+}
+
+function Get-MoveSortLabel {
+    param([object]$Move)
+    $Label = [string](Get-PropertyValue -Object $Move -Name "label")
+    return ($Label -replace "\s+", " ").Trim().ToLowerInvariant()
+}
+
+function Sort-CategoryMoves {
+    param(
+        [object]$Category,
+        [object[]]$Moves
+    )
+    if (-not (Test-SortedMoveCategory -Category $Category)) {
+        return @($Moves)
+    }
+
+    $IndexedMoves = for ($Index = 0; $Index -lt @($Moves).Count; $Index++) {
+        $Move = @($Moves)[$Index]
+        [pscustomobject]@{
+            Move = $Move
+            SortLabel = Get-MoveSortLabel -Move $Move
+            Index = $Index
+        }
+    }
+    return @(
+        $IndexedMoves |
+            Sort-Object SortLabel, Index |
+            ForEach-Object { $_.Move }
+    )
 }
 
 function Convert-Notation {
@@ -243,7 +359,14 @@ function New-MoveMarkup {
             continue
         }
         $MoveRows = New-Object System.Collections.Generic.List[string]
-        foreach ($Move in $Category.moves) {
+        $CategoryMoves = Get-CategoryMoves `
+            -Fighter $Fighter `
+            -Category $Category `
+            -Platform $Platform
+        $CategoryMoves = Sort-CategoryMoves `
+            -Category $Category `
+            -Moves $CategoryMoves
+        foreach ($Move in $CategoryMoves) {
             if ([string]$Move.label -match "(?i)\btrilogy\b") {
                 continue
             }
@@ -317,11 +440,12 @@ function New-RosterMarkup {
             "false"
         }
         $Number = ([int]$Fighter.number).ToString("00")
+        $PortraitPath = Get-PortraitPath -Fighter $Fighter -Platform $Platform
 @"
                     <a class="$ClassName" role="option"
                         href="$BaseHref$Platform/$($Fighter.id)/"
                         aria-selected="$Selected">
-                        <img src="assets/portraits/$($Fighter.id).png" alt="">
+                        <img src="$PortraitPath" alt="">
                         <span><b>$(ConvertTo-HtmlText $Fighter.name)</b>$Badge</span>
                         <small>$Number</small>
                     </a>
@@ -395,7 +519,7 @@ function New-StaticPage {
         -Fighter $Fighter `
         -Platform $Platform
     $OgImage = "$NormalizedBaseUrl" +
-        "assets/portraits/$($Fighter.id).png"
+        (Get-PortraitPath -Fighter $Fighter -Platform $Platform)
     $OgType = if ($Kind -eq "fighter") { "article" } else { "website" }
     $SeoTags = @"
     <link rel="canonical" href="$(ConvertTo-HtmlText $CanonicalUrl)">
@@ -442,9 +566,9 @@ function New-StaticPage {
     $Html = $Html -replace (
         '<img id="heroPortrait" alt="">'
     ), (
-        '<img id="heroPortrait" src="assets/portraits/' +
-        $Fighter.id +
-        '.png" alt="' +
+        '<img id="heroPortrait" src="' +
+        (Get-PortraitPath -Fighter $Fighter -Platform $Platform) +
+        '" alt="' +
         (ConvertTo-HtmlText $Fighter.name) +
         '">'
     )

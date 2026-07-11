@@ -2,6 +2,7 @@
     "use strict";
 
     const data = window.MOVEBOOK_DATA;
+    const segaMoves = window.MOVEBOOK_SEGA_MOVES || {};
     const platformModel = data.platformModel || {
         base: "arcade",
         platforms: {
@@ -51,6 +52,34 @@
         "Liu Kang": "#c93337",
         "Sektor": "#d13a3d",
         "Noob Saibot": "#3d3747"
+    };
+    const segaPortraits = {
+        "classic-sub-zero": "subzero2.jpg",
+        cyrax: "cyrax.jpg",
+        ermac: "ermak.jpg",
+        "human-smoke": "smoke2.jpg",
+        jade: "jade.jpg",
+        jax: "jax.jpg",
+        kabal: "kabal.jpg",
+        kano: "kano.jpg",
+        kitana: "kitana.jpg",
+        "kung-lao": "kunglao.jpg",
+        "liu-kang": "liukang.jpg",
+        mileena: "meelena.jpg",
+        motaro: "motaro.jpg",
+        nightwolf: "nightwoolf.jpg",
+        "noob-saibot": "noobsaibot.jpg",
+        rain: "rain.jpg",
+        reptile: "reptile.jpg",
+        "robot-smoke": "smoke.jpg",
+        scorpion: "scorpion.jpg",
+        sektor: "sektor.jpg",
+        "shang-tsung": "shangtsung.jpg",
+        "shao-kahn": "shaokahn.jpg",
+        sindel: "sindel.jpg",
+        sonya: "sonya.jpg",
+        stryker: "stryker.jpg",
+        "unmasked-sub-zero": "subzero1.jpg"
     };
     const segaLabels = {
         HP: "X",
@@ -358,14 +387,58 @@
         return /\btrilogy\b/i.test(String(value || ""));
     }
 
-    function visibleMoveEntries(category) {
-        return category.moves
+    function shouldSortMoveCategory(category) {
+        return /^(special moves|morphs)$/i.test(
+            String(category?.name || "").trim()
+        );
+    }
+
+    function moveSortLabel(move) {
+        return String(move?.label || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLocaleLowerCase("en");
+    }
+
+    function moveListForCategory(fighter, category) {
+        const platformMoves = state.platform === "sega"
+            ? segaMoves[fighter.id]?.[category.name]
+            : null;
+        if (!platformMoves) {
+            return category.moves;
+        }
+
+        const existingNotations = new Set(
+            platformMoves.map(move => String(move.notation || ""))
+        );
+        const extraSegaMoves = category.moves.filter(move =>
+            Array.isArray(move.platforms) &&
+            move.platforms.includes("sega") &&
+            !existingNotations.has(String(move.notation || ""))
+        );
+        return [...platformMoves, ...extraSegaMoves];
+    }
+
+    function visibleMoveEntries(fighter, category) {
+        const entries = moveListForCategory(fighter, category)
             .map((sourceMove, moveIndex) => ({
                 sourceMove,
                 moveIndex,
                 ...resolvedMoveData(sourceMove)
             }))
             .filter(({ move }) => !hasTrilogyMarker(move.label));
+
+        if (!shouldSortMoveCategory(category)) {
+            return entries;
+        }
+
+        return entries.sort((left, right) =>
+            moveSortLabel(left.move).localeCompare(
+                moveSortLabel(right.move),
+                "en",
+                { numeric: true, sensitivity: "base" }
+            ) || left.moveIndex - right.moveIndex
+        );
     }
 
     function visibleCategoryEntries(fighter) {
@@ -373,7 +446,7 @@
             .map((category, categoryIndex) => ({
                 category,
                 categoryIndex,
-                moves: visibleMoveEntries(category)
+                moves: visibleMoveEntries(fighter, category)
             }))
             .filter(({ category, moves }) =>
                 !hasTrilogyMarker(category.name) && moves.length
@@ -530,7 +603,10 @@
             : "moves";
     }
 
-    function portraitPath(fighter) {
+    function portraitPath(fighter, platform = state.platform) {
+        if (platform === "sega" && segaPortraits[fighter.id]) {
+            return `assets/portraits_sega/${segaPortraits[fighter.id]}`;
+        }
         return `assets/portraits/${fighter.id}.png`;
     }
 
@@ -853,10 +929,10 @@
             <section class="chapter" id="category-${slug(category.name)}">
                 <h2 class="chapter-heading">${escapeHtml(category.name)}</h2>
                 <div class="move-list">
-                    ${moves.map(({ move, moveIndex }) => {
+                    ${moves.map(({ sourceMove, move, moveIndex }) => {
                         const key = `${categoryIndex}:${moveIndex}`;
                         const badge = movePlatformBadge(
-                            movePlatformData(category.moves[moveIndex])
+                            movePlatformData(sourceMove)
                         );
                         const badgeMarkup = badge
                             ? `<em class="move-platform-badge is-${badge.kind}" ` +
@@ -1141,7 +1217,9 @@
         const fighter = currentFighter();
         const [categoryIndex, moveIndex] = key.split(":").map(Number);
         const category = fighter.categories[categoryIndex];
-        const sourceMove = category?.moves[moveIndex];
+        const sourceMove = category
+            ? moveListForCategory(fighter, category)[moveIndex]
+            : null;
         if (!sourceMove) {
             return;
         }
