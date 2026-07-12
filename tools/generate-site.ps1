@@ -159,6 +159,52 @@ function Get-CategoryMoves {
         return @($Category.moves)
     }
 
+    if ([string]$Category.name -match "^(?i:Finishing Moves)$") {
+        $PlatformByLabel = @{}
+        foreach ($Move in @($PlatformMoves)) {
+            $PlatformByLabel[(Get-MoveSortLabel -Move $Move)] = $Move
+        }
+
+        $Moves = New-Object System.Collections.Generic.List[object]
+        $UsedLabels = @{}
+        $ExistingNotations = @{}
+        foreach ($Move in @($Category.moves)) {
+            $Label = Get-MoveSortLabel -Move $Move
+            if ($PlatformByLabel.ContainsKey($Label)) {
+                $PlatformMove = $PlatformByLabel[$Label]
+                $Moves.Add($PlatformMove)
+                $UsedLabels[$Label] = $true
+                $ExistingNotations[[string](Get-PropertyValue -Object $PlatformMove -Name "notation")] = $true
+            }
+        }
+
+        foreach ($Move in @($PlatformMoves)) {
+            $Label = Get-MoveSortLabel -Move $Move
+            $Notation = [string](Get-PropertyValue -Object $Move -Name "notation")
+            if (-not $UsedLabels.ContainsKey($Label) -and
+                -not $ExistingNotations.ContainsKey($Notation)) {
+                $Moves.Add($Move)
+                $UsedLabels[$Label] = $true
+                $ExistingNotations[$Notation] = $true
+            }
+        }
+
+        foreach ($Move in @($Category.moves)) {
+            $MovePlatforms = @(Get-PropertyValue -Object $Move -Name "platforms")
+            $Label = Get-MoveSortLabel -Move $Move
+            $Notation = [string](Get-PropertyValue -Object $Move -Name "notation")
+            if ($MovePlatforms -contains "sega" -and
+                -not $UsedLabels.ContainsKey($Label) -and
+                -not $ExistingNotations.ContainsKey($Notation)) {
+                $Moves.Add($Move)
+                $UsedLabels[$Label] = $true
+                $ExistingNotations[$Notation] = $true
+            }
+        }
+
+        return $Moves.ToArray()
+    }
+
     $Moves = New-Object System.Collections.Generic.List[object]
     $ExistingNotations = @{}
     foreach ($Move in @($PlatformMoves)) {

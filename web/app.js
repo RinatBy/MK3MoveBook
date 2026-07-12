@@ -393,7 +393,18 @@
         );
     }
 
+    function shouldUseArcadeMoveOrder(category) {
+        return /^finishing moves$/i.test(String(category?.name || "").trim());
+    }
+
     function moveSortLabel(move) {
+        return String(move?.label || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLocaleLowerCase("en");
+    }
+
+    function normalizedMoveLabel(move) {
         return String(move?.label || "")
             .replace(/\s+/g, " ")
             .trim()
@@ -408,15 +419,58 @@
             return category.moves;
         }
 
+        if (shouldSortMoveCategory(category)) {
+            return platformMoves;
+        }
+
+        if (!shouldUseArcadeMoveOrder(category)) {
+            const existingNotations = new Set(
+                platformMoves.map(move => String(move.notation || ""))
+            );
+            const extraSegaMoves = category.moves.filter(move =>
+                Array.isArray(move.platforms) &&
+                move.platforms.includes("sega") &&
+                !existingNotations.has(String(move.notation || ""))
+            );
+            return [...platformMoves, ...extraSegaMoves];
+        }
+
+        const platformByLabel = new Map(
+            platformMoves.map(move => [normalizedMoveLabel(move), move])
+        );
+        const usedPlatformMoves = new Set();
+        const orderedMoves = [];
+        category.moves.forEach(move => {
+            const platformMove = platformByLabel.get(normalizedMoveLabel(move));
+            if (platformMove) {
+                usedPlatformMoves.add(platformMove);
+                orderedMoves.push(platformMove);
+            }
+        });
         const existingNotations = new Set(
-            platformMoves.map(move => String(move.notation || ""))
+            orderedMoves.map(move => String(move.notation || ""))
+        );
+        const extraPlatformMoves = platformMoves.filter(move =>
+            !usedPlatformMoves.has(move) &&
+            !existingNotations.has(String(move.notation || ""))
+        );
+        extraPlatformMoves.forEach(move =>
+            existingNotations.add(String(move.notation || ""))
+        );
+        const existingLabels = new Set(
+            orderedMoves.map(move => normalizedMoveLabel(move))
+        );
+        extraPlatformMoves.forEach(move =>
+            existingLabels.add(normalizedMoveLabel(move))
         );
         const extraSegaMoves = category.moves.filter(move =>
             Array.isArray(move.platforms) &&
             move.platforms.includes("sega") &&
-            !existingNotations.has(String(move.notation || ""))
+            !existingNotations.has(String(move.notation || "")) &&
+            !existingLabels.has(normalizedMoveLabel(move))
         );
-        return [...platformMoves, ...extraSegaMoves];
+
+        return [...orderedMoves, ...extraPlatformMoves, ...extraSegaMoves];
     }
 
     function visibleMoveEntries(fighter, category) {
@@ -856,7 +910,7 @@
         elements.contentsTitle.hidden = false;
         elements.rightPageNumber.textContent = "СВЯЗАТЬСЯ С НАМИ";
         elements.bookNoteLabel.textContent = "MK3 MoveBook";
-        elements.bookNoteValue.textContent = "Сделано сообществом игроков";
+        elements.bookNoteValue.textContent = "Сделано сообществом онлайн-ретро-игры";
         elements.bookNoteLabel.hidden = false;
         elements.bookNoteValue.hidden = false;
         elements.bookNoteMeta.hidden = true;
@@ -1254,10 +1308,26 @@
 
     function renderMoveRequirement(move) {
         const isAnimality = /\banimality\b/i.test(String(move.label || ""));
-        if (!isAnimality) {
+        const isFriendship = /\b(?:friendship|frienship)\b/i.test(
+            String(move.label || "")
+        );
+        if (!isAnimality && !isFriendship) {
             elements.moveRequirement.innerHTML = "";
             elements.moveRequirement.hidden = true;
-            return;
+            return false;
+        }
+
+        if (isFriendship) {
+            elements.moveRequirement.innerHTML = `
+                <div class="move-requirement-heading">
+                    <span aria-hidden="true">!</span>
+                    <strong>Условия выполнения</strong>
+                </div>
+                <p class="move-requirement-lead">
+                    Только <b>3-й раунд</b> — счёт <b>2:1</b>.
+            </p>`;
+            elements.moveRequirement.hidden = false;
+            return true;
         }
 
         elements.moveRequirement.innerHTML = `
@@ -1283,22 +1353,26 @@
                 </li>
             </ol>`;
         elements.moveRequirement.hidden = false;
+        return true;
     }
 
     function showMovePreview(fighter, category, move) {
         const source = move.video ||
             moveAnimations[moveAnimationKey(fighter, category, move)];
+        const hasRequirement = renderMoveRequirement(move);
         if (!source) {
-            hideMovePreview();
+            elements.movePreviewVideo.pause();
+            elements.movePreviewVideo.hidden = true;
+            elements.movePreview.hidden = !hasRequirement;
             return;
         }
 
+        elements.movePreviewVideo.hidden = false;
         if (elements.movePreviewVideo.dataset.source !== source) {
             elements.movePreviewVideo.dataset.source = source;
             elements.movePreviewVideo.src = source;
             elements.movePreviewVideo.load();
         }
-        renderMoveRequirement(move);
         elements.movePreview.hidden = false;
         elements.movePreviewVideo.muted = true;
         const playback = elements.movePreviewVideo.play();

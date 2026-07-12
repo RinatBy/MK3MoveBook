@@ -471,6 +471,11 @@ button {
         0 3px 10px rgba(0, 0, 0, .28);
 }
 
+.platform-switch button[data-platform="sega"][aria-pressed="true"] {
+    background:
+        linear-gradient(135deg, rgba(0, 145, 208, .96), rgba(0, 72, 138, .98));
+}
+
 .platform-switch button b {
     display: block;
     font: 10px/1 "Russo One", sans-serif;
@@ -866,6 +871,10 @@ button {
     background: #08060a;
     object-fit: contain;
     cursor: pointer;
+}
+
+.move-preview video[hidden] {
+    display: none;
 }
 
 .move-requirement {
