@@ -31,22 +31,18 @@
 - Cyrax — Arcade — Finishing Moves — Animality (close): `↑ › ↑ › ↓ › ↓`
 - Cyrax — Finishing Moves — Fatality 1: `↓ › ↓ › ↑ › ↓ › HP`
 - Cyrax — Finishing Moves — Fatality 2 (close): `↓ › ↓ › → › ↑ › RUN`
-- Cyrax — Finishing Moves — Friendship: `RUN › RUN › RUN › ↑`
 - Shang Tsung — Finishing Moves — Stage Fatality: `↑ › ↑ › ← › LP`
-- Sheeva — Arcade — Special Moves — Teleport Stomp: `↓ › ↑`
-- Noob Saibot — Special Moves — Teleport: `↓ › ↑`
-- Motaro — Special Moves — Teleport: `↓ › ↑`
 
-## Подтверждено — HOLD BL добавлен в данные
+## Подтверждено — HOLD BL нужен (пока только для будущей рекомендации)
 
-- Scorpion — Arcade — Finishing Moves — Animality (close): `HOLD BL › → › ↑ › ↑ › RELEASE BL › HK`
-  - Важно: отпустить `BL` перед `HK`.
-- Scorpion — Finishing Moves — Stage Fatality: `HOLD BL › → › ↑ › ↑ › RELEASE BL › LP`
-  - Важно: оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить `BL` перед `LP`.
-- Unmasked Sub-Zero — Arcade — Finishing Moves — Animality (close): `HOLD BL › → › ↑ › ↑ › RELEASE BL`
-  - Важно: оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить `BL`.
-- Jade — Finishing Moves — Fatality 1 (close): `HOLD BL › ↑ › ↑ › ↓ › → › RELEASE BL › HP`
-  - Важно: оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить `BL` перед `HP`.
+- Scorpion — Arcade — Finishing Moves — Animality (close): `→ › ↑ › ↑ › HK`
+  - Важно: зажать `BL` перед комбинацией и отпустить перед `HK`.
+- Scorpion — Finishing Moves — Stage Fatality: `→ › ↑ › ↑ › LP`
+  - Важно: зажать `BL` перед комбинацией, оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить перед `LP`.
+- Unmasked Sub-Zero — Arcade — Finishing Moves — Animality (close): `→ › ↑ › ↑`
+  - Важно: зажать `BL` перед комбинацией и оба нажатия `↑` выполнить с зажатым `BL`.
+- Jade — Finishing Moves — Fatality 1 (close): `↑ › ↑ › ↓ › → › HP`
+  - Важно: зажать `BL` перед комбинацией, оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить перед `HP`.
 
 ## Уже есть HOLD BL / HOLD BL+RUN — для контроля
 

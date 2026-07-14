@@ -468,17 +468,8 @@ function New-RosterMarkup {
     )
     $Cards = foreach ($Fighter in $Fighters) {
         $Info = Get-FighterPlatformInfo -Fighter $Fighter -Platform $Platform
-        $ClassName = if ($Info.Available) {
-            "fighter-card"
-        } else {
-            "fighter-card is-platform-unavailable"
-        }
-        $Badge = if ($Info.Available) {
-            ""
-        } elseif ($Platform -eq "sega") {
-            "<em>НЕТ В SEGA</em>"
-        } else {
-            "<em>НЕТ В ВЕРСИИ</em>"
+        if (-not $Info.Available) {
+            continue
         }
         $Selected = if ($Fighter.id -eq $SelectedFighterId) {
             "true"
@@ -488,11 +479,11 @@ function New-RosterMarkup {
         $Number = ([int]$Fighter.number).ToString("00")
         $PortraitPath = Get-PortraitPath -Fighter $Fighter -Platform $Platform
 @"
-                    <a class="$ClassName" role="option"
+                    <a class="fighter-card" role="option"
                         href="$BaseHref$Platform/$($Fighter.id)/"
                         aria-selected="$Selected">
                         <img src="$PortraitPath" alt="">
-                        <span><b>$(ConvertTo-HtmlText $Fighter.name)</b>$Badge</span>
+                        <span><b>$(ConvertTo-HtmlText $Fighter.name)</b></span>
                         <small>$Number</small>
                     </a>
 "@
@@ -715,6 +706,10 @@ foreach ($Platform in @("arcade", "sega")) {
         -Platform $Platform `
         -Fighter $DefaultFighter
     foreach ($Fighter in $Fighters) {
+        $Info = Get-FighterPlatformInfo -Fighter $Fighter -Platform $Platform
+        if (-not $Info.Available) {
+            continue
+        }
         Write-SitePage `
             -RelativeDirectory "$Platform/$($Fighter.id)" `
             -Kind "fighter" `

@@ -223,16 +223,7 @@
     }
 
     function loadPlatform() {
-        const fallback = platformModel.base || "arcade";
-        try {
-            const saved = localStorage.getItem("movebook-platform");
-            return Object.prototype.hasOwnProperty.call(
-                platformModel.platforms,
-                saved
-            ) ? saved : fallback;
-        } catch {
-            return fallback;
-        }
+        return platformModel.base || "arcade";
     }
 
     function mergePlatformData(...layers) {
@@ -552,11 +543,6 @@
             return;
         }
         state.platform = platform;
-        try {
-            localStorage.setItem("movebook-platform", platform);
-        } catch {
-            // Deep links still select the requested platform for this session.
-        }
     }
 
     function setRoute(replace = false) {
@@ -694,13 +680,16 @@
 
     function renderRoster() {
         const fighters = currentVersion().fighters;
-        const filtered = fighters.filter(fighter => fighterMatches(fighter, state.query));
-        const availableCount = filtered.filter(fighter =>
+        const platformFighters = fighters.filter(fighter =>
             fighterAvailableOnPlatform(fighter)
-        ).length;
-        elements.fighterCount.textContent = `${filtered.length} / ${fighters.length}`;
+        );
+        const filtered = platformFighters.filter(fighter =>
+            fighterMatches(fighter, state.query)
+        );
+        elements.fighterCount.textContent =
+            `${filtered.length} / ${platformFighters.length}`;
         elements.fighterCount.title =
-            `${availableCount} доступны в версии ${platformLabel()}`;
+            `${platformFighters.length} доступны в версии ${platformLabel()}`;
         elements.rosterList.innerHTML = filtered.map(fighter => {
             const selected = !["secrets", "community"].includes(state.tab)
                 && fighter.id === state.fighterId;
@@ -1598,10 +1587,16 @@
         }
         state.platform = button.dataset.platform;
         state.selectedMoveKey = "";
-        try {
-            localStorage.setItem("movebook-platform", state.platform);
-        } catch {
-            // The selected platform still works for the current session.
+        const selectedFighter = currentVersion().fighters.find(
+            fighter => fighter.id === state.fighterId
+        );
+        if (!selectedFighter || !fighterAvailableOnPlatform(selectedFighter)) {
+            const firstAvailable = currentVersion().fighters.find(fighter =>
+                fighterAvailableOnPlatform(fighter)
+            );
+            if (firstAvailable) {
+                state.fighterId = firstAvailable.id;
+            }
         }
         setRoute();
     });

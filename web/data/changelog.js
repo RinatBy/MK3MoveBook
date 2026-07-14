@@ -1,11 +1,18 @@
 window.MOVEBOOK_CHANGELOG = [
     {
+        version: "1.1.13",
+        date: "14 июля 2026",
+        title: "Небольшие исправления",
+        items: [
+            "Исправлены небольшие ошибки. Шива убрана из списка бойцов SEGA."
+        ]
+    },
+    {
         version: "1.1.12",
         date: "14 июля 2026",
-        title: "53 новых финишера и уточнённые комбинации",
+        title: "53 новых финишера",
         items: [
-            "Добавлены 53 видеодемонстрации Finishing Moves для Sindel, Jax, Sonya, Kitana, Stryker, Scorpion, Unmasked Sub-Zero и Jade — теперь в книге 227 роликов.",
-            "Уточнено удержание и отпускание блока в финишерах Scorpion, Unmasked Sub-Zero и Jade."
+            "Добавлены 53 видеодемонстрации Finishing Moves для Sindel, Jax, Sonya, Kitana, Stryker, Scorpion, Unmasked Sub-Zero и Jade — теперь в книге 227 роликов."
         ]
     },
     {
