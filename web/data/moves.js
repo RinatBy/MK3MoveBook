@@ -625,10 +625,10 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Fatality 1                   (jump)","notation":"_2,_2,_8,HK","pretty":"↓,↓,↑,HK"},
                 {"label":"Fatality 2              (close)","notation":"_6,_6,_2,_8,RUN","pretty":"→,→,↓,↑,RUN"},
-                {"label":"Animality                   (close)","notation":"_6,_8,_8,HK","pretty":"→,↑,↑,HK"},
+                {"label":"Animality                   (close)","notation":"hold BL,_6,_8,_8,release BL,HK","pretty":"hold BL,→,↑,↑,release BL,HK"},
                 {"label":"Friendship               (sweep)","notation":"_4,_6,_6,_4,LK","pretty":"←,→,→,←,LK"},
                 {"label":"Babality","notation":"_2,_4,_4,_6,HP","pretty":"↓,←,←,→,HP"},
-                {"label":"Stage Fatality","notation":"_6,_8,_8,LP","pretty":"→,↑,↑,LP"},
+                {"label":"Stage Fatality","notation":"hold BL,_6,_8,_8,release BL,LP","pretty":"hold BL,→,↑,↑,release BL,LP"},
                 {"label":"Brutality","notation":"HP,HP,BL,HK,HK,LK,HK,HP,HP,LP,HP","pretty":"HP,HP,BL,HK,HK,LK,HK,HP,HP,LP,HP"}
               ]
             },
@@ -663,7 +663,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Fatality 1             (close)","notation":"BL,BL,RUN,BL,RUN","pretty":"BL,BL,RUN,BL,RUN"},
                 {"label":"Fatality 2              (sweep)","notation":"_4,_4,_2,_4,RUN","pretty":"←,←,↓,←,RUN"},
-                {"label":"Animality                      (close)","notation":"_6,_8,_8","pretty":"→,↑,↑"},
+                {"label":"Animality                      (close)","notation":"hold BL,_6,_8,_8,release BL","pretty":"hold BL,→,↑,↑,release BL"},
                 {"label":"Friendship                (sweep)","notation":"LK,RUN,RUN,_8","pretty":"LK,RUN,RUN,↑"},
                 {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK"},
                 {"label":"Stage Fatality","notation":"_4,_2,_6,_6,HK","pretty":"←,↓,→,→,HK"},
@@ -701,7 +701,7 @@ window.MOVEBOOK_DATA = {
             {
               "name": "Finishing Moves",
               "moves": [
-                {"label":"Fatality 1               (close)","notation":"_8,_8,_2,_6,HP","pretty":"↑,↑,↓,→,HP"},
+                {"label":"Fatality 1               (close)","notation":"hold BL,_8,_8,_2,_6,release BL,HP","pretty":"hold BL,↑,↑,↓,→,release BL,HP"},
                 {"label":"Fatality 2           (close)","notation":"RUN,RUN,RUN,BL,RUN","pretty":"RUN,RUN,RUN,BL,RUN"},
                 {"label":"Animality                (close)","notation":"_6,_2,_6,_6,LK","pretty":"→,↓,→,→,LK"},
                 {"label":"Friendship","notation":"_4,_2,_4,_4,HK","pretty":"←,↓,←,←,HK"},
@@ -1628,10 +1628,10 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Fatality 1                   (jump)","notation":"_2,_2,_8,HK","pretty":"↓,↓,↑,HK"},
                 {"label":"Fatality 2              (close)","notation":"_6,_6,_2,_8,RUN","pretty":"→,→,↓,↑,RUN"},
-                {"label":"Animality                   (close)","notation":"_6,_8,_8,HK","pretty":"→,↑,↑,HK"},
+                {"label":"Animality                   (close)","notation":"hold BL,_6,_8,_8,release BL,HK","pretty":"hold BL,→,↑,↑,release BL,HK"},
                 {"label":"Friendship               (sweep)","notation":"_4,_6,_6,_4,LK","pretty":"←,→,→,←,LK"},
                 {"label":"Babality","notation":"_2,_4,_4,_6,HP","pretty":"↓,←,←,→,HP"},
-                {"label":"Stage Fatality","notation":"_6,_8,_8,LP","pretty":"→,↑,↑,LP"},
+                {"label":"Stage Fatality","notation":"hold BL,_6,_8,_8,release BL,LP","pretty":"hold BL,→,↑,↑,release BL,LP"},
                 {"label":"Brutality","notation":"HP,HP,BL,HK,HK,LK,HK,HP,HP,LP,HP","pretty":"HP,HP,BL,HK,HK,LK,HK,HP,HP,LP,HP"}
               ]
             },
@@ -1666,7 +1666,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Fatality 1             (close)","notation":"BL,BL,RUN,BL,RUN","pretty":"BL,BL,RUN,BL,RUN"},
                 {"label":"Fatality 2              (sweep)","notation":"_4,_4,_2,_4,RUN","pretty":"←,←,↓,←,RUN"},
-                {"label":"Animality                      (close)","notation":"_6,_8,_8","pretty":"→,↑,↑"},
+                {"label":"Animality                      (close)","notation":"hold BL,_6,_8,_8,release BL","pretty":"hold BL,→,↑,↑,release BL"},
                 {"label":"Friendship                (sweep)","notation":"LK,RUN,RUN,_8","pretty":"LK,RUN,RUN,↑"},
                 {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK"},
                 {"label":"Stage Fatality","notation":"_4,_2,_6,_6,HK","pretty":"←,↓,→,→,HK"},
@@ -1704,7 +1704,7 @@ window.MOVEBOOK_DATA = {
             {
               "name": "Finishing Moves",
               "moves": [
-                {"label":"Fatality 1               (close)","notation":"_8,_8,_2,_6,HP","pretty":"↑,↑,↓,→,HP"},
+                {"label":"Fatality 1               (close)","notation":"hold BL,_8,_8,_2,_6,release BL,HP","pretty":"hold BL,↑,↑,↓,→,release BL,HP"},
                 {"label":"Fatality 2           (close)","notation":"RUN,RUN,RUN,BL,RUN","pretty":"RUN,RUN,RUN,BL,RUN"},
                 {"label":"Animality                (close)","notation":"_6,_2,_6,_6,LK","pretty":"→,↓,→,→,LK"},
                 {"label":"Friendship","notation":"_4,_2,_4,_4,HK","pretty":"←,↓,←,←,HK"},
@@ -2512,10 +2512,10 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Fatality 1                   (jump)","notation":"_2,_2,_8,HK","pretty":"↓,↓,↑,HK"},
                 {"label":"Fatality 2              (close)","notation":"_6,_6,_2,_8,RUN","pretty":"→,→,↓,↑,RUN"},
-                {"label":"Animality                   (close)","notation":"_6,_8,_8,HK","pretty":"→,↑,↑,HK"},
+                {"label":"Animality                   (close)","notation":"hold BL,_6,_8,_8,release BL,HK","pretty":"hold BL,→,↑,↑,release BL,HK"},
                 {"label":"Friendship               (sweep)","notation":"_4,_6,_6,_4,LK","pretty":"←,→,→,←,LK"},
                 {"label":"Babality","notation":"_2,_4,_4,_6,HP","pretty":"↓,←,←,→,HP"},
-                {"label":"Stage Fatality","notation":"_6,_8,_8,LP","pretty":"→,↑,↑,LP"},
+                {"label":"Stage Fatality","notation":"hold BL,_6,_8,_8,release BL,LP","pretty":"hold BL,→,↑,↑,release BL,LP"},
                 {"label":"Brutality","notation":"HP,HP,BL,HK,HK,LK,HK,HP,HP,LP,HP","pretty":"HP,HP,BL,HK,HK,LK,HK,HP,HP,LP,HP"}
               ]
             },
@@ -2550,7 +2550,7 @@ window.MOVEBOOK_DATA = {
               "moves": [
                 {"label":"Fatality 1             (close)","notation":"BL,BL,RUN,BL,RUN","pretty":"BL,BL,RUN,BL,RUN"},
                 {"label":"Fatality 2              (sweep)","notation":"_4,_4,_2,_4,RUN","pretty":"←,←,↓,←,RUN"},
-                {"label":"Animality                      (close)","notation":"_6,_8,_8","pretty":"→,↑,↑"},
+                {"label":"Animality                      (close)","notation":"hold BL,_6,_8,_8,release BL","pretty":"hold BL,→,↑,↑,release BL"},
                 {"label":"Friendship                (sweep)","notation":"LK,RUN,RUN,_8","pretty":"LK,RUN,RUN,↑"},
                 {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK"},
                 {"label":"Stage Fatality","notation":"_4,_2,_6,_6,HK","pretty":"←,↓,→,→,HK"},
@@ -2588,7 +2588,7 @@ window.MOVEBOOK_DATA = {
             {
               "name": "Finishing Moves",
               "moves": [
-                {"label":"Fatality 1               (close)","notation":"_8,_8,_2,_6,HP","pretty":"↑,↑,↓,→,HP"},
+                {"label":"Fatality 1               (close)","notation":"hold BL,_8,_8,_2,_6,release BL,HP","pretty":"hold BL,↑,↑,↓,→,release BL,HP"},
                 {"label":"Fatality 2           (close)","notation":"RUN,RUN,RUN,BL,RUN","pretty":"RUN,RUN,RUN,BL,RUN"},
                 {"label":"Animality                (close)","notation":"_6,_2,_6,_6,LK","pretty":"→,↓,→,→,LK"},
                 {"label":"Friendship","notation":"_4,_2,_4,_4,HK","pretty":"←,↓,←,←,HK"},

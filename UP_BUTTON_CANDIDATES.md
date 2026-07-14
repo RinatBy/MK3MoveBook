@@ -6,7 +6,7 @@
 
 Если платформа не указана, комбинация одинакова для Arcade и SEGA. Платформа отмечена только там, где запись относится к одной версии игры.
 
-## Без пометки HOLD BL — проверить
+## Проверено — HOLD BL не нужен
 
 - Human Smoke — Finishing Moves — Stage Fatality: `→ › ↑ › ↑ › LP`
 - Kano — Finishing Moves — Stage Fatality: `↑ › ↑ › ← › LK`
@@ -21,13 +21,9 @@
 - Sindel — Finishing Moves — Babality: `RUN › RUN › RUN › ↑`
 - Sindel — Finishing Moves — Friendship: `RUN › RUN › RUN › RUN › RUN › ↑`
 - Stryker — Finishing Moves — Stage Fatality: `→ › ↑ › ↑ › HK`
-- Scorpion — Arcade — Finishing Moves — Animality (close): `→ › ↑ › ↑ › HK`
 - Scorpion — Finishing Moves — Fatality 1 (jump): `↓ › ↓ › ↑ › HK`
 - Scorpion — Finishing Moves — Fatality 2 (close): `→ › → › ↓ › ↑ › RUN`
-- Scorpion — Finishing Moves — Stage Fatality: `→ › ↑ › ↑ › LP`
-- Unmasked Sub-Zero — Arcade — Finishing Moves — Animality (close): `→ › ↑ › ↑`
 - Unmasked Sub-Zero — Finishing Moves — Friendship (sweep): `LK › RUN › RUN › ↑`
-- Jade — Finishing Moves — Fatality 1 (close): `↑ › ↑ › ↓ › → › HP`
 - Liu Kang — SEGA — Special Moves — Fireball-high (also in air): `↑ › → › → › HP`
 - Liu Kang — Arcade — Finishing Moves — Animality (sweep): `↓ › ↓ › ↑`
 - Liu Kang — Finishing Moves — Fatality 2: `↑ › ↓ › ↑ › ↑ › BL+RUN`
@@ -40,6 +36,17 @@
 - Sheeva — Arcade — Special Moves — Teleport Stomp: `↓ › ↑`
 - Noob Saibot — Special Moves — Teleport: `↓ › ↑`
 - Motaro — Special Moves — Teleport: `↓ › ↑`
+
+## Подтверждено — HOLD BL добавлен в данные
+
+- Scorpion — Arcade — Finishing Moves — Animality (close): `HOLD BL › → › ↑ › ↑ › RELEASE BL › HK`
+  - Важно: отпустить `BL` перед `HK`.
+- Scorpion — Finishing Moves — Stage Fatality: `HOLD BL › → › ↑ › ↑ › RELEASE BL › LP`
+  - Важно: оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить `BL` перед `LP`.
+- Unmasked Sub-Zero — Arcade — Finishing Moves — Animality (close): `HOLD BL › → › ↑ › ↑ › RELEASE BL`
+  - Важно: оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить `BL`.
+- Jade — Finishing Moves — Fatality 1 (close): `HOLD BL › ↑ › ↑ › ↓ › → › RELEASE BL › HP`
+  - Важно: оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить `BL` перед `HP`.
 
 ## Уже есть HOLD BL / HOLD BL+RUN — для контроля
 
