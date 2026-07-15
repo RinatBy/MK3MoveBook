@@ -221,6 +221,24 @@ function Get-CategoryMoves {
     return $Moves.ToArray()
 }
 
+function Test-MoveVisibleOnPlatform {
+    param(
+        [object]$Move,
+        [string]$Platform
+    )
+    $PlatformValue = Get-PropertyValue -Object $Move -Name "platforms"
+    if ($null -ne $PlatformValue -and
+        @($PlatformValue) -notcontains $Platform) {
+        return $false
+    }
+    $HiddenValue = Get-PropertyValue -Object $Move -Name "hiddenPlatforms"
+    if ($null -ne $HiddenValue -and
+        @($HiddenValue) -contains $Platform) {
+        return $false
+    }
+    return $true
+}
+
 function Test-SortedMoveCategory {
     param([object]$Category)
     return [string]$Category.name -match "^(?i:Special Moves|Morphs)$"
@@ -409,6 +427,9 @@ function New-MoveMarkup {
             -Fighter $Fighter `
             -Category $Category `
             -Platform $Platform
+        $CategoryMoves = @($CategoryMoves | Where-Object {
+            Test-MoveVisibleOnPlatform -Move $_ -Platform $Platform
+        })
         $CategoryMoves = Sort-CategoryMoves `
             -Category $Category `
             -Moves $CategoryMoves

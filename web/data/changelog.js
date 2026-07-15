@@ -1,5 +1,14 @@
 window.MOVEBOOK_CHANGELOG = [
     {
+        version: "1.1.14",
+        date: "15 июля 2026",
+        title: "Новые видео и исправления приёмов",
+        items: [
+            "Добавлены 58 новых видеодемонстраций Special Moves и Finishing Moves — теперь в книге 282 ролика.",
+            "Исправлено отображение приёмов Noob Saibot и Classic Sub-Zero."
+        ]
+    },
+    {
         version: "1.1.13",
         date: "14 июля 2026",
         title: "Небольшие исправления",

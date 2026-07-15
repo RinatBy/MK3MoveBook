@@ -31,8 +31,6 @@
 - Cyrax — Arcade — Finishing Moves — Animality (close): `↑ › ↑ › ↓ › ↓`
 - Cyrax — Finishing Moves — Fatality 1: `↓ › ↓ › ↑ › ↓ › HP`
 - Cyrax — Finishing Moves — Fatality 2 (close): `↓ › ↓ › → › ↑ › RUN`
-- Shang Tsung — Finishing Moves — Stage Fatality: `↑ › ↑ › ← › LP`
-
 ## Подтверждено — HOLD BL нужен (пока только для будущей рекомендации)
 
 - Scorpion — Arcade — Finishing Moves — Animality (close): `→ › ↑ › ↑ › HK`
@@ -43,6 +41,8 @@
   - Важно: зажать `BL` перед комбинацией и оба нажатия `↑` выполнить с зажатым `BL`.
 - Jade — Finishing Moves — Fatality 1 (close): `↑ › ↑ › ↓ › → › HP`
   - Важно: зажать `BL` перед комбинацией, оба нажатия `↑` выполнить с зажатым `BL`, затем отпустить перед `HP`.
+- Shang Tsung — Finishing Moves — Stage Fatality: `↑ › ↑ › ← › LP`
+  - Важно: выполнять через зажатый `BL`; момент отпускания блока ещё не уточнён.
 
 ## Уже есть HOLD BL / HOLD BL+RUN — для контроля
 

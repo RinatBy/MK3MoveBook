@@ -313,6 +313,17 @@
         return null;
     }
 
+    function moveVisibleOnPlatform(move, platform = state.platform) {
+        const platforms = Array.isArray(move?.platforms)
+            ? move.platforms
+            : null;
+        const hiddenPlatforms = Array.isArray(move?.hiddenPlatforms)
+            ? move.hiddenPlatforms
+            : [];
+        return (!platforms || platforms.includes(platform)) &&
+            !hiddenPlatforms.includes(platform);
+    }
+
     function platformLabel(platform = state.platform) {
         return platformModel.platforms?.[platform]?.label || platform.toUpperCase();
     }
@@ -471,7 +482,10 @@
                 moveIndex,
                 ...resolvedMoveData(sourceMove)
             }))
-            .filter(({ move }) => !hasTrilogyMarker(move.label));
+            .filter(({ sourceMove, move }) =>
+                moveVisibleOnPlatform(sourceMove) &&
+                !hasTrilogyMarker(move.label)
+            );
 
         if (!shouldSortMoveCategory(category)) {
             return entries;

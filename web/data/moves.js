@@ -816,9 +816,9 @@ window.MOVEBOOK_DATA = {
               "name": "Finishing Moves",
               "moves": [
                 {"label":"Fatality 1               (close)","notation":"_2,_2,_2,_6,HP","pretty":"↓,↓,↓,→,HP"},
-                {"label":"Fatality 2(INCLUDED MAME)(close)","notation":"_2,_6,_6,_6,HP","pretty":"↓,→,→,→,HP"},
-                {"label":"Friendship               (close)","notation":"_2,_4,_4,_6,LK","pretty":"↓,←,←,→,LK"},
-                {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK"},
+                {"label":"Fatality 2(INCLUDED MAME)(close)","notation":"_2,_6,_6,_6,HP","pretty":"↓,→,→,→,HP","hiddenPlatforms":["arcade"]},
+                {"label":"Friendship               (close)","notation":"_2,_4,_4,_6,LK","pretty":"↓,←,←,→,LK","hiddenPlatforms":["arcade"]},
+                {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK","hiddenPlatforms":["arcade"]},
                 {"label":"Stage Fatality","notation":"_6,_2,_6,_6,HP","pretty":"→,↓,→,→,HP"},
                 {"label":"Brutality","notation":"HP,LP,HP,BL,LK,LK,HK,HK,LP,HP,LP","pretty":"HP,LP,HP,BL,LK,LK,HK,HK,LP,HP,LP"}
               ]
@@ -1062,7 +1062,7 @@ window.MOVEBOOK_DATA = {
             {
               "name": "Finishing Moves",
               "moves": [
-                {"label":"Brutality","notation":"HP,LK,LP,BL,LK,HK,HP,LP,BL,LK,HK","pretty":"HP,LK,LP,BL,LK,HK,HP,LP,BL,LK,HK","platforms":["sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация Brutality для SEGA добавлена по присланному списку и требует проверки."}}
+                {"label":"Brutality","notation":"HP,LK,LP,BL,LK,HK,HP,LP,BL,LK,HK","pretty":"HP,LK,LP,BL,LK,HK,HP,LP,BL,LK,HK","platforms":["arcade","sega"],"platformStatus":{"sega":"unverified"},"platformNotes":{"sega":"Комбинация Brutality для SEGA добавлена по присланному списку и требует проверки."}}
               ]
             },
             {
@@ -1813,9 +1813,9 @@ window.MOVEBOOK_DATA = {
               "name": "Finishing Moves",
               "moves": [
                 {"label":"Fatality 1               (close)","notation":"_2,_2,_2,_6,HP","pretty":"↓,↓,↓,→,HP"},
-                {"label":"Fatality 2(INCLUDED MAME)(close)","notation":"_2,_6,_6,_6,HP","pretty":"↓,→,→,→,HP"},
-                {"label":"Friendship               (close)","notation":"_2,_4,_4,_6,LK","pretty":"↓,←,←,→,LK"},
-                {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK"},
+                {"label":"Fatality 2(INCLUDED MAME)(close)","notation":"_2,_6,_6,_6,HP","pretty":"↓,→,→,→,HP","hiddenPlatforms":["arcade"]},
+                {"label":"Friendship               (close)","notation":"_2,_4,_4,_6,LK","pretty":"↓,←,←,→,LK","hiddenPlatforms":["arcade"]},
+                {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK","hiddenPlatforms":["arcade"]},
                 {"label":"Stage Fatality","notation":"_6,_2,_6,_6,HP","pretty":"→,↓,→,→,HP"},
                 {"label":"Brutality","notation":"HP,LP,HP,BL,LK,LK,HK,HK,LP,HP,LP","pretty":"HP,LP,HP,BL,LK,LK,HK,HK,LP,HP,LP"}
               ]
@@ -2697,9 +2697,9 @@ window.MOVEBOOK_DATA = {
               "name": "Finishing Moves",
               "moves": [
                 {"label":"Fatality 1               (close)","notation":"_2,_2,_2,_6,HP","pretty":"↓,↓,↓,→,HP"},
-                {"label":"Fatality 2(INCLUDED MAME)(close)","notation":"_2,_6,_6,_6,HP","pretty":"↓,→,→,→,HP"},
-                {"label":"Friendship               (close)","notation":"_2,_4,_4,_6,LK","pretty":"↓,←,←,→,LK"},
-                {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK"},
+                {"label":"Fatality 2(INCLUDED MAME)(close)","notation":"_2,_6,_6,_6,HP","pretty":"↓,→,→,→,HP","hiddenPlatforms":["arcade"]},
+                {"label":"Friendship               (close)","notation":"_2,_4,_4,_6,LK","pretty":"↓,←,←,→,LK","hiddenPlatforms":["arcade"]},
+                {"label":"Babality","notation":"_2,_4,_4,HK","pretty":"↓,←,←,HK","hiddenPlatforms":["arcade"]},
                 {"label":"Stage Fatality","notation":"_6,_2,_6,_6,HP","pretty":"→,↓,→,→,HP"},
                 {"label":"Brutality","notation":"HP,LP,HP,BL,LK,LK,HK,HK,LP,HP,LP","pretty":"HP,LP,HP,BL,LK,LK,HK,HK,LP,HP,LP"}
               ]
