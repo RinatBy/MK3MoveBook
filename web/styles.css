@@ -1923,9 +1923,9 @@ button {
 }
 
 .statusbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
     padding: 0 16px 0 10px;
     color: #a998b5;
     background: #0e0815;
@@ -1934,10 +1934,22 @@ button {
     letter-spacing: .04em;
 }
 
+.statusbar > #statusText {
+    grid-column: 3;
+    min-width: 0;
+    overflow: hidden;
+    justify-self: end;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .portable-download {
     display: inline-flex;
+    grid-column: 2;
     align-items: center;
     justify-content: center;
+    justify-self: center;
     min-height: 30px;
     padding: 0 14px;
     color: #fff5cf;
@@ -1989,7 +2001,9 @@ button {
 
 .community-entry {
     display: inline-flex;
+    grid-column: 1;
     align-self: stretch;
+    justify-self: start;
     height: 100%;
     align-items: center;
     gap: 11px;

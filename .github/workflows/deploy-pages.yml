@@ -9,6 +9,11 @@ on:
         description: Exact release tag to deploy (for example v1.1.8)
         required: true
         type: string
+      use_current_styles:
+        description: Replace the release stylesheet with web/styles.css from main
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -52,6 +57,20 @@ jobs:
             throw "The release archive does not contain web/index.html"
           }
           "WEB_ROOT=$webRoot" >> $env:GITHUB_ENV
+
+      - name: Apply current stylesheet
+        if: github.event_name == 'workflow_dispatch' && inputs.use_current_styles
+        shell: pwsh
+        run: |
+          $sourceStyles = Join-Path $PWD "web/styles.css"
+          $targetStyles = Join-Path $env:WEB_ROOT "styles.css"
+          if (-not (Test-Path -LiteralPath $sourceStyles)) {
+            throw "Stylesheet not found: $sourceStyles"
+          }
+          if (-not (Test-Path -LiteralPath $targetStyles)) {
+            throw "Release stylesheet not found: $targetStyles"
+          }
+          Copy-Item -LiteralPath $sourceStyles -Destination $targetStyles -Force
 
       - name: Generate static site
         shell: pwsh
