@@ -14,6 +14,11 @@ on:
         required: true
         default: false
         type: boolean
+      use_current_index:
+        description: Replace the release index with web/index.html from main
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -71,6 +76,20 @@ jobs:
             throw "Release stylesheet not found: $targetStyles"
           }
           Copy-Item -LiteralPath $sourceStyles -Destination $targetStyles -Force
+
+      - name: Apply current index
+        if: github.event_name == 'workflow_dispatch' && inputs.use_current_index
+        shell: pwsh
+        run: |
+          $sourceIndex = Join-Path $PWD "web/index.html"
+          $targetIndex = Join-Path $env:WEB_ROOT "index.html"
+          if (-not (Test-Path -LiteralPath $sourceIndex)) {
+            throw "Index not found: $sourceIndex"
+          }
+          if (-not (Test-Path -LiteralPath $targetIndex)) {
+            throw "Release index not found: $targetIndex"
+          }
+          Copy-Item -LiteralPath $sourceIndex -Destination $targetIndex -Force
 
       - name: Generate static site
         shell: pwsh
