@@ -97,7 +97,7 @@ jobs:
           ./tools/generate-site.ps1 `
             -WebRoot $env:WEB_ROOT `
             -OutputRoot .site-dist `
-            -BaseUrl https://rinatby.github.io/MK3MoveBook/
+            -BaseUrl https://movebook.ru/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

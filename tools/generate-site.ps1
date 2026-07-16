@@ -2,7 +2,7 @@
 param(
     [string]$WebRoot = (Join-Path $PSScriptRoot "..\web"),
     [string]$OutputRoot = (Join-Path $PSScriptRoot "..\.site-dist"),
-    [string]$BaseUrl = "https://rinatby.github.io/MK3MoveBook/"
+    [string]$BaseUrl = "https://movebook.ru/"
 )
 
 Set-StrictMode -Version Latest
