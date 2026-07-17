@@ -135,7 +135,8 @@ jobs:
           ./tools/generate-site.ps1 `
             -WebRoot $env:WEB_ROOT `
             -OutputRoot .site-dist `
-            -BaseUrl https://movebook.ru/
+            -BaseUrl https://movebook.ru/ `
+            -AssetVersion "${{ github.sha }}"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

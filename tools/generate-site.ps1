@@ -2,7 +2,8 @@
 param(
     [string]$WebRoot = (Join-Path $PSScriptRoot "..\web"),
     [string]$OutputRoot = (Join-Path $PSScriptRoot "..\.site-dist"),
-    [string]$BaseUrl = "https://movebook.ru/"
+    [string]$BaseUrl = "https://movebook.ru/",
+    [string]$AssetVersion = ""
 )
 
 Set-StrictMode -Version Latest
@@ -52,6 +53,23 @@ if (Test-Path -LiteralPath $SegaMovesPath) {
     $SegaMoves = $SegaMovesJson | ConvertFrom-Json
 }
 $Template = [IO.File]::ReadAllText($TemplatePath, [Text.Encoding]::UTF8)
+if (-not [string]::IsNullOrWhiteSpace($AssetVersion)) {
+    $Version = [Uri]::EscapeDataString($AssetVersion.Trim())
+    $VersionedAssets = @(
+        "styles.css",
+        "data/moves.js",
+        "data/sega-moves.js",
+        "data/lore.js",
+        "data/changelog.js",
+        "app.js"
+    )
+    foreach ($Asset in $VersionedAssets) {
+        $Template = $Template.Replace(
+            '"' + $Asset + '"',
+            '"' + $Asset + '?v=' + $Version + '"'
+        )
+    }
+}
 $Fighters = @($Data.versions.umk3uk.fighters)
 
 function Get-PropertyValue {
