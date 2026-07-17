@@ -19,6 +19,13 @@
                 <span>интерактивная книга бойца</span>
             </div>
 
+            <button id="mobileRosterToggle" class="mobile-roster-toggle"
+                type="button" aria-expanded="false"
+                aria-controls="rosterPanel">
+                <span aria-hidden="true">☰</span>
+                <b>Бойцы</b>
+            </button>
+
             <nav class="history-controls" aria-label="Навигация">
                 <button id="backButton" class="chrome-button" type="button" title="Назад">←</button>
                 <button id="forwardButton" class="chrome-button" type="button" title="Вперёд">→</button>
@@ -69,10 +76,14 @@
         </header>
 
         <div class="workspace">
-            <aside class="roster-panel">
+            <button id="rosterBackdrop" class="roster-backdrop" type="button"
+                aria-label="Закрыть список бойцов" tabindex="-1"></button>
+            <aside id="rosterPanel" class="roster-panel">
                 <div class="roster-heading">
                     <p>Выберите бойца</p>
                     <strong id="fighterCount"></strong>
+                    <button id="mobileRosterClose" class="mobile-roster-close"
+                        type="button" aria-label="Закрыть список бойцов">×</button>
                 </div>
                 <label class="search-box">
                     <span aria-hidden="true">⌕</span>

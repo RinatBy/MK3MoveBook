@@ -1,6 +1,6 @@
 window.MOVEBOOK_LORE = {
     source: {
-        title: "Ultimate Mortal Kombat 3 Strategy Guide",
+        title: "Ultimate Mortal Kombat 3",
         note: "Перевод выполнен по страницам предоставленной книги. Имена, названия миров и игровые термины сохранены в оригинальном написании."
     },
     fighters: {
@@ -211,34 +211,63 @@ window.MOVEBOOK_LORE = {
             ],
             sources: { intro: "стр. 21", ending: "стр. 26" }
         },
+        "noob-saibot": {
+            historyDescription: "Краткая справка составлена по материалам классических игр серии.",
+            historySource: "Steam Community — «Всё об Ultimate Mortal Kombat 3»",
+            factsSource: "Mortal Kombat II, Ultimate Mortal Kombat 3 и Mortal Kombat: Deception",
+            intro: "На поле боя Noob Saibot выходит не ради славы и не ради победы Shao Kahn. Посланник Netherrealm предпочитает оставаться в тени: он наблюдает за столкновением Earthrealm и Outworld и передаёт собранные сведения Brotherhood of Shadow. За этим орденом стоит падший Старший Бог, чьи замыслы пока скрыты от остальных участников войны.",
+            ending: "Союз с Shao Kahn становится для Noob Saibot лишь частью тайного плана. Ему велено убедить императора в своей преданности и вместе с его армией проникнуть в Earthrealm. После победы Kahn должен превратиться из союзника в цель: его устранение откроет Shinnok дорогу сразу к двум мирам.",
+            factsNavLabel: "Доп. сведения",
+            factsKicker: "Дополнительные сведения",
+            factsDescription: "Факты из классических игр серии и истории создания персонажа.",
+            factsSourceNote: "Дополнительные сведения собраны по материалам классических игр серии и истории её создания.",
+            factsStatusText: "Noob Saibot · факты о персонаже",
+            facts: [
+                "Noob Saibot впервые появился как секретный противник в Mortal Kombat II: бой с ним открывался после 50 побед подряд в режиме Versus.",
+                "Имя Noob Saibot составлено из фамилий создателей Mortal Kombat — Ed Boon и John Tobias, записанных наоборот.",
+                "Позднее серия раскрыла, что Noob Saibot — это Bi-Han, первый Sub-Zero."
+            ],
+            sources: {
+                facts: "Mortal Kombat II, UMK3 и Mortal Kombat: Deception"
+            }
+        },
         "rain": {
-            intro: null,
+            historyDescription: "Краткая справка составлена по материалам классических игр серии.",
+            historySource: "Mortal Kombat Warehouse — Rain: Ultimate Mortal Kombat 3",
+            intro: "Rain — ниндзя из Edenia, родного мира Kitana. После захвата мира Shao Kahn его ещё ребёнком тайно вывезли в безопасное место. Тысячи лет спустя Rain вернулся и примкнул к императору, предпочтя предать родину, чтобы не стать жертвой его отрядов истребителей.",
             ending: null,
-            note: "В предоставленной книге нет отдельной страницы с историей Rain. Мы не добавляем неподтверждённый текст от другой версии игры.",
             facts: [
                 "В разделе Text Message Kodes книги Rain упоминается в сообщении о кладбище."
             ],
-            sources: { facts: "стр. 28" }
+            sources: {
+                facts: "стр. 28"
+            }
         },
         "motaro": {
-            intro: null,
+            historyDescription: "Краткая справка составлена по материалам классических игр серии.",
+            historySource: "Steam Community — «Всё об Ultimate Mortal Kombat 3»",
+            intro: "Во время вторжения Shao Kahn поручает охоту на уцелевших земных воинов Motaro. Кентавр-командир ведёт по Земле отряды Outworld и разыскивает тех, чьи души защищены силой Raiden. Пока император завершает слияние миров, Motaro становится его главным исполнителем и последней преградой на пути к Shao Kahn.",
             ending: null,
-            note: "В предоставленной книге нет отдельной биографии или финала Motaro.",
             facts: [
                 "Код 969-141 на экране VS назначает Motaro следующим противником в аркадной UMK3.",
                 "Motaro принадлежит к расе кентавров — естественных врагов Shokan."
             ],
-            sources: { facts: "стр. 17, 25, 28" }
+            sources: {
+                facts: "стр. 17, 25, 28"
+            }
         },
         "shao-kahn": {
-            intro: null,
+            historyDescription: "Краткая справка составлена по материалам классических игр серии.",
+            historySource: "Steam Community — «Всё об Ultimate Mortal Kombat 3»",
+            intro: "Earthrealm становится следующей целью Shao Kahn после того, как турниры раз за разом не приносят ему желаемой победы. Вместо нового честного поединка правитель Outworld использует Sindel: её возвращение к жизни на Земле создаёт для него проход между мирами. Начав вторжение, Kahn забирает души жителей и постепенно подчиняет захваченный мир законам Outworld.",
             ending: null,
-            note: "Shao Kahn выступает главным противником книги, но отдельной страницы с его биографией в ней нет.",
             facts: [
                 "Код 033-564 на экране VS назначает Shao Kahn следующим противником в аркадной UMK3.",
                 "Его вторжение на Землю связано с возрождением Sindel."
             ],
-            sources: { facts: "стр. 3, 17, 28" }
+            sources: {
+                facts: "стр. 3, 17, 28"
+            }
         }
     },
     codes: {

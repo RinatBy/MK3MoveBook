@@ -103,6 +103,12 @@ button {
     text-transform: uppercase;
 }
 
+.mobile-roster-toggle,
+.mobile-roster-close,
+.roster-backdrop {
+    display: none;
+}
+
 .history-controls {
     display: flex;
     gap: 6px;
@@ -2144,5 +2150,643 @@ button {
     .toasty-easter-egg {
         bottom: 46px;
         width: min(36vw, 170px);
+    }
+}
+
+@media (max-width: 979px) {
+    html,
+    body {
+        width: 100%;
+        height: auto;
+        min-height: 100%;
+        overscroll-behavior-x: none;
+    }
+
+    html {
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+    }
+
+    body {
+        overflow: visible;
+        touch-action: pan-y;
+    }
+
+    html.mobile-roster-open,
+    body.mobile-roster-open {
+        overflow: hidden;
+    }
+
+    .app-shell {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: auto;
+        min-width: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 60;
+        grid-template-areas: "mark brand update roster";
+        grid-template-columns: 36px minmax(0, 1fr) 36px auto;
+        gap: 7px;
+        min-height: 52px;
+        padding: 6px max(9px, env(safe-area-inset-right)) 6px max(9px, env(safe-area-inset-left));
+    }
+
+    .brand-mark {
+        grid-area: mark;
+        width: 36px;
+        height: 36px;
+        background-size: 240px auto;
+    }
+
+    .brand-copy {
+        grid-area: brand;
+    }
+
+    .brand-copy strong {
+        font-size: 16px;
+    }
+
+    .brand-copy span {
+        margin-top: 4px;
+        overflow: hidden;
+        font-size: 8px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .history-controls,
+    .route-bar {
+        display: none;
+    }
+
+    .mobile-roster-toggle {
+        grid-area: roster;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-width: 82px;
+        min-height: 36px;
+        padding: 0 10px;
+        color: #fff6d8;
+        background: linear-gradient(#a82a42, #701b2d);
+        border: 1px solid #d8b84f;
+        border-radius: 6px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 3px 10px rgba(0, 0, 0, .28);
+        cursor: pointer;
+    }
+
+    .mobile-roster-toggle > span {
+        font: 18px/1 sans-serif;
+    }
+
+    .mobile-roster-toggle > b {
+        font: 10px/1 "Russo One", sans-serif;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+    }
+
+    .update-control {
+        grid-area: update;
+    }
+
+    .update-button {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+    }
+
+    .hosted-site .update-button > span {
+        display: block;
+    }
+
+    .update-panel {
+        position: fixed;
+        top: 58px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: calc(100dvh - 80px);
+        overflow-y: auto;
+    }
+
+    .workspace {
+        display: block;
+        flex: 0 0 auto;
+        min-height: 0;
+    }
+
+    .roster-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 68;
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        pointer-events: none;
+        background: rgba(8, 4, 13, .72);
+        opacity: 0;
+        transition: opacity .2s ease;
+    }
+
+    .mobile-roster-open .roster-backdrop {
+        pointer-events: auto;
+        opacity: 1;
+    }
+
+    .roster-panel {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 70;
+        width: min(86vw, 340px);
+        height: 100vh;
+        height: 100dvh;
+        padding: max(16px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+        border-right-color: rgba(226, 189, 76, .48);
+        box-shadow: 18px 0 40px rgba(0, 0, 0, .48);
+        transform: translateX(calc(-100% - 18px));
+        transition: transform .22s ease;
+    }
+
+    .mobile-roster-open .roster-panel {
+        transform: translateX(0);
+    }
+
+    .roster-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .mobile-roster-close {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        color: #f3e8f6;
+        background: #352342;
+        border: 1px solid #6b517c;
+        border-radius: 50%;
+        cursor: pointer;
+        font: 22px/1 "Russo One", sans-serif;
+    }
+
+    .roster-list {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .reader {
+        min-height: 0;
+        padding: 10px;
+        overflow: visible;
+    }
+
+    .book {
+        display: block;
+        width: 100%;
+        height: auto;
+        filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .42));
+    }
+
+    .book-gutter {
+        display: none;
+    }
+
+    .book-page::after {
+        inset: 7px;
+    }
+
+    .page-corner {
+        display: none;
+    }
+
+    .book-page-left {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        align-items: center;
+        gap: 2px 11px;
+        min-height: 0;
+        padding: 10px 12px;
+        border-radius: 12px 12px 3px 3px;
+        box-shadow: inset 0 -14px 24px rgba(84, 52, 36, .08);
+    }
+
+    .fighter-seal,
+    .fighter-seal.is-community {
+        grid-column: 1;
+        grid-row: 1 / span 3;
+        width: 54px;
+        height: 54px;
+        padding: 4px;
+    }
+
+    .edition-label {
+        display: none;
+    }
+
+    #fighterTitle {
+        grid-column: 2;
+        margin: 0;
+        font-size: 21px;
+        line-height: 1.05;
+        text-align: left;
+    }
+
+    .ornament {
+        display: none;
+    }
+
+    .fighter-subtitle {
+        grid-column: 2;
+        margin: 2px 0 0;
+        font-size: 10px;
+        line-height: 1.3;
+        text-align: left;
+    }
+
+    .contents-title {
+        display: none;
+    }
+
+    .category-nav {
+        display: none;
+    }
+
+    .category-link {
+        flex: 0 0 auto;
+        width: auto;
+        min-height: 40px;
+        gap: 10px;
+        padding: 9px 11px;
+        white-space: nowrap;
+    }
+
+    .move-preview {
+        position: sticky;
+        top: var(--mobile-preview-top, 120px);
+        z-index: 11;
+        grid-column: 1 / -1;
+        width: 100%;
+        margin: 0;
+        scroll-margin-top: var(--mobile-preview-top, 120px);
+        box-shadow: 0 8px 14px rgba(52, 29, 39, .24);
+    }
+
+    .move-preview video {
+        max-height: min(29dvh, 210px);
+    }
+
+    .book-note {
+        width: 100%;
+        margin: 18px 0 6px;
+    }
+
+    html[data-tab="moves"] .book-note {
+        display: none;
+    }
+
+    .book-page-right,
+    .book-page-right.is-global-page {
+        display: block;
+        min-height: 0;
+        padding: 0 12px 28px;
+        border-radius: 3px 3px 12px 12px;
+        box-shadow: inset 0 14px 24px rgba(84, 52, 36, .07);
+    }
+
+    .section-tabs {
+        position: sticky;
+        top: var(--mobile-tabs-top, 52px);
+        z-index: 12;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        align-items: end;
+        gap: 2px;
+        min-height: 0;
+        margin: 0 -3px;
+        padding: 4px 3px 0;
+        background: linear-gradient(180deg, #f5ead6 72%, rgba(245, 234, 214, .96));
+        box-shadow: 0 5px 10px rgba(69, 40, 35, .08);
+    }
+
+    .section-tabs > button,
+    .section-tabs > button[aria-selected="true"] {
+        width: 100%;
+        height: 32px;
+        padding: 1px 4px;
+        font-size: 10px;
+        line-height: 1.05;
+    }
+
+    .notation-switch {
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 28px;
+        margin: 1px 0 3px;
+        padding: 2px;
+        justify-content: flex-end;
+    }
+
+    .notation-switch > span {
+        display: block;
+        margin-right: auto;
+        font-size: 8px;
+    }
+
+    .notation-toggle {
+        width: 112px;
+        height: 24px;
+    }
+
+    .notation-toggle i {
+        height: 18px;
+    }
+
+    .notation-toggle b {
+        font-size: 8px;
+    }
+
+    .platform-notice {
+        margin: 10px 0 0;
+    }
+
+    .page-content,
+    .book-page-right.is-global-page .page-content {
+        min-height: 0;
+        padding: 8px 0 22px;
+        overflow: visible;
+    }
+
+    .chapter,
+    .lore-chapter,
+    .codes-section {
+        scroll-margin-top: 130px;
+    }
+
+    .chapter-heading {
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 17px;
+    }
+
+    .chapter + .chapter {
+        margin-top: 16px;
+    }
+
+    .move-list {
+        gap: 5px;
+    }
+
+    .move-card {
+        grid-template-columns: minmax(88px, .58fr) minmax(0, 1.42fr);
+        gap: 6px;
+        min-height: 44px;
+        padding: 6px 7px;
+    }
+
+    .move-card:hover {
+        transform: none;
+    }
+
+    .move-name {
+        gap: 3px;
+        font-size: 14px;
+        line-height: 1.15;
+    }
+
+    .move-command,
+    .combo-keys {
+        gap: 4px;
+    }
+
+    .keycap {
+        min-width: 27px;
+        height: 27px;
+        padding-inline: 6px;
+        font-size: 13px;
+    }
+
+    .sequence-separator {
+        font-size: 12px;
+    }
+
+    .combo-focus,
+    .book-page-right.is-global-page .combo-focus {
+        margin: 0;
+        padding: 11px 12px 13px;
+    }
+
+    .combo-focus-header {
+        align-items: start;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .lore-chapter {
+        padding: 15px 14px 17px;
+    }
+
+    .lore-chapter-heading {
+        grid-template-columns: 1fr;
+    }
+
+    .lore-chapter > p {
+        font-size: 14px;
+        line-height: 1.65;
+    }
+
+    .code-example,
+    .code-row {
+        grid-template-columns: 1fr;
+    }
+
+    .code-row {
+        align-items: start;
+    }
+
+    .unlock-grid,
+    .community-links {
+        grid-template-columns: 1fr;
+    }
+
+    .empty-page {
+        padding: 30px 12px;
+    }
+
+    .community-page {
+        padding: 22px 4px 28px;
+    }
+
+    .statusbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 7px 10px;
+        min-height: 50px;
+        margin-top: auto;
+        padding: 7px max(10px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    }
+
+    .statusbar > #statusText {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: start;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    .community-entry {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: start;
+    }
+
+    .portable-download {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .toasty-easter-egg {
+        bottom: 56px;
+        width: min(52vw, 180px);
+        max-width: 40vh;
+    }
+}
+
+@media (max-width: 560px) {
+    .move-preview video {
+        max-height: none;
+    }
+
+    .topbar {
+        grid-template-columns: 34px minmax(0, 1fr) 34px auto;
+        gap: 6px;
+    }
+
+    .brand-mark {
+        width: 34px;
+        height: 34px;
+    }
+
+    .brand-copy strong {
+        font-size: 15px;
+        letter-spacing: .02em;
+    }
+
+    .brand-copy span {
+        display: none;
+    }
+
+    .mobile-roster-toggle {
+        min-width: 76px;
+        min-height: 34px;
+        padding-inline: 8px;
+    }
+
+    .update-button {
+        width: 34px;
+        height: 34px;
+    }
+
+    .reader {
+        padding: 7px;
+    }
+
+    .book-page-left {
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 2px 9px;
+        padding: 9px 10px;
+    }
+
+    .fighter-seal,
+    .fighter-seal.is-community {
+        width: 50px;
+        height: 50px;
+    }
+
+    #fighterTitle {
+        font-size: 19px;
+    }
+
+    .book-page-right,
+    .book-page-right.is-global-page {
+        padding-inline: 10px;
+    }
+
+    .section-tabs > button,
+    .section-tabs > button[aria-selected="true"] {
+        font-size: 9px;
+    }
+
+    .move-card {
+        grid-template-columns: minmax(82px, .55fr) minmax(0, 1.45fr);
+    }
+
+    .move-name {
+        font-size: 13px;
+    }
+
+    .platform-notice {
+        grid-template-columns: 1fr;
+    }
+
+    .editorial-heading h2 {
+        font-size: 25px;
+    }
+
+    .lore-chapter-heading h2 {
+        font-size: 18px;
+    }
+
+    .fact-card {
+        grid-template-columns: 38px 1fr;
+    }
+
+    .fact-card p {
+        padding: 11px;
+        font-size: 13px;
+    }
+
+    .symbol-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .community-card {
+        grid-template-columns: 56px minmax(0, 1fr);
+        padding: 12px;
+    }
+
+    .community-card img {
+        width: 54px;
+    }
+
+    .statusbar > #statusText {
+        display: none;
+    }
+
+    .community-entry span {
+        font-size: 10px;
+    }
+
+    .portable-download {
+        padding-inline: 10px;
+        font-size: 9px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .roster-panel,
+    .roster-backdrop {
+        transition: none;
     }
 }

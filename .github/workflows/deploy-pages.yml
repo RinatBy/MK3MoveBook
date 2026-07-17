@@ -19,6 +19,16 @@ on:
         required: true
         default: false
         type: boolean
+      use_current_app:
+        description: Replace the release app with web/app.js from main
+        required: true
+        default: false
+        type: boolean
+      use_current_lore:
+        description: Replace the release lore with web/data/lore.js from main
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -90,6 +100,34 @@ jobs:
             throw "Release index not found: $targetIndex"
           }
           Copy-Item -LiteralPath $sourceIndex -Destination $targetIndex -Force
+
+      - name: Apply current app
+        if: github.event_name == 'workflow_dispatch' && inputs.use_current_app
+        shell: pwsh
+        run: |
+          $sourceApp = Join-Path $PWD "web/app.js"
+          $targetApp = Join-Path $env:WEB_ROOT "app.js"
+          if (-not (Test-Path -LiteralPath $sourceApp)) {
+            throw "App script not found: $sourceApp"
+          }
+          if (-not (Test-Path -LiteralPath $targetApp)) {
+            throw "Release app script not found: $targetApp"
+          }
+          Copy-Item -LiteralPath $sourceApp -Destination $targetApp -Force
+
+      - name: Apply current lore
+        if: github.event_name == 'workflow_dispatch' && inputs.use_current_lore
+        shell: pwsh
+        run: |
+          $sourceLore = Join-Path $PWD "web/data/lore.js"
+          $targetLore = Join-Path $env:WEB_ROOT "data/lore.js"
+          if (-not (Test-Path -LiteralPath $sourceLore)) {
+            throw "Lore data not found: $sourceLore"
+          }
+          if (-not (Test-Path -LiteralPath $targetLore)) {
+            throw "Release lore data not found: $targetLore"
+          }
+          Copy-Item -LiteralPath $sourceLore -Destination $targetLore -Force
 
       - name: Generate static site
         shell: pwsh

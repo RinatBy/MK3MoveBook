@@ -121,10 +121,15 @@
     };
 
     const elements = {
+        topbar: document.querySelector(".topbar"),
         searchInput: document.querySelector("#searchInput"),
         platformSwitch: document.querySelector("#platformSwitch"),
+        rosterPanel: document.querySelector("#rosterPanel"),
         rosterList: document.querySelector("#rosterList"),
         fighterCount: document.querySelector("#fighterCount"),
+        mobileRosterToggle: document.querySelector("#mobileRosterToggle"),
+        mobileRosterClose: document.querySelector("#mobileRosterClose"),
+        rosterBackdrop: document.querySelector("#rosterBackdrop"),
         metaDescription: document.querySelector("#metaDescription"),
         routeBar: document.querySelector("#routeBar"),
         updateButton: document.querySelector("#updateButton"),
@@ -142,6 +147,8 @@
         secretsButton: document.querySelector("#secretsButton"),
         fighterSeal: document.querySelector(".fighter-seal"),
         book: document.querySelector(".book"),
+        bookPageLeft: document.querySelector(".book-page-left"),
+        bookPageRight: document.querySelector(".book-page-right"),
         heroPortrait: document.querySelector("#heroPortrait"),
         fighterTitle: document.querySelector("#fighterTitle"),
         fighterSubtitle: document.querySelector("#fighterSubtitle"),
@@ -163,6 +170,7 @@
         bookNoteLabel: document.querySelector("#bookNoteLabel"),
         bookNoteValue: document.querySelector("#bookNoteValue"),
         bookNoteMeta: document.querySelector("#bookNoteMeta"),
+        bookNote: document.querySelector(".book-note"),
         toastyEasterEgg: document.querySelector("#toastyEasterEgg"),
         backButton: document.querySelector("#backButton"),
         forwardButton: document.querySelector("#forwardButton")
@@ -170,6 +178,82 @@
 
     let toastyAudio = null;
     let toastyTimer = 0;
+    const mobileLayoutQuery = window.matchMedia("(max-width: 979px)");
+
+    function setMobileRoster(open) {
+        const expanded = mobileLayoutQuery.matches && Boolean(open);
+        document.documentElement.classList.toggle(
+            "mobile-roster-open",
+            expanded
+        );
+        document.body.classList.toggle("mobile-roster-open", expanded);
+        elements.mobileRosterToggle.setAttribute(
+            "aria-expanded",
+            String(expanded)
+        );
+        elements.rosterBackdrop.setAttribute(
+            "aria-hidden",
+            String(!expanded)
+        );
+        elements.rosterBackdrop.tabIndex = expanded ? 0 : -1;
+        if (mobileLayoutQuery.matches) {
+            elements.rosterPanel.setAttribute("aria-hidden", String(!expanded));
+        } else {
+            elements.rosterPanel.removeAttribute("aria-hidden");
+        }
+    }
+
+    function placeResponsiveElements() {
+        if (mobileLayoutQuery.matches) {
+            if (elements.movePreview.parentElement !== elements.bookPageRight) {
+                elements.bookPageRight.insertBefore(
+                    elements.movePreview,
+                    elements.pageContent
+                );
+            }
+            if (elements.bookNote.parentElement !== elements.bookPageRight) {
+                elements.bookPageRight.insertBefore(
+                    elements.bookNote,
+                    elements.rightPageNumber
+                );
+            }
+        } else {
+            if (elements.bookNote.parentElement !== elements.bookPageLeft) {
+                elements.bookPageLeft.appendChild(elements.bookNote);
+            }
+            if (elements.movePreview.parentElement !== elements.bookPageLeft) {
+                elements.bookPageLeft.insertBefore(
+                    elements.movePreview,
+                    elements.bookNote
+                );
+            }
+        }
+        updateMobileStickyOffsets();
+    }
+
+    function updateMobileStickyOffsets() {
+        if (!mobileLayoutQuery.matches) {
+            document.documentElement.style.removeProperty("--mobile-tabs-top");
+            document.documentElement.style.removeProperty("--mobile-preview-top");
+            return;
+        }
+        requestAnimationFrame(() => {
+            const topbarHeight = Math.ceil(
+                elements.topbar.getBoundingClientRect().height
+            );
+            const tabsHeight = elements.sectionTabs.hidden
+                ? 0
+                : Math.ceil(elements.sectionTabs.getBoundingClientRect().height);
+            document.documentElement.style.setProperty(
+                "--mobile-tabs-top",
+                `${topbarHeight}px`
+            );
+            document.documentElement.style.setProperty(
+                "--mobile-preview-top",
+                `${topbarHeight + tabsHeight}px`
+            );
+        });
+    }
 
     function setToastyTrigger(enabled) {
         elements.fighterSeal.classList.toggle("is-toasty-trigger", enabled);
@@ -796,10 +880,13 @@
             ? `${moveCount} приёмов`
             : `${fighterUnavailableBadge(platformInfo)} · ${moveCount} аркадных приёмов`;
         elements.rightPageNumber.textContent = (tabLabels[state.tab] || "").toUpperCase();
+        const fighterSource = state.tab === "facts"
+            ? (fighterLore.factsSource || fighterLore.historySource || lore.source.title)
+            : (fighterLore.historySource || lore.source.title);
         elements.bookNoteLabel.textContent =
-            state.tab === "moves" ? "Источник комбинаций" : "Источник перевода";
+            state.tab === "moves" ? "Источник комбинаций" : "Источник";
         elements.bookNoteValue.textContent =
-            state.tab === "moves" ? "command.dat" : lore.source.title;
+            state.tab === "moves" ? "command.dat" : fighterSource;
         elements.bookNoteLabel.hidden = state.tab === "moves";
         elements.bookNoteValue.hidden = state.tab === "moves";
         elements.bookNoteMeta.hidden = state.tab !== "moves";
@@ -833,7 +920,7 @@
         } else {
             elements.categoryNav.innerHTML = `
                 <button class="category-link" type="button" data-category="lore-facts">
-                    <span>Из книги</span><b>${(fighterLore.facts || []).length}</b>
+                    <span>${escapeHtml(fighterLore.factsNavLabel || "Из книги")}</span><b>${(fighterLore.facts || []).length}</b>
                 </button>`;
             renderFacts(fighter, fighterLore);
         }
@@ -1036,7 +1123,6 @@
                     <div class="lore-chapter-heading">
                         <span>Глава I</span>
                         <h2>Роль в событиях UMK3</h2>
-                        <em>${escapeHtml(fighterLore.sources?.intro || "")}</em>
                     </div>
                     <p>${escapeHtml(fighterLore.intro)}</p>
                 </section>`);
@@ -1047,7 +1133,6 @@
                     <div class="lore-chapter-heading">
                         <span>Глава II</span>
                         <h2>Финал персонажа</h2>
-                        <em>${escapeHtml(fighterLore.sources?.ending || "")}</em>
                     </div>
                     <p>${escapeHtml(fighterLore.ending)}</p>
                 </section>`);
@@ -1067,7 +1152,7 @@
                 <header class="editorial-heading">
                     <span>Летопись бойца</span>
                     <h2>${escapeHtml(fighter.name)}</h2>
-                    <p>Краткая история и персональный финал переведены с английского текста книги.</p>
+                    <p>${escapeHtml(fighterLore.historyDescription || "Краткая история и персональный финал переведены с английского текста книги.")}</p>
                 </header>
                 ${historyHero}
                 ${chapters.join("")}
@@ -1079,12 +1164,14 @@
         hideMovePreview();
         elements.comboFocus.hidden = true;
         const facts = fighterLore.facts || [];
+        const factsKicker = fighterLore.factsKicker || "Проверено по книге";
+        const factsDescription = fighterLore.factsDescription || "Только сведения, которые прямо следуют из предоставленного руководства.";
         elements.pageContent.innerHTML = `
             <section class="lore-page" id="category-lore-facts">
                 <header class="editorial-heading">
-                    <span>Проверено по книге</span>
+                    <span>${escapeHtml(factsKicker)}</span>
                     <h2>Факты о ${escapeHtml(fighter.name)}</h2>
-                    <p>Только сведения, которые прямо следуют из предоставленного руководства.</p>
+                    <p>${escapeHtml(factsDescription)}</p>
                 </header>
                 <div class="fact-grid">
                     ${facts.map((fact, index) => `
@@ -1093,12 +1180,8 @@
                             <p>${escapeHtml(fact)}</p>
                         </article>`).join("")}
                 </div>
-                <footer class="source-caption">
-                    ${escapeHtml(lore.source.note)}
-                    ${fighterLore.sources?.facts ? ` Источник: ${escapeHtml(fighterLore.sources.facts)}.` : ""}
-                </footer>
             </section>`;
-        elements.statusText.textContent = `${fighter.name} · факты из книги`;
+        elements.statusText.textContent = fighterLore.factsStatusText || `${fighter.name} · факты из книги`;
     }
 
     function renderSecrets() {
@@ -1394,14 +1477,20 @@
     }
 
     function render() {
+        document.documentElement.dataset.tab = state.tab;
         updatePlatformSwitch();
         renderRoster();
         updateNotationSwitch();
+        elements.mobileRosterToggle.setAttribute(
+            "aria-label",
+            `Выбрать бойца. Сейчас выбран ${currentFighter().name}`
+        );
         elements.communityButton.setAttribute(
             "aria-pressed",
             String(state.tab === "community")
         );
         renderFighterPage();
+        updateMobileStickyOffsets();
     }
 
     function updatePlatformSwitch() {
@@ -1623,12 +1712,29 @@
         state.fighterId = card.dataset.fighter;
         state.tab = "moves";
         state.selectedMoveKey = "";
+        setMobileRoster(false);
         setRoute();
+    });
+
+    elements.mobileRosterToggle.addEventListener("click", () => {
+        setMobileRoster(
+            !document.body.classList.contains("mobile-roster-open")
+        );
+    });
+
+    elements.mobileRosterClose.addEventListener("click", () => {
+        setMobileRoster(false);
+        elements.mobileRosterToggle.focus();
+    });
+
+    elements.rosterBackdrop.addEventListener("click", () => {
+        setMobileRoster(false);
     });
 
     elements.communityButton.addEventListener("click", () => {
         state.tab = "community";
         state.selectedMoveKey = "";
+        setMobileRoster(false);
         setRoute();
     });
 
@@ -1735,10 +1841,20 @@
         }
     });
     document.addEventListener("keydown", event => {
-        if (event.key === "Escape" && !elements.updatePanel.hidden) {
-            setUpdatePanel(false, true);
+        if (event.key === "Escape") {
+            if (document.body.classList.contains("mobile-roster-open")) {
+                setMobileRoster(false);
+                elements.mobileRosterToggle.focus();
+            } else if (!elements.updatePanel.hidden) {
+                setUpdatePanel(false, true);
+            }
         }
     });
+    mobileLayoutQuery.addEventListener("change", () => {
+        placeResponsiveElements();
+        setMobileRoster(false);
+    });
+    window.addEventListener("resize", updateMobileStickyOffsets);
     let lastHandledRoute = "";
     function handleLocationChange() {
         const route = `${window.location.pathname}${window.location.hash}`;
@@ -1753,6 +1869,8 @@
     window.addEventListener("popstate", handleLocationChange);
 
     initializeUpdater();
+    placeResponsiveElements();
+    setMobileRoster(false);
     readRoute();
     setRoute(true);
 })();
