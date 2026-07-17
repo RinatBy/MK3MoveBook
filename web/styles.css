@@ -2186,7 +2186,6 @@ button {
         min-width: 0;
         min-height: 100vh;
         min-height: 100dvh;
-        background-attachment: scroll;
     }
 
     .topbar {
@@ -2285,10 +2284,6 @@ button {
         min-height: 0;
     }
 
-    .reader-backdrop {
-        display: none;
-    }
-
     .roster-backdrop {
         position: fixed;
         inset: 0;
@@ -2362,7 +2357,7 @@ button {
         display: block;
         width: 100%;
         height: auto;
-        filter: none;
+        filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .42));
     }
 
     .book-gutter {
@@ -2559,7 +2554,6 @@ button {
         gap: 6px;
         min-height: 44px;
         padding: 6px 7px;
-        transition: none;
     }
 
     .move-card:hover {
