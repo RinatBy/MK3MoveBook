@@ -178,7 +178,7 @@
 
     let toastyAudio = null;
     let toastyTimer = 0;
-    const mobileLayoutQuery = window.matchMedia("(max-width: 979px)");
+    const mobileLayoutQuery = window.matchMedia("(max-width: 1060px)");
 
     function setMobileRoster(open) {
         const expanded = mobileLayoutQuery.matches && Boolean(open);
@@ -1333,6 +1333,7 @@
                     ? `Варианты кнопки: ${actions.join("/")} → ${labels.join("/")}`
                     : "Варианты кнопки";
                 return `<span class="sequence-text sequence-alternative" ` +
+                    `data-actions="${actions.join("/")}" ` +
                     `title="${escapeHtml(title)}">[${labels.join("/")}]</span>`;
             }
             const normalized = token.toUpperCase();
@@ -1512,6 +1513,32 @@
         elements.notationToggle.title = segaSelected
             ? "Сейчас обозначения SEGA: переключить на АРКАДА"
             : "Сейчас обозначения АРКАДА: переключить на SEGA";
+    }
+
+    function updateRenderedNotation() {
+        const segaSelected = state.notation === "sega";
+        updateNotationSwitch();
+        [elements.pageContent, elements.comboFocus, elements.movePreview]
+            .forEach(root => {
+                root.querySelectorAll(".keycap[data-action]").forEach(keycap => {
+                    const action = keycap.dataset.action;
+                    keycap.textContent = segaSelected ? segaLabels[action] : action;
+                    keycap.title = segaSelected
+                        ? `${actionNames[action]}: ${action} → ${segaLabels[action]}`
+                        : actionNames[action];
+                });
+                root.querySelectorAll(".sequence-alternative[data-actions]")
+                    .forEach(alternative => {
+                        const actions = alternative.dataset.actions.split("/");
+                        const labels = actions.map(action =>
+                            segaSelected ? segaLabels[action] : action
+                        );
+                        alternative.textContent = `[${labels.join("/")}]`;
+                        alternative.title = segaSelected
+                            ? `Варианты кнопки: ${actions.join("/")} → ${labels.join("/")}`
+                            : "Варианты кнопки";
+                    });
+            });
     }
 
     function escapeHtml(value) {
@@ -1781,14 +1808,15 @@
         bridge.postMessage(action);
     });
 
-    elements.notationToggle.addEventListener("click", () => {
+    elements.notationToggle.addEventListener("click", event => {
+        event.stopPropagation();
         state.notation = state.notation === "arcade" ? "sega" : "arcade";
         try {
             localStorage.setItem("movebook-notation", state.notation);
         } catch {
             // The selected notation still works for the current session.
         }
-        render();
+        updateRenderedNotation();
     });
 
     elements.sectionTabs.addEventListener("click", event => {

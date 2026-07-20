@@ -1,0 +1,62 @@
+name: Promote tested release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Tested prerelease tag to make stable
+        required: true
+        default: v1.1.15
+        type: string
+      confirmation:
+        description: Type PUBLISH to confirm
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate and publish the candidate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ inputs.confirmation }}" -cne "PUBLISH") {
+            throw "Publication was not confirmed"
+          }
+
+          $tag = "${{ inputs.release_tag }}"
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tag must use vX.Y.Z format"
+          }
+          $version = $tag.TrimStart("v")
+          $release = gh release view $tag `
+            --json isDraft,isPrerelease,assets | ConvertFrom-Json
+          if ($release.isDraft -or -not $release.isPrerelease) {
+            throw "$tag is not a published prerelease candidate"
+          }
+
+          $requiredAssets = @(
+            "MK3MoveBook-$version-win-x64.zip",
+            "MK3MoveBook-web-$version.zip",
+            "update-manifest.json"
+          )
+          $assetNames = @($release.assets | ForEach-Object { $_.name })
+          foreach ($asset in $requiredAssets) {
+            if ($assetNames -notcontains $asset) {
+              throw "Candidate asset was not found: $asset"
+            }
+          }
+
+          gh release edit $tag `
+            --draft=false `
+            --prerelease=false `
+            --latest
+
+          "### Stable release published" >> $env:GITHUB_STEP_SUMMARY
+          "$tag is now the latest stable release. The Pages workflow will deploy it automatically." >> $env:GITHUB_STEP_SUMMARY
+

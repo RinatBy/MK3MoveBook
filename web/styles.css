@@ -1117,75 +1117,98 @@ button {
 .notation-switch {
     display: flex;
     align-items: center;
-    gap: 3px;
-    height: 34px;
-    margin: 0 0 5px auto;
-    padding: 3px;
-    color: #79636a;
-    background: rgba(74, 48, 67, .09);
-    border: 1px solid rgba(111, 73, 80, .25);
-    border-radius: 18px;
+    justify-content: center;
+    flex: 0 0 auto;
+    align-self: end;
+    height: 38px;
+    margin: 0 0 0 auto;
+    padding: 0;
+    color: #684e59;
+    background: rgba(151, 111, 78, .08);
+    border: 1px solid rgba(116, 77, 59, .22);
+    border-bottom: 0;
+    border-radius: 7px 7px 0 0;
 }
 
 .notation-switch[hidden] {
     display: none;
 }
 
-.notation-switch > span {
-    padding: 0 5px 0 8px;
-    font: 650 9px/1 "Literata", serif;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-}
-
 .notation-toggle {
     position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    width: 124px;
-    height: 28px;
-    padding: 2px;
-    overflow: hidden;
-    color: #705b63;
-    background: rgba(68, 45, 62, .09);
-    border: 1px solid rgba(111, 73, 80, .28);
-    border-radius: 14px;
+    width: 184px;
+    height: 38px;
+    padding: 0;
+    color: #a996ac;
+    background: transparent;
+    border: 0;
+    border-radius: 6px 6px 0 0;
+    box-shadow: none;
     cursor: pointer;
 }
 
-.notation-toggle i {
+.notation-toggle > i {
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: calc(50% - 2px);
-    height: 22px;
-    background: linear-gradient(#a82a42, #701b2d);
-    border-radius: 11px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25),
-        0 2px 5px rgba(66, 36, 43, .2);
-    transition: transform .22s ease;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    z-index: 2;
+    background: linear-gradient(#493047, #2d2036);
+    border: 0;
+    border-radius: 6px 0 0 0;
+    box-shadow:
+        inset 0 2px 0 rgba(255, 248, 216, .3),
+        inset 0 0 0 1px rgba(223, 189, 82, .42),
+        0 3px 10px rgba(76, 24, 37, .24);
+    transition: transform .22s ease, border-radius .22s ease;
 }
 
-.notation-toggle[aria-checked="true"] i {
+.notation-toggle[aria-checked="true"] > i {
+    border-radius: 0 6px 0 0;
     transform: translateX(100%);
 }
 
-.notation-toggle b {
+.notation-toggle .notation-option {
     position: relative;
-    z-index: 1;
-    display: grid;
-    place-items: center;
-    color: #705b63;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    padding: 0 1px;
+    opacity: .54;
+    transition: opacity .22s ease;
+}
+
+.notation-toggle .notation-option:first-of-type,
+.notation-toggle[aria-checked="true"] .notation-option:last-of-type {
+    opacity: 1;
+}
+
+.notation-toggle[aria-checked="true"] .notation-option:first-of-type {
+    opacity: .54;
+}
+
+.notation-toggle .keycap {
+    width: 23px;
+    min-width: 23px;
+    height: 22px;
+    padding: 0 2px;
+    border-radius: 3px;
+    box-shadow:
+        inset 0 -2px 0 rgba(0, 0, 0, .2),
+        0 1px 0 rgba(0, 0, 0, .24);
     font: 9px/1 "Russo One", sans-serif;
 }
 
-.notation-toggle b:first-of-type,
-.notation-toggle[aria-checked="true"] b:last-of-type {
-    color: #fff8e8;
-}
-
-.notation-toggle[aria-checked="true"] b:first-of-type {
-    color: #705b63;
+.notation-toggle:focus-visible {
+    outline: 2px solid rgba(223, 189, 82, .96);
+    outline-offset: -3px;
 }
 
 .page-content {
@@ -2093,13 +2116,13 @@ button {
     }
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1280px) {
     .workspace {
         grid-template-columns: 240px minmax(0, 1fr);
     }
 
     .topbar {
-        grid-template-columns: 46px 175px auto minmax(140px, 1fr) auto;
+        grid-template-columns: 54px 230px auto minmax(120px, 1fr) auto;
         gap: 8px;
         padding-inline: 12px;
     }
@@ -2127,12 +2150,19 @@ button {
         font-size: 13px;
     }
 
-    .notation-switch > span {
-        display: none;
+    .notation-switch {
+        padding: 0;
     }
 
     .notation-toggle {
-        width: 112px;
+        width: 164px;
+    }
+
+    .notation-toggle .keycap {
+        width: 21px;
+        min-width: 21px;
+        height: 20px;
+        font-size: 8.5px;
     }
 
     .unlock-grid {
@@ -2153,7 +2183,7 @@ button {
     }
 }
 
-@media (max-width: 979px) {
+@media (max-width: 1060px) {
     html,
     body {
         width: 100%;
@@ -2485,38 +2515,48 @@ button {
     .section-tabs > button,
     .section-tabs > button[aria-selected="true"] {
         width: 100%;
-        height: 32px;
-        padding: 1px 4px;
-        font-size: 10px;
+        height: 38px;
+        padding: 2px 5px;
+        font-size: 11.5px;
         line-height: 1.05;
     }
 
     .notation-switch {
         grid-column: 1 / -1;
         width: 100%;
-        height: 28px;
-        margin: 1px 0 3px;
+        height: 36px;
+        margin: 1px 0 4px;
         padding: 2px;
         justify-content: flex-end;
-    }
-
-    .notation-switch > span {
-        display: block;
-        margin-right: auto;
-        font-size: 8px;
+        background: rgba(52, 33, 48, .11);
+        border: 1px solid rgba(105, 70, 82, .36);
+        border-radius: 7px;
+        box-shadow: inset 0 1px 4px rgba(63, 37, 48, .12);
     }
 
     .notation-toggle {
-        width: 112px;
-        height: 24px;
+        width: 156px;
+        height: 30px;
+        border-radius: 5px;
     }
 
-    .notation-toggle i {
-        height: 18px;
+    .notation-toggle > i {
+        border-radius: 5px 0 0 5px;
     }
 
-    .notation-toggle b {
-        font-size: 8px;
+    .notation-toggle[aria-checked="true"] > i {
+        border-radius: 0 5px 5px 0;
+    }
+
+    .notation-toggle .keycap {
+        width: 22px;
+        min-width: 22px;
+        height: 21px;
+        font-size: 8.5px;
+    }
+
+    .notation-toggle .notation-option {
+        gap: 3px;
     }
 
     .platform-notice {
@@ -2664,6 +2704,17 @@ button {
     }
 }
 
+@media (min-width: 561px) and (max-width: 1060px) {
+    .move-preview {
+        width: min(100%, 505px);
+        margin-inline: auto;
+    }
+
+    .move-preview video {
+        max-height: none;
+    }
+}
+
 @media (max-width: 560px) {
     .move-preview video {
         max-height: none;
@@ -2726,7 +2777,7 @@ button {
 
     .section-tabs > button,
     .section-tabs > button[aria-selected="true"] {
-        font-size: 9px;
+        font-size: 10.5px;
     }
 
     .move-card {
@@ -2790,4 +2841,5 @@ button {
     .roster-backdrop {
         transition: none;
     }
+
 }

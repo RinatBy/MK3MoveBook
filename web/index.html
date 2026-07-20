@@ -148,13 +148,22 @@
                             <button id="secretsButton" type="button"
                                 data-tab="secrets">Секреты и коды</button>
                             <div class="notation-switch">
-                                <span>Кнопки</span>
                                 <button id="notationToggle" class="notation-toggle"
                                     type="button" role="switch" aria-checked="false"
-                                    title="Переключить обозначения АРКАДА / SEGA">
+                                    aria-label="Переключить обозначения кнопок: HP, RN, HK или A, B, C"
+                                    title="Переключить обозначения кнопок HP / RN / HK и A / B / C">
+                                    <!-- Previous test sets: LP / BL / LK | A / B / C; HP / RN / HK | X / Y / Z -->
                                     <i aria-hidden="true"></i>
-                                    <b>АРКАДА</b>
-                                    <b>SEGA</b>
+                                    <b class="notation-option" aria-hidden="true">
+                                        <span class="keycap hp">HP</span>
+                                        <span class="keycap run">RN</span>
+                                        <span class="keycap hk">HK</span>
+                                    </b>
+                                    <b class="notation-option" aria-hidden="true">
+                                        <span class="keycap lp">A</span>
+                                        <span class="keycap bl">B</span>
+                                        <span class="keycap lk">C</span>
+                                    </b>
                                 </button>
                             </div>
                         </nav>
