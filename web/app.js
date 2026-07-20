@@ -81,6 +81,12 @@
         stryker: "stryker.jpg",
         "unmasked-sub-zero": "subzero1.jpg"
     };
+    const shangTsungCategoryOrder = {
+        "Special Moves": 0,
+        "Finishing Moves": 1,
+        Morphs: 2,
+        Autokombos: 3
+    };
     const segaLabels = {
         HP: "X",
         LP: "A",
@@ -585,7 +591,7 @@
     }
 
     function visibleCategoryEntries(fighter) {
-        return fighter.categories
+        const entries = fighter.categories
             .map((category, categoryIndex) => ({
                 category,
                 categoryIndex,
@@ -594,6 +600,16 @@
             .filter(({ category, moves }) =>
                 !hasTrilogyMarker(category.name) && moves.length
             );
+
+        if (fighter.id !== "shang-tsung") {
+            return entries;
+        }
+
+        return entries.sort((left, right) =>
+            (shangTsungCategoryOrder[left.category.name] ?? Number.MAX_SAFE_INTEGER) -
+            (shangTsungCategoryOrder[right.category.name] ?? Number.MAX_SAFE_INTEGER) ||
+            left.categoryIndex - right.categoryIndex
+        );
     }
 
     function directPathRoute() {
@@ -1075,6 +1091,11 @@
                 <div class="move-list">
                     ${moves.map(({ sourceMove, move, moveIndex }) => {
                         const key = `${categoryIndex}:${moveIndex}`;
+                        const morphTarget = category.name === "Morphs"
+                            ? currentVersion().fighters.find(candidate =>
+                                candidate.id === slug(move.label || "")
+                            )
+                            : null;
                         const badge = movePlatformBadge(
                             movePlatformData(sourceMove)
                         );
@@ -1083,13 +1104,19 @@
                                 `${badge.note ? `title="${escapeHtml(badge.note)}" ` : ""}>` +
                                 `${escapeHtml(badge.label)}</em>`
                             : "";
+                        const morphPortraitMarkup = morphTarget
+                            ? `<img class="morph-target-portrait" ` +
+                                `src="${portraitPath(morphTarget)}" alt="" ` +
+                                `loading="lazy" decoding="async">`
+                            : "";
                         return `
-                            <article class="move-card" tabindex="0" data-move="${key}">
+                            <article class="move-card${morphTarget ? " has-morph-target" : ""}" tabindex="0" data-move="${key}">
                                 <div class="move-name">
                                     <span>${escapeHtml(move.label || "Без названия")}</span>
                                     ${badgeMarkup}
                                 </div>
                                 <div class="move-command">${renderSequence(move.notation)}</div>
+                                ${morphPortraitMarkup}
                             </article>`;
                     }).join("")}
                 </div>
