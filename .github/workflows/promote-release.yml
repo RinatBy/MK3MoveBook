@@ -34,8 +34,13 @@ jobs:
             throw "Release tag must use vX.Y.Z format"
           }
           $version = $tag.TrimStart("v")
-          $release = gh release view $tag `
-            --json isDraft,isPrerelease,assets | ConvertFrom-Json
+          $releaseJson = gh release view $tag `
+            --repo "${{ github.repository }}" `
+            --json isDraft,isPrerelease,assets
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to read release $tag"
+          }
+          $release = $releaseJson | ConvertFrom-Json
           if ($release.isDraft -or -not $release.isPrerelease) {
             throw "$tag is not a published prerelease candidate"
           }
@@ -53,9 +58,13 @@ jobs:
           }
 
           gh release edit $tag `
+            --repo "${{ github.repository }}" `
             --draft=false `
             --prerelease=false `
             --latest
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to publish release $tag"
+          }
 
           "### Stable release published" >> $env:GITHUB_STEP_SUMMARY
           "$tag is now the latest stable release. The Pages workflow will deploy it automatically." >> $env:GITHUB_STEP_SUMMARY

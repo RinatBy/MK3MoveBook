@@ -41,22 +41,43 @@ jobs:
             if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
               throw "Release tag must use vX.Y.Z format: $tag"
             }
-            gh release view $tag --json tagName | Out-Null
+            gh release view $tag `
+              --repo "${{ github.repository }}" `
+              --json tagName | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to read release $tag"
+            }
           }
           if ($badTag -eq $fallbackTag) {
             throw "The bad and fallback tags must be different"
           }
 
-          gh release edit $badTag --prerelease --latest=false
-          gh release edit $fallbackTag --prerelease=false --latest
+          gh release edit $badTag `
+            --repo "${{ github.repository }}" `
+            --prerelease `
+            --latest=false
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to withdraw release $badTag"
+          }
+          gh release edit $fallbackTag `
+            --repo "${{ github.repository }}" `
+            --prerelease=false `
+            --latest
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to restore release $fallbackTag"
+          }
 
           gh workflow run deploy-pages.yml `
+            --repo "${{ github.repository }}" `
             --ref main `
             -f "release_tag=$fallbackTag" `
             -f "use_current_styles=false" `
             -f "use_current_index=false" `
             -f "use_current_app=false" `
             -f "use_current_lore=false"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to start the Pages rollback"
+          }
 
           "### Rollback started" >> $env:GITHUB_STEP_SUMMARY
           "$fallbackTag is stable/latest again, and its original web archive is being redeployed." >> $env:GITHUB_STEP_SUMMARY
