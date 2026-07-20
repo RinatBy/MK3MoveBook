@@ -1,0 +1,117 @@
+name: Build release candidate from existing videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: New version without the v prefix
+        required: true
+        default: 1.1.15
+        type: string
+      base_tag:
+        description: Stable release whose videos and desktop runtime will be reused
+        required: true
+        default: v1.1.14
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-candidate-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out current release sources
+        uses: actions/checkout@v4
+
+      - name: Download the stable base archives
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ inputs.version }}"
+          $baseTag = "${{ inputs.base_tag }}"
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version must use X.Y.Z format"
+          }
+          if ($baseTag -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Base tag must use vX.Y.Z format"
+          }
+
+          $baseVersion = $baseTag.TrimStart("v")
+          New-Item -ItemType Directory -Path .release-base -Force | Out-Null
+          gh release download $baseTag `
+            --pattern "MK3MoveBook-$baseVersion-win-x64.zip" `
+            --pattern "MK3MoveBook-web-$baseVersion.zip" `
+            --dir .release-base
+
+          $fullArchive = Join-Path .release-base "MK3MoveBook-$baseVersion-win-x64.zip"
+          $webArchive = Join-Path .release-base "MK3MoveBook-web-$baseVersion.zip"
+          foreach ($archive in @($fullArchive, $webArchive)) {
+            if (-not (Test-Path -LiteralPath $archive)) {
+              throw "Base release asset was not found: $archive"
+            }
+          }
+
+      - name: Build and verify complete candidate archives
+        shell: pwsh
+        run: |
+          $baseVersion = "${{ inputs.base_tag }}".TrimStart("v")
+          ./tools/build-release-from-base.ps1 `
+            -BaseFullArchive ".release-base/MK3MoveBook-$baseVersion-win-x64.zip" `
+            -BaseWebArchive ".release-base/MK3MoveBook-web-$baseVersion.zip" `
+            -CurrentWebRoot web `
+            -OutputDirectory .release-output `
+            -Version "${{ inputs.version }}" `
+            -Repository "${{ github.repository }}"
+
+      - name: Create or update the prerelease candidate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ inputs.version }}"
+          $tag = "v$version"
+          $notesPath = ".github/release-notes/$tag.md"
+          if (-not (Test-Path -LiteralPath $notesPath)) {
+            throw "Release notes were not found: $notesPath"
+          }
+
+          $releases = gh release list --limit 100 `
+            --json tagName,isDraft,isPrerelease | ConvertFrom-Json
+          $existing = $releases | Where-Object { $_.tagName -eq $tag } | Select-Object -First 1
+          if ($null -ne $existing -and -not ($existing.isDraft -or $existing.isPrerelease)) {
+            throw "Refusing to overwrite the stable release $tag"
+          }
+          if ($null -eq $existing) {
+            gh release create $tag `
+              --target "${{ github.sha }}" `
+              --title "MK3 MoveBook $version" `
+              --notes-file $notesPath `
+              --draft
+          }
+          else {
+            gh release edit $tag `
+              --title "MK3 MoveBook $version" `
+              --notes-file $notesPath
+          }
+
+          gh release upload $tag `
+            ".release-output/MK3MoveBook-$version-win-x64.zip" `
+            ".release-output/MK3MoveBook-web-$version.zip" `
+            ".release-output/update-manifest.json" `
+            --clobber
+
+          gh release edit $tag `
+            --draft=false `
+            --prerelease `
+            --latest=false
+
+          "### Release candidate ready" >> $env:GITHUB_STEP_SUMMARY
+          "The complete $tag archives were built from ${{ inputs.base_tag }} videos." >> $env:GITHUB_STEP_SUMMARY
+          "The candidate is a prerelease, so the stable site and automatic updater still use ${{ inputs.base_tag }}." >> $env:GITHUB_STEP_SUMMARY
+

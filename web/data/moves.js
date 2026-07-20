@@ -82,7 +82,7 @@ window.MOVEBOOK_DATA = {
     "siteName": "MK3 MoveBook",
     "fighters": {
       "kabal": "Кабал",
-      "human-smoke": "Хьюман Смоук",
+      "human-smoke": "Хуман Смоук",
       "kung-lao": "Кун Лао",
       "kano": "Кано",
       "reptile": "Рептилия",

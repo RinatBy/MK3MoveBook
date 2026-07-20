@@ -1,0 +1,64 @@
+name: Roll back stable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bad_tag:
+        description: Release to withdraw from stable/latest
+        required: true
+        default: v1.1.15
+        type: string
+      fallback_tag:
+        description: Previous stable release to restore
+        required: true
+        default: v1.1.14
+        type: string
+      confirmation:
+        description: Type ROLLBACK to confirm
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore previous stable release and site
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ("${{ inputs.confirmation }}" -cne "ROLLBACK") {
+            throw "Rollback was not confirmed"
+          }
+
+          $badTag = "${{ inputs.bad_tag }}"
+          $fallbackTag = "${{ inputs.fallback_tag }}"
+          foreach ($tag in @($badTag, $fallbackTag)) {
+            if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+              throw "Release tag must use vX.Y.Z format: $tag"
+            }
+            gh release view $tag --json tagName | Out-Null
+          }
+          if ($badTag -eq $fallbackTag) {
+            throw "The bad and fallback tags must be different"
+          }
+
+          gh release edit $badTag --prerelease --latest=false
+          gh release edit $fallbackTag --prerelease=false --latest
+
+          gh workflow run deploy-pages.yml `
+            --ref main `
+            -f "release_tag=$fallbackTag" `
+            -f "use_current_styles=false" `
+            -f "use_current_index=false" `
+            -f "use_current_app=false" `
+            -f "use_current_lore=false"
+
+          "### Rollback started" >> $env:GITHUB_STEP_SUMMARY
+          "$fallbackTag is stable/latest again, and its original web archive is being redeployed." >> $env:GITHUB_STEP_SUMMARY
+          "Desktop installations already updated to $badTag are not downgraded automatically; the full $fallbackTag archive remains available for manual recovery." >> $env:GITHUB_STEP_SUMMARY
+
