@@ -29,6 +29,11 @@ on:
         required: true
         default: false
         type: boolean
+      use_current_changelog:
+        description: Replace the release changelog with web/data/changelog.js from main
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -129,6 +134,20 @@ jobs:
             throw "Release lore data not found: $targetLore"
           }
           Copy-Item -LiteralPath $sourceLore -Destination $targetLore -Force
+
+      - name: Apply current changelog
+        if: github.event_name == 'workflow_dispatch' && inputs.use_current_changelog
+        shell: pwsh
+        run: |
+          $sourceChangelog = Join-Path $PWD "web/data/changelog.js"
+          $targetChangelog = Join-Path $env:WEB_ROOT "data/changelog.js"
+          if (-not (Test-Path -LiteralPath $sourceChangelog)) {
+            throw "Changelog not found: $sourceChangelog"
+          }
+          if (-not (Test-Path -LiteralPath $targetChangelog)) {
+            throw "Release changelog not found: $targetChangelog"
+          }
+          Copy-Item -LiteralPath $sourceChangelog -Destination $targetChangelog -Force
 
       - name: Generate static site
         shell: pwsh
