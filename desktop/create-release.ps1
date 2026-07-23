@@ -1,5 +1,6 @@
 param(
-    [string]$Version = "1.0.0"
+    [string]$Version = "1.0.0",
+    [string]$WebDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,7 +15,11 @@ $buildDirectory = Join-Path $desktopDirectory "build"
 $releaseRoot = Join-Path $desktopDirectory "release"
 $versionReleaseDirectory = Join-Path $releaseRoot "v$Version"
 $packageDirectory = Join-Path $versionReleaseDirectory "_package"
-$webDirectory = Join-Path $sourceDirectory "web"
+if ([string]::IsNullOrWhiteSpace($WebDirectory)) {
+    $webDirectory = Join-Path $sourceDirectory "web"
+} else {
+    $webDirectory = [IO.Path]::GetFullPath($WebDirectory)
+}
 $versionFile = Join-Path $webDirectory "version.json"
 
 if (-not (Test-Path -LiteralPath $versionFile)) {

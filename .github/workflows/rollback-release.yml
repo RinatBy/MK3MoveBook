@@ -6,12 +6,12 @@ on:
       bad_tag:
         description: Release to withdraw from stable/latest
         required: true
-        default: v1.1.15
+        default: v1.1.16
         type: string
       fallback_tag:
         description: Previous stable release to restore
         required: true
-        default: v1.1.14
+        default: v1.1.15
         type: string
       confirmation:
         description: Type ROLLBACK to confirm

@@ -15,10 +15,12 @@ $loader = Join-Path $webViewDirectory "runtimes\win-x64\native\WebView2Loader.dl
 $bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
 $webLauncherSource = Join-Path $desktopDirectory "MoveBookWebLauncher.cs"
+$deltaUpdaterSource = Join-Path $desktopDirectory "MoveBookDeltaUpdater.cs"
 $icon = Join-Path $sourceDirectory "web\assets\icon.ico"
 $webIcon = Join-Path $sourceDirectory "web\assets\iconweb.ico"
 $executable = Join-Path $OutputDirectory "MK3 MoveBook.exe"
 $webLauncherExecutable = Join-Path $OutputDirectory "Web MK3 MBook.exe"
+$deltaUpdaterExecutable = Join-Path $OutputDirectory "MK3 MoveBook Update.exe"
 
 $requiredFiles = @(
     $compiler,
@@ -28,6 +30,7 @@ $requiredFiles = @(
     $bootstrapper,
     $source,
     $webLauncherSource,
+    $deltaUpdaterSource,
     $icon,
     $webIcon
 )
@@ -75,6 +78,23 @@ if ($LASTEXITCODE -ne 0) {
     throw "Компилятор веб-запуска завершился с кодом $LASTEXITCODE"
 }
 
+& $compiler `
+    /nologo `
+    /target:winexe `
+    /platform:x64 `
+    /optimize+ `
+    "/win32icon:$icon" `
+    "/out:$deltaUpdaterExecutable" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Core.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Web.Extensions.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Windows.Forms.dll')" `
+    $deltaUpdaterSource
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Компилятор лёгкого обновления завершился с кодом $LASTEXITCODE"
+}
+
 Copy-Item -LiteralPath $coreAssembly -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $formsAssembly -Destination $OutputDirectory -Force
 Copy-Item -LiteralPath $loader -Destination $OutputDirectory -Force
@@ -82,3 +102,4 @@ Copy-Item -LiteralPath $bootstrapper -Destination $OutputDirectory -Force
 
 Write-Host "Готово: $executable"
 Write-Host "Готово: $webLauncherExecutable"
+Write-Host "Готово: $deltaUpdaterExecutable"
