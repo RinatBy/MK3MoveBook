@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Tested prerelease tag to make stable
         required: true
-        default: v1.1.15
+        default: v1.1.16
         type: string
       confirmation:
         description: Type PUBLISH to confirm

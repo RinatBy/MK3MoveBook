@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -253,6 +254,21 @@ namespace MK3MoveBook
         public string Version { get; set; }
         public string PackageUrl { get; set; }
         public string Sha256 { get; set; }
+        public List<DeltaUpdatePackage> Deltas { get; set; }
+    }
+
+    internal sealed class DeltaUpdatePackage
+    {
+        public string FromVersion { get; set; }
+        public string PackageUrl { get; set; }
+        public string Sha256 { get; set; }
+    }
+
+    internal sealed class SelectedUpdatePackage
+    {
+        public string PackageUrl { get; set; }
+        public string Sha256 { get; set; }
+        public bool IsDelta { get; set; }
     }
 
     internal sealed class LoadingView : Control
@@ -1107,11 +1123,141 @@ namespace MK3MoveBook
                 );
             }
 
-            return new UpdateManifest
+            UpdateManifest manifest = new UpdateManifest
             {
                 Version = version,
                 PackageUrl = packageUrl,
-                Sha256 = sha256
+                Sha256 = sha256,
+                Deltas = new List<DeltaUpdatePackage>()
+            };
+
+            object deltasValue;
+            if (values.TryGetValue("deltas", out deltasValue))
+            {
+                IEnumerable deltaEntries = deltasValue as IEnumerable;
+                if (deltaEntries == null || deltasValue is string)
+                {
+                    throw new InvalidDataException(
+                        "The update manifest contains an invalid delta package list."
+                    );
+                }
+
+                foreach (object deltaValue in deltaEntries)
+                {
+                    Dictionary<string, object> deltaValues =
+                        deltaValue as Dictionary<string, object>;
+                    object fromVersionValue;
+                    object deltaPackageValue;
+                    object deltaShaValue;
+                    if (deltaValues == null ||
+                        !deltaValues.TryGetValue(
+                            "fromVersion",
+                            out fromVersionValue
+                        ) ||
+                        !deltaValues.TryGetValue(
+                            "packageUrl",
+                            out deltaPackageValue
+                        ) ||
+                        !deltaValues.TryGetValue("sha256", out deltaShaValue))
+                    {
+                        throw new InvalidDataException(
+                            "A delta package is missing required fields."
+                        );
+                    }
+
+                    string fromVersion = Convert.ToString(
+                        fromVersionValue
+                    ).Trim();
+                    string deltaPackageUrl = Convert.ToString(
+                        deltaPackageValue
+                    ).Trim();
+                    string deltaSha256 = Convert.ToString(
+                        deltaShaValue
+                    ).Trim().ToUpperInvariant();
+
+                    Version parsedFromVersion;
+                    if (!Version.TryParse(
+                        fromVersion,
+                        out parsedFromVersion
+                    ))
+                    {
+                        throw new InvalidDataException(
+                            "A delta package contains an invalid base version."
+                        );
+                    }
+                    ValidateUpdatePackage(deltaPackageUrl, deltaSha256);
+
+                    manifest.Deltas.Add(new DeltaUpdatePackage
+                    {
+                        FromVersion = fromVersion,
+                        PackageUrl = deltaPackageUrl,
+                        Sha256 = deltaSha256
+                    });
+                }
+            }
+
+            return manifest;
+        }
+
+        private static void ValidateUpdatePackage(
+            string packageUrl,
+            string sha256
+        )
+        {
+            Uri packageUri;
+            if (!Uri.TryCreate(packageUrl, UriKind.Absolute, out packageUri) ||
+                !string.Equals(
+                    packageUri.Scheme,
+                    Uri.UriSchemeHttps,
+                    StringComparison.OrdinalIgnoreCase
+                ) ||
+                !string.Equals(
+                    packageUri.Host,
+                    "github.com",
+                    StringComparison.OrdinalIgnoreCase
+                ))
+            {
+                throw new InvalidDataException(
+                    "The update package must be downloaded from GitHub over HTTPS."
+                );
+            }
+            if (!IsSha256(sha256))
+            {
+                throw new InvalidDataException(
+                    "The update package contains an invalid SHA-256 hash."
+                );
+            }
+        }
+
+        private SelectedUpdatePackage SelectUpdatePackage(
+            UpdateManifest manifest
+        )
+        {
+            if (manifest.Deltas != null)
+            {
+                foreach (DeltaUpdatePackage delta in manifest.Deltas)
+                {
+                    if (string.Equals(
+                        delta.FromVersion,
+                        currentContentVersion,
+                        StringComparison.Ordinal
+                    ))
+                    {
+                        return new SelectedUpdatePackage
+                        {
+                            PackageUrl = delta.PackageUrl,
+                            Sha256 = delta.Sha256,
+                            IsDelta = true
+                        };
+                    }
+                }
+            }
+
+            return new SelectedUpdatePackage
+            {
+                PackageUrl = manifest.PackageUrl,
+                Sha256 = manifest.Sha256,
+                IsDelta = false
             };
         }
 
@@ -1147,6 +1293,7 @@ namespace MK3MoveBook
             }
 
             UpdateManifest manifest = availableUpdate;
+            SelectedUpdatePackage package = SelectUpdatePackage(manifest);
             updateBusy = true;
             string archivePath = null;
             string stagingDirectory = null;
@@ -1161,7 +1308,10 @@ namespace MK3MoveBook
                 Directory.CreateDirectory(contentDirectory);
                 archivePath = Path.Combine(
                     downloadDirectory,
-                    "MK3MoveBook-web-" + manifest.Version + ".zip"
+                    package.IsDelta
+                        ? "MK3MoveBook-delta-" + currentContentVersion + "-to-" +
+                            manifest.Version + ".zip"
+                        : "MK3MoveBook-web-" + manifest.Version + ".zip"
                 );
 
                 SendUpdateState(
@@ -1189,7 +1339,7 @@ namespace MK3MoveBook
                         );
                     };
                     await client.DownloadFileTaskAsync(
-                        new Uri(manifest.PackageUrl),
+                        new Uri(package.PackageUrl),
                         archivePath
                     );
                 }
@@ -1199,7 +1349,7 @@ namespace MK3MoveBook
                 );
                 if (!string.Equals(
                     actualHash,
-                    manifest.Sha256,
+                    package.Sha256,
                     StringComparison.OrdinalIgnoreCase
                 ))
                 {
@@ -1219,6 +1369,19 @@ namespace MK3MoveBook
                     ".staging-" + Guid.NewGuid().ToString("N")
                 );
                 string extractTarget = stagingDirectory;
+                if (package.IsDelta)
+                {
+                    string seededWebDirectory = Path.Combine(
+                        stagingDirectory,
+                        "web"
+                    );
+                    await Task.Run(
+                        () => CopyDirectoryTree(
+                            currentWebDirectory,
+                            seededWebDirectory
+                        )
+                    );
+                }
                 await Task.Run(
                     () => ExtractZipSafely(archivePath, extractTarget)
                 );
@@ -1227,6 +1390,20 @@ namespace MK3MoveBook
                     stagingDirectory,
                     "web"
                 );
+                if (package.IsDelta)
+                {
+                    await Task.Run(() =>
+                    {
+                        ApplyDeltaDeletedFiles(
+                            stagingDirectory,
+                            stagedWebDirectory
+                        );
+                        VerifyDeltaTargetFiles(
+                            stagingDirectory,
+                            stagedWebDirectory
+                        );
+                    });
+                }
                 if (!File.Exists(
                     Path.Combine(stagedWebDirectory, "index.html")
                 ))
@@ -1379,6 +1556,146 @@ namespace MK3MoveBook
                     }
                 }
             }
+        }
+
+        private static void CopyDirectoryTree(
+            string sourceDirectory,
+            string destinationDirectory
+        )
+        {
+            Directory.CreateDirectory(destinationDirectory);
+            foreach (string sourceFile in Directory.GetFiles(sourceDirectory))
+            {
+                string destinationFile = Path.Combine(
+                    destinationDirectory,
+                    Path.GetFileName(sourceFile)
+                );
+                File.Copy(sourceFile, destinationFile, true);
+            }
+            foreach (string sourceChild in Directory.GetDirectories(
+                sourceDirectory
+            ))
+            {
+                string destinationChild = Path.Combine(
+                    destinationDirectory,
+                    Path.GetFileName(sourceChild)
+                );
+                CopyDirectoryTree(sourceChild, destinationChild);
+            }
+        }
+
+        private static void ApplyDeltaDeletedFiles(
+            string packageRoot,
+            string webDirectory
+        )
+        {
+            string deletedFilesPath = Path.Combine(
+                packageRoot,
+                "deleted-files.txt"
+            );
+            if (!File.Exists(deletedFilesPath))
+            {
+                return;
+            }
+            foreach (string rawPath in File.ReadAllLines(
+                deletedFilesPath,
+                Encoding.UTF8
+            ))
+            {
+                string relativePath = rawPath.Trim();
+                if (relativePath.Length == 0)
+                {
+                    continue;
+                }
+                string targetPath = ResolveSafeRelativePath(
+                    webDirectory,
+                    relativePath
+                );
+                if (File.Exists(targetPath))
+                {
+                    File.Delete(targetPath);
+                }
+            }
+        }
+
+        private static void VerifyDeltaTargetFiles(
+            string packageRoot,
+            string webDirectory
+        )
+        {
+            string manifestPath = Path.Combine(
+                packageRoot,
+                "target-files.sha256"
+            );
+            if (!File.Exists(manifestPath))
+            {
+                throw new InvalidDataException(
+                    "The delta package does not contain a target file manifest."
+                );
+            }
+            foreach (string rawLine in File.ReadAllLines(
+                manifestPath,
+                Encoding.UTF8
+            ))
+            {
+                if (string.IsNullOrWhiteSpace(rawLine))
+                {
+                    continue;
+                }
+                int separator = rawLine.IndexOf(' ');
+                if (separator != 64)
+                {
+                    throw new InvalidDataException(
+                        "The delta target file manifest is invalid."
+                    );
+                }
+                string expectedHash = rawLine.Substring(0, 64);
+                string relativePath = rawLine.Substring(
+                    separator + 1
+                ).Trim();
+                string targetPath = ResolveSafeRelativePath(
+                    webDirectory,
+                    relativePath
+                );
+                if (!File.Exists(targetPath) ||
+                    !string.Equals(
+                        ComputeSha256(targetPath),
+                        expectedHash,
+                        StringComparison.OrdinalIgnoreCase
+                    ))
+                {
+                    throw new InvalidDataException(
+                        "Delta target file verification failed: " +
+                        relativePath
+                    );
+                }
+            }
+        }
+
+        private static string ResolveSafeRelativePath(
+            string rootDirectory,
+            string relativePath
+        )
+        {
+            string rootPath = Path.GetFullPath(rootDirectory) +
+                Path.DirectorySeparatorChar;
+            string targetPath = Path.GetFullPath(Path.Combine(
+                rootDirectory,
+                relativePath.Replace(
+                    '/',
+                    Path.DirectorySeparatorChar
+                )
+            ));
+            if (!targetPath.StartsWith(
+                rootPath,
+                StringComparison.OrdinalIgnoreCase
+            ))
+            {
+                throw new InvalidDataException(
+                    "The delta package contains an unsafe path."
+                );
+            }
+            return targetPath;
         }
 
         private static void TryDeleteFile(string filePath)

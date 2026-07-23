@@ -159,6 +159,7 @@
         fighterTitle: document.querySelector("#fighterTitle"),
         fighterSubtitle: document.querySelector("#fighterSubtitle"),
         categoryNav: document.querySelector("#categoryNav"),
+        movePreviewStack: document.querySelector("#movePreviewStack"),
         movePreview: document.querySelector("#movePreview"),
         movePreviewVideo: document.querySelector("#movePreviewVideo"),
         moveRequirement: document.querySelector("#moveRequirement"),
@@ -211,9 +212,9 @@
 
     function placeResponsiveElements() {
         if (mobileLayoutQuery.matches) {
-            if (elements.movePreview.parentElement !== elements.bookPageRight) {
+            if (elements.movePreviewStack.parentElement !== elements.bookPageRight) {
                 elements.bookPageRight.insertBefore(
-                    elements.movePreview,
+                    elements.movePreviewStack,
                     elements.pageContent
                 );
             }
@@ -227,12 +228,15 @@
             if (elements.bookNote.parentElement !== elements.bookPageLeft) {
                 elements.bookPageLeft.appendChild(elements.bookNote);
             }
-            if (elements.movePreview.parentElement !== elements.bookPageLeft) {
+            if (elements.movePreviewStack.parentElement !== elements.bookPageLeft) {
                 elements.bookPageLeft.insertBefore(
-                    elements.movePreview,
+                    elements.movePreviewStack,
                     elements.bookNote
                 );
             }
+        }
+        if (!elements.moveRequirement.hidden) {
+            setMoveRequirementExpanded(!mobileLayoutQuery.matches);
         }
         updateMobileStickyOffsets();
     }
@@ -903,16 +907,11 @@
             state.tab === "moves" ? "Источник комбинаций" : "Источник";
         elements.bookNoteValue.textContent =
             state.tab === "moves" ? "command.dat" : fighterSource;
+        elements.bookNote.hidden = state.tab === "moves";
         elements.bookNoteLabel.hidden = state.tab === "moves";
         elements.bookNoteValue.hidden = state.tab === "moves";
-        elements.bookNoteMeta.hidden = state.tab !== "moves";
-        elements.bookNoteMeta.textContent =
-            state.tab === "moves"
-                ? (state.platform === "arcade"
-                    ? `MAME 0.129 · ${fighter.availability || "UMK3 UK / Team Edition"}`
-                    : (platformInfo.platformNotes.sega ||
-                        "SEGA · комбинации проверяются вручную"))
-                : "";
+        elements.bookNoteMeta.hidden = true;
+        elements.bookNoteMeta.textContent = "";
 
         [...elements.sectionTabs.querySelectorAll("[data-tab]")].forEach(button => {
             button.setAttribute("aria-selected", String(button.dataset.tab === state.tab));
@@ -982,6 +981,7 @@
         elements.rightPageNumber.textContent = "KOMBAT KODES";
         elements.bookNoteLabel.textContent = "Источник";
         elements.bookNoteValue.textContent = "Книга UMK3 · стр. 27–29";
+        elements.bookNote.hidden = false;
         elements.bookNoteLabel.hidden = false;
         elements.bookNoteValue.hidden = false;
         elements.bookNoteMeta.hidden = true;
@@ -1017,6 +1017,7 @@
         elements.rightPageNumber.textContent = "СВЯЗАТЬСЯ С НАМИ";
         elements.bookNoteLabel.textContent = "MK3 MoveBook";
         elements.bookNoteValue.textContent = "Сделано сообществом онлайн-ретро-игры";
+        elements.bookNote.hidden = false;
         elements.bookNoteLabel.hidden = false;
         elements.bookNoteValue.hidden = false;
         elements.bookNoteMeta.hidden = true;
@@ -1420,64 +1421,106 @@
         return moveAnimations[notationKey] ? notationKey : baseKey;
     }
 
+    function setMoveRequirementExpanded(expanded) {
+        const toggle = elements.moveRequirement.querySelector(
+            ".move-requirement-heading"
+        );
+        const body = elements.moveRequirement.querySelector(
+            ".move-requirement-body"
+        );
+        if (!toggle || !body) {
+            return;
+        }
+
+        const shouldExpand = Boolean(expanded);
+        elements.moveRequirement.classList.toggle("is-expanded", shouldExpand);
+        elements.moveRequirement.classList.toggle("is-collapsed", !shouldExpand);
+        toggle.setAttribute("aria-expanded", String(shouldExpand));
+        toggle.setAttribute(
+            "aria-label",
+            `${shouldExpand ? "Свернуть" : "Развернуть"} условия выполнения`
+        );
+        body.hidden = !shouldExpand;
+    }
+
+    function showMoveRequirement(bodyMarkup) {
+        elements.moveRequirement.innerHTML = `
+            <button class="move-requirement-heading" type="button">
+                <span class="move-requirement-mark" aria-hidden="true">◆</span>
+                <span class="move-requirement-heading-copy">
+                    <small>Заметка к приёму</small>
+                    <strong>Условия выполнения</strong>
+                </span>
+                <span class="move-requirement-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div class="move-requirement-body">
+                ${bodyMarkup}
+            </div>`;
+        elements.moveRequirement.hidden = false;
+        setMoveRequirementExpanded(!mobileLayoutQuery.matches);
+        return true;
+    }
+
     function renderMoveRequirement(move) {
         const isAnimality = /\banimality\b/i.test(String(move.label || ""));
         const isFriendship = /\b(?:friendship|frienship)\b/i.test(
             String(move.label || "")
         );
-        if (!isAnimality && !isFriendship) {
+        const isBabality = /\bbabality\b/i.test(String(move.label || ""));
+        if (!isAnimality && !isFriendship && !isBabality) {
             elements.moveRequirement.innerHTML = "";
+            elements.moveRequirement.classList.remove("is-expanded", "is-collapsed");
             elements.moveRequirement.hidden = true;
             return false;
         }
 
-        if (isFriendship) {
-            elements.moveRequirement.innerHTML = `
-                <div class="move-requirement-heading">
-                    <span aria-hidden="true">!</span>
-                    <strong>Условия выполнения</strong>
-                </div>
+        if (isBabality) {
+            return showMoveRequirement(`
                 <p class="move-requirement-lead">
-                    Только <b>3-й раунд</b> — счёт <b>2:1</b>.
-            </p>`;
-            elements.moveRequirement.hidden = false;
-            return true;
+                    В последнем раунде <b>не используйте блок</b> —
+                    не нажимайте
+                    <span class="move-requirement-command"
+                        aria-label="кнопку блока">
+                        ${renderSequence("BL")}
+                    </span>.
+                </p>`);
         }
 
-        elements.moveRequirement.innerHTML = `
-            <div class="move-requirement-heading">
-                <span aria-hidden="true">!</span>
-                <strong>Условия выполнения</strong>
-            </div>
+        if (isFriendship) {
+            return showMoveRequirement(`
+                <p class="move-requirement-lead">
+                    Только <b>3-й раунд</b>, счёт <b>2:1</b>.
+                </p>`);
+        }
+
+        return showMoveRequirement(`
             <p class="move-requirement-lead">
-                Только <b>3-й раунд</b> — счёт <b>2:1</b>.
+                Только <b>3-й раунд</b>, счёт <b>2:1</b>.
             </p>
             <ol>
                 <li>
                     На первом <b>FINISH HIM</b> — <b>MERCY:</b>
                     <span class="move-requirement-command"
                         aria-label="Удерживать RUN, вниз, вниз, вниз, отпустить RUN">
-                        <span class="move-requirement-action">Удерживать</span>
+                        <span class="move-requirement-action">Зажмите</span>
                         ${renderSequence("RUN,_2,_2,_2")}
-                        <span class="move-requirement-action">и отпустить.</span>
+                        <span class="move-requirement-action">и отпустите.</span>
                     </span>
                 </li>
                 <li>
-                    Снова победите соперника и выполните <b>Animality</b>.
+                    Снова победите соперника и выполните приём.
                 </li>
-            </ol>`;
-        elements.moveRequirement.hidden = false;
-        return true;
+            </ol>`);
     }
 
     function showMovePreview(fighter, category, move) {
         const source = move.video ||
             moveAnimations[moveAnimationKey(fighter, category, move)];
-        const hasRequirement = renderMoveRequirement(move);
+        renderMoveRequirement(move);
         if (!source) {
             elements.movePreviewVideo.pause();
             elements.movePreviewVideo.hidden = true;
-            elements.movePreview.hidden = !hasRequirement;
+            elements.movePreview.hidden = true;
             return;
         }
 
@@ -1545,7 +1588,12 @@
     function updateRenderedNotation() {
         const segaSelected = state.notation === "sega";
         updateNotationSwitch();
-        [elements.pageContent, elements.comboFocus, elements.movePreview]
+        [
+            elements.pageContent,
+            elements.comboFocus,
+            elements.movePreview,
+            elements.moveRequirement
+        ]
             .forEach(root => {
                 root.querySelectorAll(".keycap[data-action]").forEach(keycap => {
                     const action = keycap.dataset.action;
@@ -1876,6 +1924,15 @@
         if (card && (event.key === "Enter" || event.key === " ")) {
             event.preventDefault();
             selectMove(card.dataset.move);
+        }
+    });
+
+    elements.moveRequirement.addEventListener("click", event => {
+        const toggle = event.target.closest(".move-requirement-heading");
+        if (toggle) {
+            setMoveRequirementExpanded(
+                toggle.getAttribute("aria-expanded") !== "true"
+            );
         }
     });
 
