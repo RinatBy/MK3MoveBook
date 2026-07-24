@@ -63,7 +63,7 @@ button {
 
 .topbar {
     display: grid;
-    grid-template-columns: 54px 230px auto minmax(220px, 1fr) auto;
+    grid-template-columns: 54px 230px auto minmax(220px, 1fr) auto auto;
     align-items: center;
     gap: 12px;
     padding: 8px 18px;
@@ -147,6 +147,81 @@ button {
 .route-bar b {
     color: #e6c657;
     font-weight: 800;
+}
+
+.achievement-entry {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 12px;
+    color: #e8d9ed;
+    background: linear-gradient(180deg, #352344, #2a1a37);
+    border: 1px solid #634976;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.achievement-entry:hover {
+    color: #fff7d8;
+    background: #4b315f;
+    border-color: #8b6a9e;
+}
+
+.achievement-entry[aria-pressed="true"] {
+    color: #fff3bd;
+    background: linear-gradient(180deg, #8f263b, #67192b);
+    border-color: #d3ae47;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .12),
+        0 0 14px rgba(216, 173, 58, .18);
+}
+
+.achievement-entry > b {
+    font: 10px/1 "Russo One", sans-serif;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.achievement-mark {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+}
+
+.achievement-mark svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.35;
+}
+
+.achievement-mark .achievement-mark-diamond {
+    color: #d9b84c;
+    stroke-width: 1.55;
+}
+
+.achievement-mark .achievement-mark-check {
+    color: #f2cd58;
+    stroke-width: 2;
+}
+
+.roster-achievement-entry {
+    display: none;
+}
+
+.achievement-entry[hidden],
+.roster-achievement-entry[hidden] {
+    display: none !important;
 }
 
 .update-control {
@@ -743,6 +818,57 @@ button {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.achievement-seal-art {
+    display: none;
+}
+
+.fighter-seal.is-achievements {
+    display: grid;
+    place-items: center;
+    padding: 9px;
+    background:
+        radial-gradient(circle, #44283f 0 43%, transparent 44%),
+        linear-gradient(135deg, #24142f, #5c2538);
+    border-color: #a52a40;
+    box-shadow:
+        0 0 0 4px #d2ad4d,
+        0 8px 18px rgba(52, 24, 30, .35),
+        inset 0 0 18px rgba(224, 185, 72, .12);
+}
+
+.fighter-seal.is-achievements > img {
+    display: none;
+}
+
+.fighter-seal.is-achievements .achievement-seal-art {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: #f0ca55;
+}
+
+.achievement-seal-art svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+}
+
+.achievement-seal-art circle {
+    color: #eadfc8;
+    stroke-width: 2;
+}
+
+.achievement-seal-art .achievement-seal-check {
+    color: #fff1ac;
+    stroke-width: 7;
 }
 
 .book.is-platform-unavailable .fighter-seal img {
@@ -2042,6 +2168,265 @@ button {
     text-align: center;
 }
 
+.achievements-page {
+    color: #34282c;
+}
+
+.achievements-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    margin: 0 0 16px;
+    padding: 18px 20px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 88% 16%, rgba(215, 177, 67, .24), transparent 28%),
+        linear-gradient(120deg, rgba(78, 31, 54, .97), rgba(35, 20, 47, .97));
+    border: 1px solid #a97843;
+    border-radius: 8px;
+    box-shadow: 0 8px 18px rgba(65, 37, 38, .18);
+}
+
+.achievements-hero::after {
+    content: "";
+    position: absolute;
+    right: -32px;
+    bottom: -64px;
+    width: 170px;
+    height: 170px;
+    border: 1px solid rgba(226, 189, 76, .24);
+    transform: rotate(45deg);
+}
+
+.achievements-hero-copy,
+.achievements-summary {
+    position: relative;
+    z-index: 1;
+}
+
+.achievements-kicker {
+    color: #dfbd51;
+    font: 9px/1 "Russo One", sans-serif;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+}
+
+.achievements-hero h2 {
+    margin: 8px 0 6px;
+    color: #fff4d0;
+    font: 25px/1 "Russo One", sans-serif;
+}
+
+.achievements-hero p {
+    max-width: 470px;
+    margin: 0;
+    color: #cdbfd0;
+    font: 600 12px/1.45 "Literata", serif;
+}
+
+.achievements-summary {
+    display: grid;
+    align-content: center;
+    min-width: 108px;
+    padding-left: 16px;
+    border-left: 1px solid rgba(230, 199, 98, .25);
+    text-align: center;
+}
+
+.achievements-summary strong {
+    color: #f3cc55;
+    font: 27px/1 "Russo One", sans-serif;
+}
+
+.achievements-summary span {
+    margin-top: 7px;
+    color: #b8a6be;
+    font: 9px/1.2 "Russo One", sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.achievement-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 0 0 18px;
+}
+
+.achievement-filter-bar button {
+    min-height: 30px;
+    padding: 0 12px;
+    color: #69545d;
+    background: rgba(255, 252, 243, .66);
+    border: 1px solid rgba(105, 70, 62, .25);
+    border-radius: 999px;
+    cursor: pointer;
+    font: 9px/1 "Russo One", sans-serif;
+    letter-spacing: .03em;
+}
+
+.achievement-filter-bar button:hover,
+.achievement-filter-bar button[aria-pressed="true"] {
+    color: #fff8da;
+    background: #8e263b;
+    border-color: #a82a42;
+}
+
+.achievement-group {
+    scroll-margin-top: 8px;
+}
+
+.achievement-group + .achievement-group {
+    margin-top: 22px;
+}
+
+.achievement-group[hidden] {
+    display: none;
+}
+
+.achievement-group-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 2px 9px;
+}
+
+.achievement-group-heading h3 {
+    margin: 0;
+    color: #98233a;
+    font: 18px/1 "Russo One", sans-serif;
+}
+
+.achievement-group-heading span {
+    min-width: 25px;
+    padding: 4px 7px;
+    color: #7f6970;
+    background: rgba(148, 101, 76, .1);
+    border-radius: 999px;
+    font: 9px/1 "Russo One", sans-serif;
+    text-align: center;
+}
+
+.achievement-group-heading::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #b72b45, rgba(183, 43, 69, .08));
+}
+
+.achievement-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.achievement-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    min-height: 82px;
+    padding: 10px 12px;
+    overflow: hidden;
+    background:
+        linear-gradient(105deg, rgba(255, 253, 246, .82), rgba(239, 222, 193, .58));
+    border: 1px solid rgba(111, 73, 58, .22);
+    border-left: 4px solid #a4263c;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(72, 45, 40, .07);
+}
+
+.achievement-card::after {
+    content: "◆";
+    position: absolute;
+    top: 8px;
+    right: 9px;
+    color: rgba(110, 78, 73, .3);
+    font-size: 8px;
+}
+
+.achievement-card-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    padding: 3px;
+    overflow: hidden;
+    color: #c49b33;
+    background: #25172f;
+    border: 2px solid #9f2a40;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px #d1aa46;
+}
+
+.achievement-card-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    filter: grayscale(.82) brightness(.72);
+    object-fit: cover;
+}
+
+.achievement-card-icon .achievement-mark {
+    width: 34px;
+    height: 34px;
+}
+
+.achievement-card-icon.is-duel {
+    grid-template-columns: 1fr 1fr;
+    padding: 2px;
+}
+
+.achievement-card-icon.is-duel img {
+    width: 31px;
+    height: 48px;
+    border-radius: 24px 5px 5px 24px;
+    object-position: center;
+}
+
+.achievement-card-icon.is-duel img + img {
+    margin-left: -8px;
+    border-radius: 5px 24px 24px 5px;
+}
+
+.achievement-card-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    padding-right: 10px;
+}
+
+.achievement-card-copy small {
+    color: #a1273d;
+    font: 8px/1 "Russo One", sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.achievement-card-copy strong {
+    margin-top: 5px;
+    color: #39292e;
+    font: 14px/1.1 "Russo One", sans-serif;
+}
+
+.achievement-card-copy span {
+    margin-top: 5px;
+    color: #786269;
+    font: 600 10.5px/1.3 "Literata", serif;
+}
+
+.achievement-preview-note {
+    margin: 16px 2px 0;
+    padding: 10px 12px;
+    color: #745f66;
+    background: rgba(151, 104, 76, .08);
+    border-left: 3px solid #a4263c;
+    font: 600 10.5px/1.45 "Literata", serif;
+}
+
 .page-number {
     position: absolute;
     bottom: 13px;
@@ -2285,7 +2670,7 @@ button {
     }
 
     .topbar {
-        grid-template-columns: 54px 230px auto minmax(120px, 1fr) auto;
+        grid-template-columns: 54px 230px auto minmax(120px, 1fr) auto auto;
         gap: 8px;
         padding-inline: 12px;
     }
@@ -2296,6 +2681,15 @@ button {
     }
 
     .update-button > b {
+        display: none;
+    }
+
+    .achievement-entry {
+        width: 40px;
+        padding: 0;
+    }
+
+    .achievement-entry > b {
         display: none;
     }
 
@@ -2391,8 +2785,8 @@ button {
         position: sticky;
         top: 0;
         z-index: 60;
-        grid-template-areas: "mark brand update roster";
-        grid-template-columns: 36px minmax(0, 1fr) 36px auto;
+        grid-template-areas: "mark brand achievement update roster";
+        grid-template-columns: 36px minmax(0, 1fr) 36px 36px auto;
         gap: 7px;
         min-height: 52px;
         padding: 6px max(9px, env(safe-area-inset-right)) 6px max(9px, env(safe-area-inset-left));
@@ -2455,6 +2849,12 @@ button {
 
     .update-control {
         grid-area: update;
+    }
+
+    .achievement-entry {
+        grid-area: achievement;
+        width: 36px;
+        height: 36px;
     }
 
     .update-button {
@@ -2884,6 +3284,14 @@ button {
         padding: 22px 4px 28px;
     }
 
+    .achievement-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .achievements-page {
+        padding: 8px 0 24px;
+    }
+
     .statusbar {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 7px 10px;
@@ -2940,7 +3348,7 @@ button {
     }
 
     .topbar {
-        grid-template-columns: 34px minmax(0, 1fr) 34px auto;
+        grid-template-columns: 34px minmax(0, 1fr) 34px 34px auto;
         gap: 6px;
     }
 
@@ -3062,6 +3470,87 @@ button {
     .portable-download {
         padding-inline: 10px;
         font-size: 9px;
+    }
+
+    .achievement-entry {
+        width: 34px;
+        height: 34px;
+    }
+
+    .achievements-hero {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+
+    .achievements-summary {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        padding: 10px 0 0;
+        border-top: 1px solid rgba(230, 199, 98, .25);
+        border-left: 0;
+        text-align: left;
+    }
+
+    .achievements-summary strong {
+        font-size: 22px;
+    }
+
+    .achievements-summary span {
+        margin: 0;
+    }
+
+    .achievement-card {
+        grid-template-columns: 52px minmax(0, 1fr);
+        min-height: 76px;
+        padding: 9px 10px;
+    }
+
+    .achievement-card-icon {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 380px) {
+    .topbar {
+        grid-template-areas: "mark brand update roster";
+        grid-template-columns: 34px minmax(0, 1fr) 34px auto;
+    }
+
+    .achievement-entry {
+        display: none;
+    }
+
+    .roster-achievement-entry {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 50px;
+        margin-bottom: 8px;
+        padding: 7px 10px;
+        color: #f5e7c4;
+        background: linear-gradient(100deg, #382345, #27172f);
+        border: 1px solid #6c506f;
+        border-radius: 7px;
+        text-align: left;
+    }
+
+    .roster-achievement-entry > span:last-child {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .roster-achievement-entry b {
+        font: 11px/1 "Russo One", sans-serif;
+    }
+
+    .roster-achievement-entry small {
+        color: #b8a7bf;
+        font: 600 9px/1.2 "Literata", serif;
     }
 }
 

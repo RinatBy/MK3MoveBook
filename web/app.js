@@ -19,6 +19,12 @@
         fighters: {}
     };
     const lore = window.MOVEBOOK_LORE;
+    const achievementData = window.MOVEBOOK_ACHIEVEMENTS || {
+        preview: true,
+        general: [],
+        fighterTemplate: {},
+        lore: []
+    };
     const tabLabels = {
         moves: "Приёмы",
         history: "История",
@@ -138,6 +144,8 @@
         rosterBackdrop: document.querySelector("#rosterBackdrop"),
         metaDescription: document.querySelector("#metaDescription"),
         routeBar: document.querySelector("#routeBar"),
+        achievementButton: document.querySelector("#achievementButton"),
+        mobileAchievementButton: document.querySelector("#mobileAchievementButton"),
         updateButton: document.querySelector("#updateButton"),
         updatePanel: document.querySelector("#updatePanel"),
         updatePanelClose: document.querySelector("#updatePanelClose"),
@@ -665,7 +673,7 @@
 
     function setRoute(replace = false) {
         const directRoute = directPathRoute();
-        const isFighterPage = !["community", "secrets"].includes(state.tab);
+        const isFighterPage = !["achievements", "community", "secrets"].includes(state.tab);
         if (directRoute && isFighterPage) {
             if (replace && directRoute.landing &&
                 state.platform === directRoute.platform &&
@@ -689,11 +697,13 @@
             return;
         }
 
-        const route = state.tab === "community"
-            ? "#/community"
-            : (state.tab === "secrets"
-                ? `#/${state.platform}/secrets`
-                : `#/${state.platform}/${state.fighterId}/${state.tab}`);
+        const route = state.tab === "achievements"
+            ? "#/achievements"
+            : (state.tab === "community"
+                ? "#/community"
+                : (state.tab === "secrets"
+                    ? `#/${state.platform}/secrets`
+                    : `#/${state.platform}/${state.fighterId}/${state.tab}`));
         if (window.location.hash === route) {
             render();
             return;
@@ -713,6 +723,14 @@
             .filter(Boolean);
         state.version = "umk3uk";
         const fighters = currentVersion().fighters;
+        if (parts[0] === "achievements") {
+            state.platform = "arcade";
+            if (!fighters.some(item => item.id === state.fighterId)) {
+                state.fighterId = fighters[0].id;
+            }
+            state.tab = "achievements";
+            return;
+        }
         if (parts[0] === "community") {
             if (!fighters.some(item => item.id === state.fighterId)) {
                 state.fighterId = fighters[0].id;
@@ -768,6 +786,19 @@
         return `assets/portraits/${fighter.id}.png`;
     }
 
+    function achievementMarkMarkup() {
+        return `
+            <span class="achievement-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path class="achievement-mark-diamond"
+                        d="M12 2.5 21.5 12 12 21.5 2.5 12Z"></path>
+                    <circle cx="12" cy="12" r="6.5"></circle>
+                    <path class="achievement-mark-check"
+                        d="m8.1 12.2 2.5 2.5 5.4-6"></path>
+                </svg>
+            </span>`;
+    }
+
     function fighterMatches(fighter, query) {
         if (!query) {
             return true;
@@ -809,7 +840,7 @@
         elements.fighterCount.title =
             `${platformFighters.length} доступны в версии ${platformLabel()}`;
         elements.rosterList.innerHTML = filtered.map(fighter => {
-            const selected = !["secrets", "community"].includes(state.tab)
+            const selected = !["achievements", "secrets", "community"].includes(state.tab)
                 && fighter.id === state.fighterId;
             const accent = fighterAccents[fighter.name] || "#a62a42";
             const platformInfo = fighterPlatformData(fighter);
@@ -865,6 +896,14 @@
             renderCommunityPage();
             return;
         }
+        if (state.tab === "achievements") {
+            updatePageMetadata(
+                `Достижения Ultimate Mortal Kombat 3 | ${seoData.siteName || "MK3 MoveBook"}`,
+                "Макет центра достижений MK3 MoveBook: общие испытания, победы бойцов и сюжетные противостояния."
+            );
+            renderAchievementsPage();
+            return;
+        }
         if (state.tab === "secrets") {
             updatePageMetadata(
                 `Секреты и коды UMK3 | ${seoData.siteName || "MK3 MoveBook"}`,
@@ -881,7 +920,11 @@
         updateFighterMetadata(fighter, platformInfo);
         const accent = fighterAccents[fighter.name] || "#c39032";
         document.documentElement.style.setProperty("--accent", accent);
-        elements.fighterSeal.classList.remove("is-secrets", "is-community");
+        elements.fighterSeal.classList.remove(
+            "is-achievements",
+            "is-secrets",
+            "is-community"
+        );
         setToastyTrigger(false);
         elements.sectionTabs.hidden = false;
         elements.sectionTabs.parentElement.classList.remove("is-global-page");
@@ -960,7 +1003,7 @@
             ["Открытие бойцов", "codes-unlocks"]
         ];
         document.documentElement.style.setProperty("--accent", "#d8ad31");
-        elements.fighterSeal.classList.remove("is-community");
+        elements.fighterSeal.classList.remove("is-achievements", "is-community");
         elements.fighterSeal.classList.add("is-secrets");
         setToastyTrigger(true);
         elements.sectionTabs.hidden = false;
@@ -999,7 +1042,7 @@
     function renderCommunityPage() {
         hideMovePreview();
         document.documentElement.style.setProperty("--accent", "#b66b32");
-        elements.fighterSeal.classList.remove("is-secrets");
+        elements.fighterSeal.classList.remove("is-achievements", "is-secrets");
         elements.fighterSeal.classList.add("is-community");
         setToastyTrigger(false);
         elements.sectionTabs.hidden = true;
@@ -1080,6 +1123,159 @@
         elements.pageContent.scrollTop = 0;
         elements.statusText.textContent =
             "MK3 MoveBook · сообщество Онлайн ретро-игры";
+    }
+
+    function renderAchievementCard(definition, iconHtml) {
+        return `
+            <article class="achievement-card" data-achievement="${escapeHtml(definition.id)}">
+                ${iconHtml}
+                <span class="achievement-card-copy">
+                    <small>${escapeHtml(definition.label || "Испытание")}</small>
+                    <strong>${escapeHtml(definition.title)}</strong>
+                    <span>${escapeHtml(definition.description)}</span>
+                </span>
+            </article>`;
+    }
+
+    function renderAchievementsPage() {
+        hideMovePreview();
+        const fighters = currentVersion().fighters;
+        const fighterById = new Map(fighters.map(fighter => [fighter.id, fighter]));
+        const fighterTemplate = achievementData.fighterTemplate || {};
+        const excludedFighterIds = new Set(
+            fighterTemplate.excludedFighterIds || []
+        );
+        const debutFighters = fighters.filter(
+            fighter => !excludedFighterIds.has(fighter.id)
+        );
+        const generalAchievements = achievementData.general || [];
+        const loreAchievements = achievementData.lore || [];
+        const total = generalAchievements.length +
+            debutFighters.length + loreAchievements.length;
+
+        const generalCards = generalAchievements.map(item =>
+            renderAchievementCard(
+                item,
+                `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`
+            )
+        ).join("");
+        const fighterCards = debutFighters.map(fighter => {
+            const description = String(fighterTemplate.description || "")
+                .replace("{fighter}", fighter.name);
+            return renderAchievementCard(
+                {
+                    id: `${fighterTemplate.idPrefix || "fighter-debut-"}${fighter.id}`,
+                    title: fighterTemplate.title || "Боевой дебют",
+                    description,
+                    label: fighter.name
+                },
+                `<span class="achievement-card-icon">
+                    <img src="${portraitPath(fighter)}" alt="">
+                </span>`
+            );
+        }).join("");
+        const loreCards = loreAchievements.map(item => {
+            const fighter = fighterById.get(item.fighterId);
+            const opponent = fighterById.get(item.opponentId);
+            const portraits = fighter && opponent
+                ? `<span class="achievement-card-icon is-duel">
+                    <img src="${portraitPath(fighter)}" alt="">
+                    <img src="${portraitPath(opponent)}" alt="">
+                </span>`
+                : `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`;
+            return renderAchievementCard(item, portraits);
+        }).join("");
+
+        document.documentElement.style.setProperty("--accent", "#b62a43");
+        elements.fighterSeal.classList.remove("is-secrets", "is-community");
+        elements.fighterSeal.classList.add("is-achievements");
+        setToastyTrigger(false);
+        elements.sectionTabs.hidden = true;
+        elements.sectionTabs.parentElement.classList.add("is-global-page");
+        elements.notationSwitch.hidden = true;
+        elements.categoryNav.hidden = false;
+        elements.editionLabel.textContent = "KOMBAT RECORDS";
+        elements.contentsTitle.textContent = "Разделы";
+        elements.contentsTitle.hidden = false;
+        elements.heroPortrait.src = "";
+        elements.heroPortrait.alt = "";
+        elements.fighterTitle.textContent = "Достижения";
+        elements.fighterSubtitle.hidden = false;
+        elements.fighterSubtitle.textContent = `${total} испытаний · макет`;
+        elements.rightPageNumber.textContent = "ДОСТИЖЕНИЯ";
+        elements.bookNote.hidden = true;
+        elements.bookNoteLabel.hidden = true;
+        elements.bookNoteValue.hidden = true;
+        elements.bookNoteMeta.hidden = true;
+        elements.categoryNav.innerHTML = `
+            <button class="category-link" type="button" data-category="achievement-general">
+                <span>Общие</span><b>${generalAchievements.length}</b>
+            </button>
+            <button class="category-link" type="button" data-category="achievement-fighters">
+                <span>Бойцы</span><b>${debutFighters.length}</b>
+            </button>
+            <button class="category-link" type="button" data-category="achievement-lore">
+                <span>Противостояния</span><b>${loreAchievements.length}</b>
+            </button>`;
+        elements.routeBar.innerHTML =
+            `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>ДОСТИЖЕНИЯ</b>`;
+        elements.comboFocus.hidden = true;
+        elements.pageContent.innerHTML = `
+            <div class="achievements-page">
+                <header class="achievements-hero">
+                    <div class="achievements-hero-copy">
+                        <span class="achievements-kicker">Предварительный макет</span>
+                        <h2>Книга испытаний</h2>
+                        <p>
+                            Личная летопись побед, боевых дебютов и знаковых
+                            противостояний Ultimate Mortal Kombat 3.
+                        </p>
+                    </div>
+                    <div class="achievements-summary">
+                        <strong>0 / ${total}</strong>
+                        <span>будет доступно после подключения профиля</span>
+                    </div>
+                </header>
+                <nav class="achievement-filter-bar" aria-label="Фильтр достижений">
+                    <button type="button" data-achievement-filter="all"
+                        aria-pressed="true">Все</button>
+                    <button type="button" data-achievement-filter="general"
+                        aria-pressed="false">Общие</button>
+                    <button type="button" data-achievement-filter="fighters"
+                        aria-pressed="false">Бойцы</button>
+                    <button type="button" data-achievement-filter="lore"
+                        aria-pressed="false">Противостояния</button>
+                </nav>
+                <section id="category-achievement-general"
+                    class="achievement-group" data-achievement-group="general">
+                    <header class="achievement-group-heading">
+                        <h3>Общие</h3><span>${generalAchievements.length}</span>
+                    </header>
+                    <div class="achievement-card-grid">${generalCards}</div>
+                </section>
+                <section id="category-achievement-fighters"
+                    class="achievement-group" data-achievement-group="fighters">
+                    <header class="achievement-group-heading">
+                        <h3>Боевые дебюты</h3><span>${debutFighters.length}</span>
+                    </header>
+                    <div class="achievement-card-grid">${fighterCards}</div>
+                </section>
+                <section id="category-achievement-lore"
+                    class="achievement-group" data-achievement-group="lore">
+                    <header class="achievement-group-heading">
+                        <h3>Противостояния</h3><span>${loreAchievements.length}</span>
+                    </header>
+                    <div class="achievement-card-grid">${loreCards}</div>
+                </section>
+                <p class="achievement-preview-note">
+                    Портреты бойцов используются как основа значков боевого дебюта.
+                    Отдельные иллюстрации понадобятся только для редких сюжетных
+                    и сложных испытаний.
+                </p>
+            </div>`;
+        elements.pageContent.scrollTop = 0;
+        elements.statusText.textContent =
+            `Макет центра достижений · ${total} испытаний`;
     }
 
     function renderMoves(fighter) {
@@ -1560,6 +1756,13 @@
             "aria-pressed",
             String(state.tab === "community")
         );
+        elements.achievementButton.setAttribute(
+            "aria-pressed",
+            String(state.tab === "achievements")
+        );
+        const achievementsAvailable = state.platform === "arcade";
+        elements.achievementButton.hidden = !achievementsAvailable;
+        elements.mobileAchievementButton.hidden = !achievementsAvailable;
         renderFighterPage();
         updateMobileStickyOffsets();
     }
@@ -1791,6 +1994,9 @@
             return;
         }
         state.platform = button.dataset.platform;
+        if (state.tab === "achievements" && state.platform !== "arcade") {
+            state.tab = "moves";
+        }
         state.selectedMoveKey = "";
         const selectedFighter = currentVersion().fighters.find(
             fighter => fighter.id === state.fighterId
@@ -1839,6 +2045,19 @@
         setMobileRoster(false);
         setRoute();
     });
+
+    function openAchievements() {
+        if (state.platform !== "arcade") {
+            return;
+        }
+        state.tab = "achievements";
+        state.selectedMoveKey = "";
+        setMobileRoster(false);
+        setRoute();
+    }
+
+    elements.achievementButton.addEventListener("click", openAchievements);
+    elements.mobileAchievementButton.addEventListener("click", openAchievements);
 
     elements.fighterSeal.addEventListener("click", () => {
         if (state.tab === "secrets") {
@@ -1913,6 +2132,21 @@
     });
 
     elements.pageContent.addEventListener("click", event => {
+        const achievementFilter = event.target.closest("[data-achievement-filter]");
+        if (achievementFilter) {
+            const requestedGroup = achievementFilter.dataset.achievementFilter;
+            elements.pageContent.querySelectorAll("[data-achievement-filter]")
+                .forEach(button => button.setAttribute(
+                    "aria-pressed",
+                    String(button === achievementFilter)
+                ));
+            elements.pageContent.querySelectorAll("[data-achievement-group]")
+                .forEach(group => {
+                    group.hidden = requestedGroup !== "all" &&
+                        group.dataset.achievementGroup !== requestedGroup;
+                });
+            return;
+        }
         const card = event.target.closest("[data-move]");
         if (card) {
             selectMove(card.dataset.move);

@@ -33,6 +33,21 @@
 
             <div id="routeBar" class="route-bar" aria-label="Текущая страница"></div>
 
+            <button id="achievementButton" class="achievement-entry" type="button"
+                title="Открыть достижения" aria-label="Открыть достижения"
+                aria-pressed="false">
+                <span class="achievement-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                        <path class="achievement-mark-diamond"
+                            d="M12 2.5 21.5 12 12 21.5 2.5 12Z"></path>
+                        <circle cx="12" cy="12" r="6.5"></circle>
+                        <path class="achievement-mark-check"
+                            d="m8.1 12.2 2.5 2.5 5.4-6"></path>
+                    </svg>
+                </span>
+                <b>Достижения</b>
+            </button>
+
             <div class="update-control">
                 <button id="updateButton" class="update-button" type="button"
                     data-state="idle" title="Открыть обновления"
@@ -85,6 +100,22 @@
                     <button id="mobileRosterClose" class="mobile-roster-close"
                         type="button" aria-label="Закрыть список бойцов">×</button>
                 </div>
+                <button id="mobileAchievementButton"
+                    class="roster-achievement-entry" type="button">
+                    <span class="achievement-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path class="achievement-mark-diamond"
+                                d="M12 2.5 21.5 12 12 21.5 2.5 12Z"></path>
+                            <circle cx="12" cy="12" r="6.5"></circle>
+                            <path class="achievement-mark-check"
+                                d="m8.1 12.2 2.5 2.5 5.4-6"></path>
+                        </svg>
+                    </span>
+                    <span>
+                        <b>Достижения</b>
+                        <small>Открыть центр испытаний</small>
+                    </span>
+                </button>
                 <label class="search-box">
                     <span aria-hidden="true">⌕</span>
                     <input id="searchInput" type="search" placeholder="Персонаж или приём">
@@ -113,6 +144,14 @@
                         <div class="page-corner page-corner-left" aria-hidden="true"></div>
                         <div class="fighter-seal">
                             <img id="heroPortrait" alt="">
+                            <span class="achievement-seal-art" aria-hidden="true">
+                                <svg viewBox="0 0 120 120" focusable="false">
+                                    <path d="M60 10 110 60 60 110 10 60Z"></path>
+                                    <circle cx="60" cy="60" r="34"></circle>
+                                    <path class="achievement-seal-check"
+                                        d="m39 61 14 14 30-34"></path>
+                                </svg>
+                            </span>
                         </div>
                         <p class="edition-label">ULTIMATE KOMBAT DOSSIER</p>
                         <h1 id="fighterTitle"></h1>
@@ -201,6 +240,7 @@
     <script src="data/moves.js"></script>
     <script src="data/sega-moves.js"></script>
     <script src="data/lore.js"></script>
+    <script src="data/achievements.js"></script>
     <script>
         document.write('<script src="data/animations.js?v=' + Date.now() + '"><\/script>');
     </script>
