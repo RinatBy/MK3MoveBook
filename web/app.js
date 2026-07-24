@@ -137,9 +137,20 @@
         details: "Веб-версия не получает данные из локального процесса MAME.",
         playerOne: "",
         playerTwo: "",
+        playerOneId: 0,
+        playerTwoId: 0,
         playerOneHealth: 0,
-        playerTwoHealth: 0
+        playerTwoHealth: 0,
+        playerOneRounds: 0,
+        playerTwoRounds: 0,
+        roundNumber: 0,
+        fightState: "waiting",
+        romLabel: "ROM определяется"
     };
+    let mameDiagnosticEvents = [];
+    let mameDiagnosticProcessId = 0;
+    let lastMameEventSequence = 0;
+    let lastMameRomId = "";
 
     const elements = {
         topbar: document.querySelector(".topbar"),
@@ -1148,25 +1159,45 @@
 
     function mameDiagnosticMarkup() {
         const confirmed = mameDiagnostic.state === "data-confirmed";
+        const playerOneId = Number(mameDiagnostic.playerOneId) || 0;
+        const playerTwoId = Number(mameDiagnostic.playerTwoId) || 0;
         const players = confirmed
             ? `<div class="mame-diagnostic-players">
                 <span><b>P1</b> ${escapeHtml(mameDiagnostic.playerOne || "—")}
-                    <small>${Number(mameDiagnostic.playerOneHealth) || 0} HP</small></span>
+                    <small>${Number(mameDiagnostic.playerOneHealth) || 0} HP ·
+                        ${Number(mameDiagnostic.playerOneRounds) || 0} раунд. ·
+                        ID ${playerOneId.toString(16).toUpperCase().padStart(2, "0")}</small></span>
                 <i>VS</i>
                 <span><b>P2</b> ${escapeHtml(mameDiagnostic.playerTwo || "—")}
-                    <small>${Number(mameDiagnostic.playerTwoHealth) || 0} HP</small></span>
+                    <small>${Number(mameDiagnostic.playerTwoHealth) || 0} HP ·
+                        ${Number(mameDiagnostic.playerTwoRounds) || 0} раунд. ·
+                        ID ${playerTwoId.toString(16).toUpperCase().padStart(2, "0")}</small></span>
             </div>`
             : "";
+        const events = mameDiagnosticEvents.length
+            ? `<section class="mame-event-log">
+                <header><strong>Журнал боя</strong><span>только на этом компьютере</span></header>
+                <ol>${mameDiagnosticEvents.map(event => `
+                    <li data-kind="${escapeHtml(event.kind)}">
+                        <i></i><span><strong>${escapeHtml(event.title)}</strong>
+                        <small>${escapeHtml(event.details)}</small></span>
+                    </li>`).join("")}</ol>
+            </section>`
+            : "";
         return `
-            <section class="mame-diagnostic" data-state="${escapeHtml(mameDiagnostic.state)}">
-                <span class="mame-diagnostic-light" aria-hidden="true"></span>
-                <span class="mame-diagnostic-copy">
-                    <small>Диагностическое подключение</small>
-                    <strong>${escapeHtml(mameDiagnostic.title)}</strong>
-                    <span>${escapeHtml(mameDiagnostic.details)}</span>
-                </span>
-                ${players}
-            </section>`;
+            <div class="mame-diagnostic-stack">
+                <section class="mame-diagnostic" data-state="${escapeHtml(mameDiagnostic.state)}">
+                    <span class="mame-diagnostic-light" aria-hidden="true"></span>
+                    <span class="mame-diagnostic-copy">
+                        <small>Диагностическое подключение ·
+                            ${escapeHtml(mameDiagnostic.romLabel || "ROM определяется")}</small>
+                        <strong>${escapeHtml(mameDiagnostic.title)}</strong>
+                        <span>${escapeHtml(mameDiagnostic.details)}</span>
+                    </span>
+                    ${players}
+                </section>
+                ${events}
+            </div>`;
     }
 
     function renderAchievementsPage() {
@@ -1989,6 +2020,32 @@
         if (!message || message.type !== "movebook-mame-status") {
             return;
         }
+        const processId = Number(message.processId) || 0;
+        const eventSequence = Number(message.eventSequence) || 0;
+        const romId = String(message.romId || "");
+        const processChanged = processId !== mameDiagnosticProcessId;
+        const romChanged = lastMameRomId && romId && romId !== lastMameRomId;
+        const sequenceRestarted = eventSequence < lastMameEventSequence;
+        if (processChanged || romChanged || sequenceRestarted) {
+            mameDiagnosticEvents = [];
+            lastMameEventSequence = 0;
+        }
+        mameDiagnosticProcessId = processId;
+        if (romId) {
+            lastMameRomId = romId;
+        }
+        if (eventSequence > 0 &&
+            eventSequence !== lastMameEventSequence &&
+            message.eventTitle) {
+            mameDiagnosticEvents.unshift({
+                sequence: eventSequence,
+                kind: String(message.eventKind || "event"),
+                title: String(message.eventTitle),
+                details: String(message.eventDetails || "")
+            });
+            mameDiagnosticEvents = mameDiagnosticEvents.slice(0, 5);
+            lastMameEventSequence = eventSequence;
+        }
         mameDiagnostic = {
             ...mameDiagnostic,
             ...message
@@ -1996,7 +2053,7 @@
         if (state.tab !== "achievements") {
             return;
         }
-        const current = elements.pageContent.querySelector(".mame-diagnostic");
+        const current = elements.pageContent.querySelector(".mame-diagnostic-stack");
         if (current) {
             current.outerHTML = mameDiagnosticMarkup();
         }

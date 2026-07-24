@@ -15,6 +15,7 @@ $loader = Join-Path $webViewDirectory "runtimes\win-x64\native\WebView2Loader.dl
 $bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
 $mameBridgeSource = Join-Path $desktopDirectory "MameBridge.cs"
+$mameFightTrackerSource = Join-Path $desktopDirectory "MameFightTracker.cs"
 $webLauncherSource = Join-Path $desktopDirectory "MoveBookWebLauncher.cs"
 $deltaUpdaterSource = Join-Path $desktopDirectory "MoveBookDeltaUpdater.cs"
 $icon = Join-Path $sourceDirectory "web\assets\icon.ico"
@@ -31,6 +32,7 @@ $requiredFiles = @(
     $bootstrapper,
     $source,
     $mameBridgeSource,
+    $mameFightTrackerSource,
     $webLauncherSource,
     $deltaUpdaterSource,
     $icon,
@@ -60,7 +62,8 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     "/reference:$coreAssembly" `
     "/reference:$formsAssembly" `
     $source `
-    $mameBridgeSource
+    $mameBridgeSource `
+    $mameFightTrackerSource
 
 if ($LASTEXITCODE -ne 0) {
     throw "Компилятор завершился с кодом $LASTEXITCODE"

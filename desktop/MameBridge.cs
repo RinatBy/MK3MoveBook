@@ -18,8 +18,22 @@ namespace MK3MoveBook
         public string WindowTitle { get; set; }
         public string PlayerOne { get; set; }
         public string PlayerTwo { get; set; }
+        public int PlayerOneId { get; set; }
+        public int PlayerTwoId { get; set; }
         public int PlayerOneHealth { get; set; }
         public int PlayerTwoHealth { get; set; }
+        public string RomId { get; set; }
+        public string RomLabel { get; set; }
+        public string FightState { get; set; }
+        public int RoundNumber { get; set; }
+        public int PlayerOneRounds { get; set; }
+        public int PlayerTwoRounds { get; set; }
+        public string WinnerSide { get; set; }
+        public string Winner { get; set; }
+        public int EventSequence { get; set; }
+        public string EventKind { get; set; }
+        public string EventTitle { get; set; }
+        public string EventDetails { get; set; }
 
         public string Signature()
         {
@@ -31,8 +45,18 @@ namespace MK3MoveBook
                 Details ?? "",
                 PlayerOne ?? "",
                 PlayerTwo ?? "",
+                PlayerOneId.ToString(),
+                PlayerTwoId.ToString(),
                 PlayerOneHealth.ToString(),
-                PlayerTwoHealth.ToString()
+                PlayerTwoHealth.ToString(),
+                RomId ?? "",
+                FightState ?? "",
+                RoundNumber.ToString(),
+                PlayerOneRounds.ToString(),
+                PlayerTwoRounds.ToString(),
+                WinnerSide ?? "",
+                Winner ?? "",
+                EventSequence.ToString()
             );
         }
     }
@@ -51,7 +75,6 @@ namespace MK3MoveBook
         private const int PlayerOneHealthOffset = 0x0C14C;
         private const int PlayerTwoCharacterOffset = 0x0C2BC;
         private const int PlayerTwoHealthOffset = 0x0C2C2;
-        private const int HighestCharacterId = 0x15;
         private const int FullHealth = 0xA6;
         private const long MaximumScanRegionSize = 64L * 1024L * 1024L;
         private const uint MainRamByteStart = 0x00200000;
@@ -67,6 +90,7 @@ namespace MK3MoveBook
         };
 
         private readonly object syncRoot = new object();
+        private readonly MameFightTracker fightTracker;
         private Timer pollTimer;
         private int pollActive;
         private int processId;
@@ -81,6 +105,7 @@ namespace MK3MoveBook
 
         public MameBridge()
         {
+            fightTracker = new MameFightTracker();
             currentSnapshot = CreateNotRunningSnapshot();
             lastSnapshotSignature = "";
         }
@@ -165,20 +190,13 @@ namespace MK3MoveBook
                 PlayerState players;
                 if (mainRamAddress != 0 && TryReadPlayers(mainRamAddress, out players))
                 {
-                    return PlayersAreInFight(players)
-                        ? CreateConfirmedSnapshot(
-                            process.Id,
-                            processPath,
-                            processVersion,
-                            windowTitle,
-                            players
-                        )
-                        : CreateLinkedSnapshot(
-                            process.Id,
-                            processPath,
-                            processVersion,
-                            windowTitle
-                        );
+                    return CreateObservedSnapshot(
+                        process.Id,
+                        processPath,
+                        processVersion,
+                        windowTitle,
+                        players
+                    );
                 }
 
                 mainRamAddress = 0;
@@ -190,20 +208,14 @@ namespace MK3MoveBook
                         TryReadPlayers(discoveredAddress, out players))
                     {
                         mainRamAddress = discoveredAddress;
-                        return PlayersAreInFight(players)
-                            ? CreateConfirmedSnapshot(
-                                process.Id,
-                                processPath,
-                                processVersion,
-                                windowTitle,
-                                players
-                            )
-                            : CreateLinkedSnapshot(
-                                process.Id,
-                                processPath,
-                                processVersion,
-                                windowTitle
-                            );
+                        fightTracker.Reset();
+                        return CreateObservedSnapshot(
+                            process.Id,
+                            processPath,
+                            processVersion,
+                            windowTitle,
+                            players
+                        );
                     }
                 }
 
@@ -456,9 +468,7 @@ namespace MK3MoveBook
             int p2Character = buffer[PlayerTwoCharacterOffset];
             int p1Health = buffer[PlayerOneHealthOffset];
             int p2Health = buffer[PlayerTwoHealthOffset];
-            if (p1Character > HighestCharacterId ||
-                p2Character > HighestCharacterId ||
-                p1Health > FullHealth ||
+            if (p1Health > FullHealth ||
                 p2Health > FullHealth)
             {
                 return false;
@@ -466,60 +476,158 @@ namespace MK3MoveBook
 
             players = new PlayerState
             {
-                PlayerOne = CharacterNames[p1Character],
-                PlayerTwo = CharacterNames[p2Character],
+                PlayerOneId = p1Character,
+                PlayerTwoId = p2Character,
+                PlayerOne = CharacterName(p1Character),
+                PlayerTwo = CharacterName(p2Character),
                 PlayerOneHealth = p1Health,
                 PlayerTwoHealth = p2Health
             };
             return true;
         }
 
-        private static bool PlayersAreInFight(PlayerState players)
-        {
-            return players.PlayerOneHealth > 0 || players.PlayerTwoHealth > 0;
-        }
-
-        private static MameBridgeSnapshot CreateLinkedSnapshot(
-            int linkedProcessId,
-            string processPath,
-            string processVersion,
-            string windowTitle
-        )
-        {
-            return new MameBridgeSnapshot
-            {
-                State = "game-detected",
-                Title = "Память Ultimate Mortal Kombat 3 подключена",
-                Details = "Начните бой — диагностический блок покажет обоих бойцов и их здоровье.",
-                ProcessId = linkedProcessId,
-                ProcessPath = processPath,
-                ProcessVersion = processVersion,
-                WindowTitle = windowTitle
-            };
-        }
-
-        private static MameBridgeSnapshot CreateConfirmedSnapshot(
-            int confirmedProcessId,
+        private MameBridgeSnapshot CreateObservedSnapshot(
+            int observedProcessId,
             string processPath,
             string processVersion,
             string windowTitle,
             PlayerState players
         )
         {
+            MameFightProgress progress = fightTracker.Observe(
+                players.PlayerOneId,
+                players.PlayerOne,
+                players.PlayerOneHealth,
+                players.PlayerTwoId,
+                players.PlayerTwo,
+                players.PlayerTwoHealth
+            );
+            string romId = DetectRomId(windowTitle);
+            string romLabel = RomLabel(romId);
+            bool waiting = string.Equals(
+                progress.State,
+                "waiting",
+                StringComparison.Ordinal
+            );
+            string title = waiting
+                ? "Память Ultimate Mortal Kombat 3 подключена"
+                : "Бой отслеживается";
+            string details = waiting
+                ? "Начните бой — появятся бойцы, раунды и журнал событий."
+                : "Раунд " + progress.RoundNumber + " · счёт " +
+                    progress.PlayerOneRounds + ":" + progress.PlayerTwoRounds + ".";
+            if (string.Equals(
+                progress.State,
+                "round-ended",
+                StringComparison.Ordinal
+            ))
+            {
+                title = "Раунд завершён";
+                details = "Ожидаем начало следующего раунда · счёт " +
+                    progress.PlayerOneRounds + ":" + progress.PlayerTwoRounds + ".";
+            }
+            else if (string.Equals(
+                progress.State,
+                "match-ended",
+                StringComparison.Ordinal
+            ))
+            {
+                title = "Победитель определён — " + progress.Winner;
+                details = "Матч завершён со счётом " +
+                    progress.PlayerOneRounds + ":" + progress.PlayerTwoRounds + ".";
+            }
+
             return new MameBridgeSnapshot
             {
-                State = "data-confirmed",
-                Title = "Игровые данные подтверждены",
-                Details = "Диагностический мост читает текущий бой. Запись в память MAME отключена.",
-                ProcessId = confirmedProcessId,
+                State = waiting ? "game-detected" : "data-confirmed",
+                Title = title,
+                Details = details,
+                ProcessId = observedProcessId,
                 ProcessPath = processPath,
                 ProcessVersion = processVersion,
                 WindowTitle = windowTitle,
                 PlayerOne = players.PlayerOne,
                 PlayerTwo = players.PlayerTwo,
+                PlayerOneId = players.PlayerOneId,
+                PlayerTwoId = players.PlayerTwoId,
                 PlayerOneHealth = players.PlayerOneHealth,
-                PlayerTwoHealth = players.PlayerTwoHealth
+                PlayerTwoHealth = players.PlayerTwoHealth,
+                RomId = romId,
+                RomLabel = romLabel,
+                FightState = progress.State,
+                RoundNumber = progress.RoundNumber,
+                PlayerOneRounds = progress.PlayerOneRounds,
+                PlayerTwoRounds = progress.PlayerTwoRounds,
+                WinnerSide = progress.WinnerSide,
+                Winner = progress.Winner,
+                EventSequence = progress.EventSequence,
+                EventKind = progress.EventKind,
+                EventTitle = progress.EventTitle,
+                EventDetails = progress.EventDetails
             };
+        }
+
+        private static string CharacterName(int characterId)
+        {
+            if (characterId >= 0 && characterId < CharacterNames.Length)
+            {
+                return CharacterNames[characterId];
+            }
+            return "Боец ID 0x" + characterId.ToString("X2");
+        }
+
+        private static string DetectRomId(string windowTitle)
+        {
+            if (string.IsNullOrEmpty(windowTitle))
+            {
+                return "";
+            }
+            if (windowTitle.IndexOf(
+                "Team Edition v3.0 (6 Players",
+                StringComparison.OrdinalIgnoreCase
+            ) >= 0)
+            {
+                return "umk3tm";
+            }
+            if (windowTitle.IndexOf(
+                "Team Edition v3.0 (60fps)",
+                StringComparison.OrdinalIgnoreCase
+            ) >= 0)
+            {
+                return "umk3tm60";
+            }
+            if (windowTitle.IndexOf(
+                "UMK3 Uk [260709] (60fps)",
+                StringComparison.OrdinalIgnoreCase
+            ) >= 0)
+            {
+                return "umk3uk2";
+            }
+            if (windowTitle.IndexOf(
+                "UMK3 Uk [260709]",
+                StringComparison.OrdinalIgnoreCase
+            ) >= 0)
+            {
+                return "umk3uk";
+            }
+            return "";
+        }
+
+        private static string RomLabel(string romId)
+        {
+            switch (romId)
+            {
+                case "umk3tm":
+                    return "UMK3 Team Edition v3.0 · umk3tm";
+                case "umk3tm60":
+                    return "UMK3 Team Edition v3.0 60fps · umk3tm60";
+                case "umk3uk":
+                    return "UMK3 UK [260709] · umk3uk";
+                case "umk3uk2":
+                    return "UMK3 UK [260709] 60fps · umk3uk2";
+                default:
+                    return "ROM определяется";
+            }
         }
 
         private static MameBridgeSnapshot CreateNotRunningSnapshot()
@@ -614,6 +722,7 @@ namespace MK3MoveBook
             processId = 0;
             mainRamAddress = 0;
             nextMemoryScanUtc = DateTime.MinValue;
+            fightTracker.Reset();
         }
 
         public void Dispose()
@@ -638,6 +747,8 @@ namespace MK3MoveBook
         {
             public string PlayerOne { get; set; }
             public string PlayerTwo { get; set; }
+            public int PlayerOneId { get; set; }
+            public int PlayerTwoId { get; set; }
             public int PlayerOneHealth { get; set; }
             public int PlayerTwoHealth { get; set; }
         }

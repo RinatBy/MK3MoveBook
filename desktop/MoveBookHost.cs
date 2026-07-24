@@ -1065,8 +1065,22 @@ namespace MK3MoveBook
             payload["windowTitle"] = snapshot.WindowTitle;
             payload["playerOne"] = snapshot.PlayerOne;
             payload["playerTwo"] = snapshot.PlayerTwo;
+            payload["playerOneId"] = snapshot.PlayerOneId;
+            payload["playerTwoId"] = snapshot.PlayerTwoId;
             payload["playerOneHealth"] = snapshot.PlayerOneHealth;
             payload["playerTwoHealth"] = snapshot.PlayerTwoHealth;
+            payload["romId"] = snapshot.RomId;
+            payload["romLabel"] = snapshot.RomLabel;
+            payload["fightState"] = snapshot.FightState;
+            payload["roundNumber"] = snapshot.RoundNumber;
+            payload["playerOneRounds"] = snapshot.PlayerOneRounds;
+            payload["playerTwoRounds"] = snapshot.PlayerTwoRounds;
+            payload["winnerSide"] = snapshot.WinnerSide;
+            payload["winner"] = snapshot.Winner;
+            payload["eventSequence"] = snapshot.EventSequence;
+            payload["eventKind"] = snapshot.EventKind;
+            payload["eventTitle"] = snapshot.EventTitle;
+            payload["eventDetails"] = snapshot.EventDetails;
             browser.CoreWebView2.PostWebMessageAsJson(
                 jsonSerializer.Serialize(payload)
             );
