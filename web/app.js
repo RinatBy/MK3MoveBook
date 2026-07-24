@@ -145,7 +145,10 @@
         playerTwoRounds: 0,
         roundNumber: 0,
         fightState: "waiting",
-        romLabel: "ROM определяется"
+        romLabel: "ROM определяется",
+        playerDataAvailable: false,
+        mainRamAddress: "",
+        diagnosticReportName: ""
     };
     let mameDiagnosticEvents = [];
     let mameDiagnosticProcessId = 0;
@@ -1158,7 +1161,7 @@
     }
 
     function mameDiagnosticMarkup() {
-        const confirmed = mameDiagnostic.state === "data-confirmed";
+        const confirmed = Boolean(mameDiagnostic.playerDataAvailable);
         const playerOneId = Number(mameDiagnostic.playerOneId) || 0;
         const playerTwoId = Number(mameDiagnostic.playerTwoId) || 0;
         const players = confirmed
@@ -1184,6 +1187,15 @@
                     </li>`).join("")}</ol>
             </section>`
             : "";
+        const reportName = String(mameDiagnostic.diagnosticReportName || "");
+        const report = reportName
+            ? `<section class="mame-diagnostic-report">
+                <span><strong>Полный CSV-отчёт</strong>
+                    <small>каждый замер памяти раз в секунду</small></span>
+                <code>diagnostics\\${escapeHtml(reportName)}</code>
+                <small>Папка находится рядом с MK3 MoveBook.exe</small>
+            </section>`
+            : "";
         return `
             <div class="mame-diagnostic-stack">
                 <section class="mame-diagnostic" data-state="${escapeHtml(mameDiagnostic.state)}">
@@ -1196,6 +1208,7 @@
                     </span>
                     ${players}
                 </section>
+                ${report}
                 ${events}
             </div>`;
     }

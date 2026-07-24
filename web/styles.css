@@ -2344,6 +2344,48 @@ button {
     font: 8px/1 "Russo One", sans-serif;
 }
 
+.mame-diagnostic-report {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    padding: 8px 12px;
+    color: #745e65;
+    background: rgba(255, 251, 238, .65);
+    border: 1px solid rgba(111, 73, 70, .18);
+    border-radius: 6px;
+}
+
+.mame-diagnostic-report > span {
+    display: grid;
+}
+
+.mame-diagnostic-report strong {
+    color: #5a3540;
+    font: 9px/1.15 "Russo One", sans-serif;
+}
+
+.mame-diagnostic-report small {
+    margin-top: 2px;
+    color: #9b8588;
+    font: 8px/1.2 "Russo One", sans-serif;
+}
+
+.mame-diagnostic-report > code {
+    margin-left: auto;
+    padding: 4px 6px;
+    color: #356f55;
+    background: rgba(53, 126, 87, .08);
+    border: 1px solid rgba(53, 126, 87, .15);
+    border-radius: 4px;
+    font: 8px/1.2 Consolas, monospace;
+}
+
+.mame-diagnostic-report > small {
+    margin-top: 0;
+    white-space: nowrap;
+}
+
 .mame-event-log {
     margin-top: 6px;
     padding: 10px 12px;
@@ -3682,6 +3724,19 @@ button {
 
     .mame-diagnostic-players > span {
         min-width: 0;
+    }
+
+    .mame-diagnostic-report {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .mame-diagnostic-report > code {
+        width: 100%;
+        margin-left: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .mame-event-log > header {

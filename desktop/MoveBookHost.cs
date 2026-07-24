@@ -633,6 +633,7 @@ namespace MK3MoveBook
         private readonly LoadingView loadingView;
         private readonly JavaScriptSerializer jsonSerializer;
         private readonly MameBridge mameBridge;
+        private readonly MameDiagnosticReport mameDiagnosticReport;
         private readonly string localDataDirectory;
         private readonly string bundledWebDirectory;
         private readonly string contentDirectory;
@@ -655,7 +656,11 @@ namespace MK3MoveBook
 
             jsonSerializer = new JavaScriptSerializer();
             mameBridge = new MameBridge();
+            mameDiagnosticReport = new MameDiagnosticReport(
+                AppDomain.CurrentDomain.BaseDirectory
+            );
             mameBridge.SnapshotChanged += OnMameBridgeSnapshotChanged;
+            mameBridge.SnapshotObserved += OnMameBridgeSnapshotObserved;
             localDataDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "MK3MoveBook"
@@ -1046,6 +1051,11 @@ namespace MK3MoveBook
             SendMameBridgeState(snapshot);
         }
 
+        private void OnMameBridgeSnapshotObserved(MameBridgeSnapshot snapshot)
+        {
+            mameDiagnosticReport.Append(snapshot);
+        }
+
         private void SendMameBridgeState(MameBridgeSnapshot snapshot)
         {
             if (browser.CoreWebView2 == null || snapshot == null)
@@ -1081,6 +1091,15 @@ namespace MK3MoveBook
             payload["eventKind"] = snapshot.EventKind;
             payload["eventTitle"] = snapshot.EventTitle;
             payload["eventDetails"] = snapshot.EventDetails;
+            payload["playerDataAvailable"] = snapshot.PlayerDataAvailable;
+            payload["mainRamAddress"] = snapshot.MainRamAddress;
+            payload["diagnosticReportPath"] =
+                mameDiagnosticReport.ReportPath;
+            payload["diagnosticReportName"] = string.IsNullOrEmpty(
+                mameDiagnosticReport.ReportPath
+            )
+                ? ""
+                : Path.GetFileName(mameDiagnosticReport.ReportPath);
             browser.CoreWebView2.PostWebMessageAsJson(
                 jsonSerializer.Serialize(payload)
             );
@@ -1089,6 +1108,7 @@ namespace MK3MoveBook
         private void OnWindowClosed(object sender, FormClosedEventArgs eventArgs)
         {
             mameBridge.SnapshotChanged -= OnMameBridgeSnapshotChanged;
+            mameBridge.SnapshotObserved -= OnMameBridgeSnapshotObserved;
             mameBridge.Dispose();
         }
 

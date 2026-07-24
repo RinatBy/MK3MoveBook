@@ -34,6 +34,8 @@ namespace MK3MoveBook
         public string EventKind { get; set; }
         public string EventTitle { get; set; }
         public string EventDetails { get; set; }
+        public bool PlayerDataAvailable { get; set; }
+        public string MainRamAddress { get; set; }
 
         public string Signature()
         {
@@ -56,7 +58,9 @@ namespace MK3MoveBook
                 PlayerTwoRounds.ToString(),
                 WinnerSide ?? "",
                 Winner ?? "",
-                EventSequence.ToString()
+                EventSequence.ToString(),
+                PlayerDataAvailable.ToString(),
+                MainRamAddress ?? ""
             );
         }
     }
@@ -102,6 +106,7 @@ namespace MK3MoveBook
         private bool disposed;
 
         public event Action<MameBridgeSnapshot> SnapshotChanged;
+        public event Action<MameBridgeSnapshot> SnapshotObserved;
 
         public MameBridge()
         {
@@ -142,16 +147,20 @@ namespace MK3MoveBook
 
             try
             {
-                Publish(ReadSnapshot());
+                MameBridgeSnapshot snapshot = ReadSnapshot();
+                NotifyObserved(snapshot);
+                Publish(snapshot);
             }
             catch (Exception exception)
             {
-                Publish(new MameBridgeSnapshot
+                MameBridgeSnapshot snapshot = new MameBridgeSnapshot
                 {
                     State = "error",
                     Title = "Диагностика MAME приостановлена",
                     Details = exception.Message
-                });
+                };
+                NotifyObserved(snapshot);
+                Publish(snapshot);
             }
             finally
             {
@@ -597,7 +606,9 @@ namespace MK3MoveBook
                 EventSequence = progress.EventSequence,
                 EventKind = progress.EventKind,
                 EventTitle = progress.EventTitle,
-                EventDetails = progress.EventDetails
+                EventDetails = progress.EventDetails,
+                PlayerDataAvailable = true,
+                MainRamAddress = "0x" + mainRamAddress.ToString("X")
             };
         }
 
@@ -695,6 +706,23 @@ namespace MK3MoveBook
             if (handler != null)
             {
                 handler(snapshot);
+            }
+        }
+
+        private void NotifyObserved(MameBridgeSnapshot snapshot)
+        {
+            Action<MameBridgeSnapshot> handler = SnapshotObserved;
+            if (handler == null)
+            {
+                return;
+            }
+            try
+            {
+                handler(snapshot);
+            }
+            catch
+            {
+                // A diagnostic report must never interrupt memory polling.
             }
         }
 

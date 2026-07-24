@@ -15,6 +15,7 @@ $loader = Join-Path $webViewDirectory "runtimes\win-x64\native\WebView2Loader.dl
 $bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
 $mameBridgeSource = Join-Path $desktopDirectory "MameBridge.cs"
+$mameDiagnosticReportSource = Join-Path $desktopDirectory "MameDiagnosticReport.cs"
 $mameFightTrackerSource = Join-Path $desktopDirectory "MameFightTracker.cs"
 $webLauncherSource = Join-Path $desktopDirectory "MoveBookWebLauncher.cs"
 $deltaUpdaterSource = Join-Path $desktopDirectory "MoveBookDeltaUpdater.cs"
@@ -32,6 +33,7 @@ $requiredFiles = @(
     $bootstrapper,
     $source,
     $mameBridgeSource,
+    $mameDiagnosticReportSource,
     $mameFightTrackerSource,
     $webLauncherSource,
     $deltaUpdaterSource,
@@ -63,6 +65,7 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     "/reference:$formsAssembly" `
     $source `
     $mameBridgeSource `
+    $mameDiagnosticReportSource `
     $mameFightTrackerSource
 
 if ($LASTEXITCODE -ne 0) {
