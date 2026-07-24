@@ -420,10 +420,18 @@ namespace MK3MoveBook
                     rangeEnd == MainRamByteEnd &&
                     byteMask == MainProgramByteMask)
                 {
-                    uint pointer = BitConverter.ToUInt32(buffer, offset + 12);
-                    if (pointer != 0 && RamPointerIsReadable(pointer))
+                    uint bankPointerAddress = BitConverter.ToUInt32(
+                        buffer,
+                        offset + 12
+                    );
+                    // MAME stores a pointer to its bank pointer here. The
+                    // second value is the actual backing RAM address.
+                    uint ramPointer;
+                    if (TryReadUInt32(bankPointerAddress, out ramPointer) &&
+                        ramPointer != 0 &&
+                        RamPointerIsReadable(ramPointer))
                     {
-                        matches.Add(pointer);
+                        matches.Add(ramPointer);
                     }
                     if (matches.Count > 1)
                     {
@@ -431,6 +439,32 @@ namespace MK3MoveBook
                     }
                 }
             }
+        }
+
+        private bool TryReadUInt32(uint address, out uint value)
+        {
+            value = 0;
+            if (address == 0)
+            {
+                return false;
+            }
+
+            byte[] buffer = new byte[sizeof(uint)];
+            IntPtr bytesRead;
+            bool read = ReadProcessMemory(
+                processHandle,
+                new IntPtr(address),
+                buffer,
+                buffer.Length,
+                out bytesRead
+            );
+            if (!read || bytesRead.ToInt64() != buffer.Length)
+            {
+                return false;
+            }
+
+            value = BitConverter.ToUInt32(buffer, 0);
+            return true;
         }
 
         private bool RamPointerIsReadable(uint pointer)
