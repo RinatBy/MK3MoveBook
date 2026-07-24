@@ -148,6 +148,11 @@
         romLabel: "ROM определяется",
         playerDataAvailable: false,
         mainRamAddress: "",
+        fightParticipantsConfirmed: false,
+        fightPlayerOne: "",
+        fightPlayerTwo: "",
+        fightPlayerOneId: 0,
+        fightPlayerTwoId: 0,
         diagnosticReportName: ""
     };
     let mameDiagnosticEvents = [];
@@ -1161,17 +1166,17 @@
     }
 
     function mameDiagnosticMarkup() {
-        const confirmed = Boolean(mameDiagnostic.playerDataAvailable);
-        const playerOneId = Number(mameDiagnostic.playerOneId) || 0;
-        const playerTwoId = Number(mameDiagnostic.playerTwoId) || 0;
+        const confirmed = Boolean(mameDiagnostic.fightParticipantsConfirmed);
+        const playerOneId = Number(mameDiagnostic.fightPlayerOneId) || 0;
+        const playerTwoId = Number(mameDiagnostic.fightPlayerTwoId) || 0;
         const players = confirmed
             ? `<div class="mame-diagnostic-players">
-                <span><b>P1</b> ${escapeHtml(mameDiagnostic.playerOne || "—")}
+                <span><b>P1</b> ${escapeHtml(mameDiagnostic.fightPlayerOne || "—")}
                     <small>${Number(mameDiagnostic.playerOneHealth) || 0} HP ·
                         ${Number(mameDiagnostic.playerOneRounds) || 0} раунд. ·
                         ID ${playerOneId.toString(16).toUpperCase().padStart(2, "0")}</small></span>
                 <i>VS</i>
-                <span><b>P2</b> ${escapeHtml(mameDiagnostic.playerTwo || "—")}
+                <span><b>P2</b> ${escapeHtml(mameDiagnostic.fightPlayerTwo || "—")}
                     <small>${Number(mameDiagnostic.playerTwoHealth) || 0} HP ·
                         ${Number(mameDiagnostic.playerTwoRounds) || 0} раунд. ·
                         ID ${playerTwoId.toString(16).toUpperCase().padStart(2, "0")}</small></span>

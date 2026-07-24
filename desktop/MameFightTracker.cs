@@ -5,6 +5,11 @@ namespace MK3MoveBook
     internal sealed class MameFightProgress
     {
         public string State { get; set; }
+        public bool ParticipantsConfirmed { get; set; }
+        public int PlayerOneId { get; set; }
+        public int PlayerTwoId { get; set; }
+        public string PlayerOne { get; set; }
+        public string PlayerTwo { get; set; }
         public int RoundNumber { get; set; }
         public int PlayerOneRounds { get; set; }
         public int PlayerTwoRounds { get; set; }
@@ -217,6 +222,11 @@ namespace MK3MoveBook
             return new MameFightProgress
             {
                 State = state,
+                ParticipantsConfirmed = matchInProgress || matchCompleted,
+                PlayerOneId = playerOneId,
+                PlayerTwoId = playerTwoId,
+                PlayerOne = playerOneName,
+                PlayerTwo = playerTwoName,
                 RoundNumber = roundNumber,
                 PlayerOneRounds = playerOneRounds,
                 PlayerTwoRounds = playerTwoRounds,

@@ -1093,6 +1093,12 @@ namespace MK3MoveBook
             payload["eventDetails"] = snapshot.EventDetails;
             payload["playerDataAvailable"] = snapshot.PlayerDataAvailable;
             payload["mainRamAddress"] = snapshot.MainRamAddress;
+            payload["fightParticipantsConfirmed"] =
+                snapshot.FightParticipantsConfirmed;
+            payload["fightPlayerOne"] = snapshot.FightPlayerOne;
+            payload["fightPlayerTwo"] = snapshot.FightPlayerTwo;
+            payload["fightPlayerOneId"] = snapshot.FightPlayerOneId;
+            payload["fightPlayerTwoId"] = snapshot.FightPlayerTwoId;
             payload["diagnosticReportPath"] =
                 mameDiagnosticReport.ReportPath;
             payload["diagnosticReportName"] = string.IsNullOrEmpty(

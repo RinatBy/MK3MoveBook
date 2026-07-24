@@ -30,6 +30,13 @@ namespace MK3MoveBook
             "p2_id_hex",
             "p2_name",
             "p2_health_raw",
+            "fight_participants_confirmed",
+            "fight_p1_id_dec",
+            "fight_p1_id_hex",
+            "fight_p1_name",
+            "fight_p2_id_dec",
+            "fight_p2_id_hex",
+            "fight_p2_name",
             "fight_state",
             "round_number",
             "p1_rounds",
@@ -127,6 +134,25 @@ namespace MK3MoveBook
                     snapshot.PlayerDataAvailable ? snapshot.PlayerTwo : "",
                     snapshot.PlayerDataAvailable
                         ? Number(snapshot.PlayerTwoHealth)
+                        : "",
+                    snapshot.FightParticipantsConfirmed ? "1" : "0",
+                    snapshot.FightParticipantsConfirmed
+                        ? Number(snapshot.FightPlayerOneId)
+                        : "",
+                    snapshot.FightParticipantsConfirmed
+                        ? Hex(snapshot.FightPlayerOneId)
+                        : "",
+                    snapshot.FightParticipantsConfirmed
+                        ? snapshot.FightPlayerOne
+                        : "",
+                    snapshot.FightParticipantsConfirmed
+                        ? Number(snapshot.FightPlayerTwoId)
+                        : "",
+                    snapshot.FightParticipantsConfirmed
+                        ? Hex(snapshot.FightPlayerTwoId)
+                        : "",
+                    snapshot.FightParticipantsConfirmed
+                        ? snapshot.FightPlayerTwo
                         : "",
                     snapshot.FightState,
                     Number(snapshot.RoundNumber),

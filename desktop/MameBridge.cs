@@ -36,6 +36,11 @@ namespace MK3MoveBook
         public string EventDetails { get; set; }
         public bool PlayerDataAvailable { get; set; }
         public string MainRamAddress { get; set; }
+        public bool FightParticipantsConfirmed { get; set; }
+        public string FightPlayerOne { get; set; }
+        public string FightPlayerTwo { get; set; }
+        public int FightPlayerOneId { get; set; }
+        public int FightPlayerTwoId { get; set; }
 
         public string Signature()
         {
@@ -60,7 +65,12 @@ namespace MK3MoveBook
                 Winner ?? "",
                 EventSequence.ToString(),
                 PlayerDataAvailable.ToString(),
-                MainRamAddress ?? ""
+                MainRamAddress ?? "",
+                FightParticipantsConfirmed.ToString(),
+                FightPlayerOne ?? "",
+                FightPlayerTwo ?? "",
+                FightPlayerOneId.ToString(),
+                FightPlayerTwoId.ToString()
             );
         }
     }
@@ -608,7 +618,12 @@ namespace MK3MoveBook
                 EventTitle = progress.EventTitle,
                 EventDetails = progress.EventDetails,
                 PlayerDataAvailable = true,
-                MainRamAddress = "0x" + mainRamAddress.ToString("X")
+                MainRamAddress = "0x" + mainRamAddress.ToString("X"),
+                FightParticipantsConfirmed = progress.ParticipantsConfirmed,
+                FightPlayerOne = progress.PlayerOne,
+                FightPlayerTwo = progress.PlayerTwo,
+                FightPlayerOneId = progress.PlayerOneId,
+                FightPlayerTwoId = progress.PlayerTwoId
             };
         }
 
