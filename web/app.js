@@ -131,6 +131,15 @@
         query: "",
         selectedMoveKey: ""
     };
+    let mameDiagnostic = {
+        state: "unavailable",
+        title: "Подключение доступно в Portable",
+        details: "Веб-версия не получает данные из локального процесса MAME.",
+        playerOne: "",
+        playerTwo: "",
+        playerOneHealth: 0,
+        playerTwoHealth: 0
+    };
 
     const elements = {
         topbar: document.querySelector(".topbar"),
@@ -1137,6 +1146,29 @@
             </article>`;
     }
 
+    function mameDiagnosticMarkup() {
+        const confirmed = mameDiagnostic.state === "data-confirmed";
+        const players = confirmed
+            ? `<div class="mame-diagnostic-players">
+                <span><b>P1</b> ${escapeHtml(mameDiagnostic.playerOne || "—")}
+                    <small>${Number(mameDiagnostic.playerOneHealth) || 0} HP</small></span>
+                <i>VS</i>
+                <span><b>P2</b> ${escapeHtml(mameDiagnostic.playerTwo || "—")}
+                    <small>${Number(mameDiagnostic.playerTwoHealth) || 0} HP</small></span>
+            </div>`
+            : "";
+        return `
+            <section class="mame-diagnostic" data-state="${escapeHtml(mameDiagnostic.state)}">
+                <span class="mame-diagnostic-light" aria-hidden="true"></span>
+                <span class="mame-diagnostic-copy">
+                    <small>Диагностическое подключение</small>
+                    <strong>${escapeHtml(mameDiagnostic.title)}</strong>
+                    <span>${escapeHtml(mameDiagnostic.details)}</span>
+                </span>
+                ${players}
+            </section>`;
+    }
+
     function renderAchievementsPage() {
         hideMovePreview();
         const fighters = currentVersion().fighters;
@@ -1236,6 +1268,7 @@
                         <span>будет доступно после подключения профиля</span>
                     </div>
                 </header>
+                ${mameDiagnosticMarkup()}
                 <nav class="achievement-filter-bar" aria-label="Фильтр достижений">
                     <button type="button" data-achievement-filter="all"
                         aria-pressed="true">Все</button>
@@ -1952,6 +1985,23 @@
         }
     }
 
+    function applyMameStatus(message) {
+        if (!message || message.type !== "movebook-mame-status") {
+            return;
+        }
+        mameDiagnostic = {
+            ...mameDiagnostic,
+            ...message
+        };
+        if (state.tab !== "achievements") {
+            return;
+        }
+        const current = elements.pageContent.querySelector(".mame-diagnostic");
+        if (current) {
+            current.outerHTML = mameDiagnosticMarkup();
+        }
+    }
+
     function initializeUpdater() {
         renderChangelog();
         showNewChangelogOnce();
@@ -1978,9 +2028,11 @@
         }
         bridge.addEventListener("message", event => {
             applyUpdateStatus(event.data);
+            applyMameStatus(event.data);
         });
         elements.updateButton.dataset.action = "check";
         bridge.postMessage("check-updates");
+        bridge.postMessage("request-mame-status");
     }
 
     elements.searchInput.addEventListener("input", event => {

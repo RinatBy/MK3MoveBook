@@ -2247,6 +2247,99 @@ button {
     text-transform: uppercase;
 }
 
+.mame-diagnostic {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    margin: -4px 0 14px;
+    padding: 10px 13px;
+    color: #5f4a51;
+    background: rgba(255, 251, 238, .78);
+    border: 1px solid rgba(111, 73, 70, .26);
+    border-left: 3px solid #8c6d78;
+    border-radius: 6px;
+    box-shadow: 0 3px 9px rgba(74, 45, 45, .08);
+}
+
+.mame-diagnostic[data-state="data-confirmed"] {
+    border-left-color: #2f8c61;
+}
+
+.mame-diagnostic[data-state="game-detected"],
+.mame-diagnostic[data-state="process-found"] {
+    border-left-color: #c09a2b;
+}
+
+.mame-diagnostic-light {
+    width: 10px;
+    height: 10px;
+    background: #8c6d78;
+    border: 2px solid rgba(255, 255, 255, .82);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(80, 48, 60, .14);
+}
+
+.mame-diagnostic[data-state="data-confirmed"] .mame-diagnostic-light {
+    background: #35aa73;
+    box-shadow: 0 0 0 2px rgba(47, 140, 97, .16),
+        0 0 10px rgba(53, 170, 115, .5);
+}
+
+.mame-diagnostic[data-state="game-detected"] .mame-diagnostic-light,
+.mame-diagnostic[data-state="process-found"] .mame-diagnostic-light {
+    background: #d0a72d;
+}
+
+.mame-diagnostic-copy {
+    display: grid;
+    min-width: 0;
+}
+
+.mame-diagnostic-copy > small {
+    color: #92767d;
+    font: 8px/1 "Russo One", sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.mame-diagnostic-copy > strong {
+    margin-top: 4px;
+    color: #4b3038;
+    font: 11px/1.15 "Russo One", sans-serif;
+}
+
+.mame-diagnostic-copy > span {
+    margin-top: 3px;
+    color: #806b70;
+    font: 600 10px/1.3 "Literata", serif;
+}
+
+.mame-diagnostic-players {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mame-diagnostic-players > span {
+    display: grid;
+    min-width: 90px;
+    color: #4d343b;
+    font: 9px/1.15 "Russo One", sans-serif;
+}
+
+.mame-diagnostic-players b,
+.mame-diagnostic-players i {
+    color: #a3203b;
+    font-style: normal;
+}
+
+.mame-diagnostic-players small {
+    margin-top: 3px;
+    color: #3b8d64;
+    font: 8px/1 "Russo One", sans-serif;
+}
+
 .achievement-filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -3499,6 +3592,20 @@ button {
 
     .achievements-summary span {
         margin: 0;
+    }
+
+    .mame-diagnostic {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 10px;
+    }
+
+    .mame-diagnostic-players {
+        grid-column: 2;
+        justify-content: space-between;
+    }
+
+    .mame-diagnostic-players > span {
+        min-width: 0;
     }
 
     .achievement-card {

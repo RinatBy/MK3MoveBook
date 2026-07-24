@@ -632,6 +632,7 @@ namespace MK3MoveBook
         private readonly WebView2 browser;
         private readonly LoadingView loadingView;
         private readonly JavaScriptSerializer jsonSerializer;
+        private readonly MameBridge mameBridge;
         private readonly string localDataDirectory;
         private readonly string bundledWebDirectory;
         private readonly string contentDirectory;
@@ -641,6 +642,7 @@ namespace MK3MoveBook
         private string currentContentVersion;
         private bool usingDownloadedContent;
         private bool updateBusy;
+        private bool mameBridgeStarted;
         private UpdateManifest availableUpdate;
 
         public MoveBookWindow()
@@ -652,6 +654,8 @@ namespace MK3MoveBook
             MinimumSize = new Size(1080, 700);
 
             jsonSerializer = new JavaScriptSerializer();
+            mameBridge = new MameBridge();
+            mameBridge.SnapshotChanged += OnMameBridgeSnapshotChanged;
             localDataDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "MK3MoveBook"
@@ -696,6 +700,7 @@ namespace MK3MoveBook
             loadingView.BringToFront();
 
             Shown += OnWindowShown;
+            FormClosed += OnWindowClosed;
         }
 
         private string SelectWebDirectory()
@@ -909,6 +914,7 @@ namespace MK3MoveBook
                 browser.Visible = true;
                 browser.BringToFront();
                 browser.Focus();
+                StartMameBridge();
                 return;
             }
 
@@ -997,6 +1003,79 @@ namespace MK3MoveBook
             {
                 await InstallAvailableUpdateAsync();
             }
+            else if (string.Equals(
+                message,
+                "request-mame-status",
+                StringComparison.Ordinal
+            ))
+            {
+                SendMameBridgeState(mameBridge.CurrentSnapshot);
+            }
+        }
+
+        private void StartMameBridge()
+        {
+            if (mameBridgeStarted)
+            {
+                return;
+            }
+            mameBridgeStarted = true;
+            mameBridge.Start();
+        }
+
+        private void OnMameBridgeSnapshotChanged(MameBridgeSnapshot snapshot)
+        {
+            if (IsDisposed || Disposing)
+            {
+                return;
+            }
+            if (InvokeRequired)
+            {
+                try
+                {
+                    BeginInvoke(new Action<MameBridgeSnapshot>(
+                        OnMameBridgeSnapshotChanged
+                    ), snapshot);
+                }
+                catch
+                {
+                    // The window can close while a background poll is finishing.
+                }
+                return;
+            }
+            SendMameBridgeState(snapshot);
+        }
+
+        private void SendMameBridgeState(MameBridgeSnapshot snapshot)
+        {
+            if (browser.CoreWebView2 == null || snapshot == null)
+            {
+                return;
+            }
+
+            Dictionary<string, object> payload =
+                new Dictionary<string, object>();
+            payload["type"] = "movebook-mame-status";
+            payload["state"] = snapshot.State;
+            payload["title"] = snapshot.Title;
+            payload["details"] = snapshot.Details;
+            payload["processId"] = snapshot.ProcessId;
+            payload["processPath"] = snapshot.ProcessPath;
+            payload["processVersion"] = snapshot.ProcessVersion;
+            payload["windowTitle"] = snapshot.WindowTitle;
+            payload["playerOne"] = snapshot.PlayerOne;
+            payload["playerTwo"] = snapshot.PlayerTwo;
+            payload["playerOneHealth"] = snapshot.PlayerOneHealth;
+            payload["playerTwoHealth"] = snapshot.PlayerTwoHealth;
+            browser.CoreWebView2.PostWebMessageAsJson(
+                jsonSerializer.Serialize(payload)
+            );
+        }
+
+        private void OnWindowClosed(object sender, FormClosedEventArgs eventArgs)
+        {
+            mameBridge.SnapshotChanged -= OnMameBridgeSnapshotChanged;
+            mameBridge.Dispose();
         }
 
         private async Task CheckForUpdatesAsync()
