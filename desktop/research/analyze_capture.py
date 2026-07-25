@@ -25,9 +25,11 @@ KNOWN_OFFSETS = {
     0x0B737: "p2_input_previous",
     0x0B738: "p1_p2_aux_input_previous",
     0x0C146: "p1_character",
+    0x0C13A: "p1_object_pointer",
     0x0C14C: "p1_health",
     0x0C14E: "p1_run",
     0x0C2BC: "p2_character",
+    0x0C2B0: "p2_object_pointer",
     0x0C2C2: "p2_health",
     0x0C2C4: "p2_run",
     0x0C44C: "kombat_zone",
@@ -45,6 +47,13 @@ KNOWN_OFFSETS = {
 P1_MAIN_INPUT_OFFSET = 0x0B732
 P2_MAIN_INPUT_OFFSET = 0x0B733
 AUX_INPUT_OFFSET = 0x0B734
+P1_OBJECT_POINTER_OFFSET = 0x0C13A
+P2_OBJECT_POINTER_OFFSET = 0x0C2B0
+TMS_MAIN_RAM_ADDRESS = 0x01000000
+OBJECT_X_OFFSET = 0x12
+OBJECT_Y_OFFSET = 0x16
+OBJECT_FLAGS_OFFSET = 0x2C
+OBJECT_CHARACTER_OFFSET = 0x3E
 
 MAIN_INPUT_BITS = (
     (0x01, "UP"),
@@ -121,11 +130,51 @@ def input_delta(previous: tuple[str, ...], current: tuple[str, ...]) -> tuple[st
     return pressed, released
 
 
+def read_u16(data: bytearray, offset: int) -> int:
+    return data[offset] | data[offset + 1] << 8
+
+
+def read_u32(data: bytearray, offset: int) -> int:
+    return read_u16(data, offset) | read_u16(data, offset + 2) << 16
+
+
+def object_state(data: bytearray, pointer_offset: int) -> tuple[int, int, int, int, int]:
+    pointer = read_u32(data, pointer_offset)
+    if pointer < TMS_MAIN_RAM_ADDRESS:
+        return pointer, -1, -1, -1, -1
+    object_offset = (pointer - TMS_MAIN_RAM_ADDRESS) // 8
+    if object_offset < 0 or object_offset + OBJECT_CHARACTER_OFFSET >= len(data):
+        return pointer, -1, -1, -1, -1
+    return (
+        pointer,
+        read_u16(data, object_offset + OBJECT_X_OFFSET),
+        read_u16(data, object_offset + OBJECT_Y_OFFSET),
+        read_u16(data, object_offset + OBJECT_FLAGS_OFFSET),
+        data[object_offset + OBJECT_CHARACTER_OFFSET],
+    )
+
+
+def facing_directions(p1_x: int, p2_x: int) -> tuple[str, str]:
+    if p1_x < 0 or p2_x < 0 or p1_x == p2_x:
+        return "unknown", "unknown"
+    if p1_x < p2_x:
+        return "right", "left"
+    return "left", "right"
+
+
+def normalize_inputs(inputs: tuple[str, ...], facing: str) -> tuple[str, ...]:
+    if facing != "left":
+        return inputs
+    swapped = {"LEFT": "RIGHT", "RIGHT": "LEFT"}
+    return tuple(swapped.get(name, name) for name in inputs)
+
+
 def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     activity_path = output_dir / "frame-activity.csv"
     offsets_path = output_dir / "offset-activity.csv"
     inputs_path = output_dir / "input-events.csv"
+    players_path = output_dir / "player-state.csv"
     summary_path = output_dir / "summary.txt"
 
     with gzip.open(capture_path, "rb") as stream:
@@ -146,6 +195,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         with (
             activity_path.open("w", newline="", encoding="utf-8-sig") as activity_file,
             inputs_path.open("w", newline="", encoding="utf-8-sig") as inputs_file,
+            players_path.open("w", newline="", encoding="utf-8-sig") as players_file,
         ):
             writer = csv.writer(activity_file, delimiter=";")
             writer.writerow(
@@ -169,9 +219,32 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     "p1_held",
                     "p1_pressed",
                     "p1_released",
+                    "p1_facing",
+                    "p1_pressed_normalized",
                     "p2_held",
                     "p2_pressed",
                     "p2_released",
+                    "p2_facing",
+                    "p2_pressed_normalized",
+                ]
+            )
+            player_writer = csv.writer(players_file, delimiter=";")
+            player_writer.writerow(
+                [
+                    "timestamp_utc",
+                    "frame",
+                    "p1_object_pointer",
+                    "p1_x",
+                    "p1_y",
+                    "p1_object_flags",
+                    "p1_object_character",
+                    "p1_facing",
+                    "p2_object_pointer",
+                    "p2_x",
+                    "p2_y",
+                    "p2_object_flags",
+                    "p2_object_character",
+                    "p2_facing",
                 ]
             )
             previous_p1_inputs: tuple[str, ...] | None = None
@@ -229,6 +302,28 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     ]
                 )
 
+                p1_object = object_state(current, P1_OBJECT_POINTER_OFFSET)
+                p2_object = object_state(current, P2_OBJECT_POINTER_OFFSET)
+                p1_facing, p2_facing = facing_directions(p1_object[1], p2_object[1])
+                player_writer.writerow(
+                    [
+                        dotnet_ticks_to_iso(ticks),
+                        frame,
+                        f"0x{p1_object[0]:08X}",
+                        "" if p1_object[1] < 0 else p1_object[1],
+                        "" if p1_object[2] < 0 else p1_object[2],
+                        "" if p1_object[3] < 0 else f"0x{p1_object[3]:04X}",
+                        "" if p1_object[4] < 0 else f"0x{p1_object[4]:02X}",
+                        p1_facing,
+                        f"0x{p2_object[0]:08X}",
+                        "" if p2_object[1] < 0 else p2_object[1],
+                        "" if p2_object[2] < 0 else p2_object[2],
+                        "" if p2_object[3] < 0 else f"0x{p2_object[3]:04X}",
+                        "" if p2_object[4] < 0 else f"0x{p2_object[4]:02X}",
+                        p2_facing,
+                    ]
+                )
+
                 p1_inputs = held_inputs(
                     current[P1_MAIN_INPUT_OFFSET],
                     current[AUX_INPUT_OFFSET],
@@ -255,9 +350,21 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                             ",".join(p1_inputs),
                             p1_pressed,
                             p1_released,
+                            p1_facing,
+                            ",".join(
+                                normalize_inputs(tuple(p1_pressed.split(",")), p1_facing)
+                                if p1_pressed
+                                else ()
+                            ),
                             ",".join(p2_inputs),
                             p2_pressed,
                             p2_released,
+                            p2_facing,
+                            ",".join(
+                                normalize_inputs(tuple(p2_pressed.split(",")), p2_facing)
+                                if p2_pressed
+                                else ()
+                            ),
                         ]
                     )
                     previous_p1_inputs = p1_inputs
@@ -323,6 +430,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         f"frame_activity={activity_path}",
         f"offset_activity={offsets_path}",
         f"input_events={inputs_path}",
+        f"player_state={players_path}",
     ]
     summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8-sig")
     print("\n".join(summary_lines))

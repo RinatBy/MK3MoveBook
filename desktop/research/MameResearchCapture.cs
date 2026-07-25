@@ -24,9 +24,11 @@ namespace MK3MoveBook.Research
         private const int CaptureIntervalMilliseconds = 18;
         private const int FullHealth = 0xA6;
         private const int PlayerOneCharacterOffset = 0x0C146;
+        private const int PlayerOneObjectPointerOffset = 0x0C13A;
         private const int PlayerOneHealthOffset = 0x0C14C;
         private const int PlayerOneRunOffset = 0x0C14E;
         private const int PlayerTwoCharacterOffset = 0x0C2BC;
+        private const int PlayerTwoObjectPointerOffset = 0x0C2B0;
         private const int PlayerTwoHealthOffset = 0x0C2C2;
         private const int PlayerTwoRunOffset = 0x0C2C4;
         private const int PlayerOneInputOffset = 0x0B732;
@@ -42,6 +44,11 @@ namespace MK3MoveBook.Research
         private const int NoBlockingOffset = 0x0C560;
         private const int FastUppercutOffset = 0x0C57C;
         private const int UnlimitedRunOffset = 0x0C57E;
+        private const uint TmsMainRamAddress = 0x01000000;
+        private const int ObjectXOffset = 0x12;
+        private const int ObjectYOffset = 0x16;
+        private const int ObjectFlagsOffset = 0x2C;
+        private const int ObjectCharacterOffset = 0x3E;
 
         private const long MaximumScanRegionSize = 64L * 1024L * 1024L;
         private const uint MainRamByteStart = 0x00200000;
@@ -337,7 +344,10 @@ namespace MK3MoveBook.Research
             );
             writer.WriteLine(
                 "timestamp_utc;frame;process_id;ram_address;" +
-                "p1_id;p1_name;p1_health;p1_run;p2_id;p2_name;p2_health;p2_run;" +
+                "p1_id;p1_name;p1_health;p1_run;" +
+                "p1_object_pointer;p1_x;p1_y;p1_object_flags;p1_object_character;p1_facing;" +
+                "p2_id;p2_name;p2_health;p2_run;" +
+                "p2_object_pointer;p2_x;p2_y;p2_object_flags;p2_object_character;p2_facing;" +
                 "p1_input;p2_input;aux_input;finish_phase;" +
                 "finisher_success_a;finisher_success_b;finisher_success_c;" +
                 "fight_state;round;p1_rounds;p2_rounds;winner_side;winner;event_kind;zone;" +
@@ -361,6 +371,16 @@ namespace MK3MoveBook.Research
             int p2Id = ram[PlayerTwoCharacterOffset];
             int p1Health = ram[PlayerOneHealthOffset];
             int p2Health = ram[PlayerTwoHealthOffset];
+            PlayerObjectState p1Object = ReadPlayerObject(
+                ram,
+                PlayerOneObjectPointerOffset
+            );
+            PlayerObjectState p2Object = ReadPlayerObject(
+                ram,
+                PlayerTwoObjectPointerOffset
+            );
+            string p1Facing = Facing(p1Object.X, p2Object.X);
+            string p2Facing = Facing(p2Object.X, p1Object.X);
             MameFightProgress progress = null;
             if (p1Health <= FullHealth && p2Health <= FullHealth)
             {
@@ -378,9 +398,21 @@ namespace MK3MoveBook.Research
                 p1Id,
                 p1Health,
                 ram[PlayerOneRunOffset],
+                p1Object.Pointer,
+                p1Object.X,
+                p1Object.Y,
+                p1Object.Flags,
+                p1Object.CharacterId,
+                p1Facing,
                 p2Id,
                 p2Health,
                 ram[PlayerTwoRunOffset],
+                p2Object.Pointer,
+                p2Object.X,
+                p2Object.Y,
+                p2Object.Flags,
+                p2Object.CharacterId,
+                p2Facing,
                 ram[PlayerOneInputOffset],
                 ram[PlayerTwoInputOffset],
                 ram[AuxiliaryInputOffset],
@@ -420,10 +452,22 @@ namespace MK3MoveBook.Research
                     CharacterName(p1Id),
                     p1Health.ToString(CultureInfo.InvariantCulture),
                     ram[PlayerOneRunOffset].ToString(CultureInfo.InvariantCulture),
+                    ObjectPointer(p1Object),
+                    ObjectNumber(p1Object, p1Object.X),
+                    ObjectNumber(p1Object, p1Object.Y),
+                    ObjectFlags(p1Object),
+                    ObjectCharacter(p1Object),
+                    p1Facing,
                     Hex((byte)p2Id),
                     CharacterName(p2Id),
                     p2Health.ToString(CultureInfo.InvariantCulture),
                     ram[PlayerTwoRunOffset].ToString(CultureInfo.InvariantCulture),
+                    ObjectPointer(p2Object),
+                    ObjectNumber(p2Object, p2Object.X),
+                    ObjectNumber(p2Object, p2Object.Y),
+                    ObjectFlags(p2Object),
+                    ObjectCharacter(p2Object),
+                    p2Facing,
                     Hex(ram[PlayerOneInputOffset]),
                     Hex(ram[PlayerTwoInputOffset]),
                     Hex(ram[AuxiliaryInputOffset]),
@@ -452,6 +496,91 @@ namespace MK3MoveBook.Research
         private static string Hex(byte value)
         {
             return "0x" + value.ToString("X2");
+        }
+
+        private static PlayerObjectState ReadPlayerObject(
+            byte[] ram,
+            int pointerOffset
+        )
+        {
+            uint pointer = BitConverter.ToUInt32(ram, pointerOffset);
+            if (pointer < TmsMainRamAddress)
+            {
+                return new PlayerObjectState(pointer, false, 0, 0, 0, 0);
+            }
+            long objectOffset = (pointer - TmsMainRamAddress) / 8;
+            if (objectOffset < 0 ||
+                objectOffset + ObjectCharacterOffset >= ram.LongLength)
+            {
+                return new PlayerObjectState(pointer, false, 0, 0, 0, 0);
+            }
+            int offset = checked((int)objectOffset);
+            return new PlayerObjectState(
+                pointer,
+                true,
+                BitConverter.ToUInt16(ram, offset + ObjectXOffset),
+                BitConverter.ToUInt16(ram, offset + ObjectYOffset),
+                BitConverter.ToUInt16(ram, offset + ObjectFlagsOffset),
+                ram[offset + ObjectCharacterOffset]
+            );
+        }
+
+        private static string Facing(int ownX, int opponentX)
+        {
+            if (ownX < 0 || opponentX < 0 || ownX == opponentX)
+            {
+                return "unknown";
+            }
+            return ownX < opponentX ? "right" : "left";
+        }
+
+        private static string ObjectPointer(PlayerObjectState state)
+        {
+            return "0x" + state.Pointer.ToString("X8");
+        }
+
+        private static string ObjectNumber(PlayerObjectState state, int value)
+        {
+            return state.Valid
+                ? value.ToString(CultureInfo.InvariantCulture)
+                : "";
+        }
+
+        private static string ObjectFlags(PlayerObjectState state)
+        {
+            return state.Valid ? "0x" + state.Flags.ToString("X4") : "";
+        }
+
+        private static string ObjectCharacter(PlayerObjectState state)
+        {
+            return state.Valid ? Hex((byte)state.CharacterId) : "";
+        }
+
+        private struct PlayerObjectState
+        {
+            public readonly uint Pointer;
+            public readonly bool Valid;
+            public readonly int X;
+            public readonly int Y;
+            public readonly int Flags;
+            public readonly int CharacterId;
+
+            public PlayerObjectState(
+                uint pointer,
+                bool valid,
+                int x,
+                int y,
+                int flags,
+                int characterId
+            )
+            {
+                Pointer = pointer;
+                Valid = valid;
+                X = valid ? x : -1;
+                Y = valid ? y : -1;
+                Flags = valid ? flags : -1;
+                CharacterId = valid ? characterId : -1;
+            }
         }
 
         private static string CharacterName(int characterId)
