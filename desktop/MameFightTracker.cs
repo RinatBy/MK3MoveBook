@@ -23,6 +23,8 @@ namespace MK3MoveBook
 
     internal sealed class MameFightTracker
     {
+        private const int RequiredRoundEndSamples = 3;
+
         private bool matchInProgress;
         private bool matchCompleted;
         private bool roundActive;
@@ -39,6 +41,8 @@ namespace MK3MoveBook
         private string eventKind;
         private string eventTitle;
         private string eventDetails;
+        private string roundEndCandidate;
+        private int roundEndCandidateSamples;
 
         public MameFightTracker()
         {
@@ -63,6 +67,8 @@ namespace MK3MoveBook
             eventKind = "";
             eventTitle = "";
             eventDetails = "";
+            roundEndCandidate = "";
+            roundEndCandidateSamples = 0;
         }
 
         public MameFightProgress Observe(
@@ -80,6 +86,7 @@ namespace MK3MoveBook
 
             if (bothAlive && !roundActive)
             {
+                ClearRoundEndCandidate();
                 if (!matchInProgress || matchCompleted)
                 {
                     StartMatch(
@@ -102,7 +109,29 @@ namespace MK3MoveBook
             }
             else if (roundActive && (!playerOneAlive || !playerTwoAlive))
             {
-                FinishRound(playerOneAlive, playerTwoAlive);
+                string candidate = RoundEndCandidate(playerOneAlive, playerTwoAlive);
+                if (string.Equals(
+                    candidate,
+                    roundEndCandidate,
+                    StringComparison.Ordinal
+                ))
+                {
+                    roundEndCandidateSamples++;
+                }
+                else
+                {
+                    roundEndCandidate = candidate;
+                    roundEndCandidateSamples = 1;
+                }
+                if (roundEndCandidateSamples >= RequiredRoundEndSamples)
+                {
+                    ClearRoundEndCandidate();
+                    FinishRound(playerOneAlive, playerTwoAlive);
+                }
+            }
+            else
+            {
+                ClearRoundEndCandidate();
             }
 
             return Snapshot();
@@ -201,6 +230,28 @@ namespace MK3MoveBook
             eventKind = kind;
             eventTitle = title;
             eventDetails = details;
+        }
+
+        private static string RoundEndCandidate(
+            bool playerOneAlive,
+            bool playerTwoAlive
+        )
+        {
+            if (playerOneAlive && !playerTwoAlive)
+            {
+                return "p1";
+            }
+            if (playerTwoAlive && !playerOneAlive)
+            {
+                return "p2";
+            }
+            return "draw";
+        }
+
+        private void ClearRoundEndCandidate()
+        {
+            roundEndCandidate = "";
+            roundEndCandidateSamples = 0;
         }
 
         private MameFightProgress Snapshot()

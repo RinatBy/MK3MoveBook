@@ -36,10 +36,10 @@ namespace MK3MoveBook.Research
         private const int AuxiliaryInputOffset = 0x0B734;
         private const int KombatZoneOffset = 0x0C44C;
         private const int PowerbarsEnabledOffset = 0x0C424;
-        private const int FinisherSuccessCandidateAOffset = 0x0C426;
-        private const int FinisherSuccessCandidateBOffset = 0x0C442;
+        private const int FinisherTypeCandidateAOffset = 0x0C426;
+        private const int FinisherSuccessOffset = 0x0C442;
         private const int FinishPhaseCandidateOffset = 0x0C454;
-        private const int FinisherSuccessCandidateCOffset = 0x0C4E6;
+        private const int FinisherTypeCandidateBOffset = 0x0C4E6;
         private const int NoThrowingOffset = 0x0C55C;
         private const int NoBlockingOffset = 0x0C560;
         private const int FastUppercutOffset = 0x0C57C;
@@ -349,7 +349,7 @@ namespace MK3MoveBook.Research
                 "p2_id;p2_name;p2_health;p2_run;" +
                 "p2_object_pointer;p2_x;p2_y;p2_object_flags;p2_object_character;p2_facing;" +
                 "p1_input;p2_input;aux_input;finish_phase;" +
-                "finisher_success_a;finisher_success_b;finisher_success_c;" +
+                "finisher_type_a;finisher_success;finisher_type_b;finisher_kind;" +
                 "fight_state;round;p1_rounds;p2_rounds;winner_side;winner;event_kind;zone;" +
                 "powerbars_enabled;no_throwing;no_blocking;fast_uppercut;unlimited_run"
             );
@@ -417,9 +417,10 @@ namespace MK3MoveBook.Research
                 ram[PlayerTwoInputOffset],
                 ram[AuxiliaryInputOffset],
                 ram[FinishPhaseCandidateOffset],
-                ram[FinisherSuccessCandidateAOffset],
-                ram[FinisherSuccessCandidateBOffset],
-                ram[FinisherSuccessCandidateCOffset],
+                ram[FinisherTypeCandidateAOffset],
+                ram[FinisherSuccessOffset],
+                ram[FinisherTypeCandidateBOffset],
+                FinisherKind(ram[FinisherTypeCandidateBOffset]),
                 progress == null ? "" : progress.State,
                 progress == null ? 0 : progress.RoundNumber,
                 progress == null ? 0 : progress.PlayerOneRounds,
@@ -472,9 +473,10 @@ namespace MK3MoveBook.Research
                     Hex(ram[PlayerTwoInputOffset]),
                     Hex(ram[AuxiliaryInputOffset]),
                     Hex(ram[FinishPhaseCandidateOffset]),
-                    Hex(ram[FinisherSuccessCandidateAOffset]),
-                    Hex(ram[FinisherSuccessCandidateBOffset]),
-                    Hex(ram[FinisherSuccessCandidateCOffset]),
+                    Hex(ram[FinisherTypeCandidateAOffset]),
+                    Hex(ram[FinisherSuccessOffset]),
+                    Hex(ram[FinisherTypeCandidateBOffset]),
+                    FinisherKind(ram[FinisherTypeCandidateBOffset]),
                     progress == null ? "" : progress.State,
                     progress == null ? "" : progress.RoundNumber.ToString(CultureInfo.InvariantCulture),
                     progress == null ? "" : progress.PlayerOneRounds.ToString(CultureInfo.InvariantCulture),
@@ -496,6 +498,19 @@ namespace MK3MoveBook.Research
         private static string Hex(byte value)
         {
             return "0x" + value.ToString("X2");
+        }
+
+        private static string FinisherKind(byte value)
+        {
+            switch (value)
+            {
+                case 0x01:
+                    return "fatality";
+                case 0x05:
+                    return "babality";
+                default:
+                    return "";
+            }
         }
 
         private static PlayerObjectState ReadPlayerObject(

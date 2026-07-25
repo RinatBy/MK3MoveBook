@@ -34,14 +34,14 @@ KNOWN_OFFSETS = {
     0x0C2C4: "p2_run",
     0x0C44C: "kombat_zone",
     0x0C424: "powerbars_enabled",
-    0x0C426: "finisher_success_candidate_a",
-    0x0C442: "finisher_success_candidate_b",
+    0x0C426: "finisher_type_candidate_a",
+    0x0C442: "finisher_success",
     0x0C454: "finish_phase_candidate",
     0x0C55C: "no_throwing",
     0x0C560: "no_blocking",
     0x0C57C: "fast_uppercut",
     0x0C57E: "unlimited_run",
-    0x0C4E6: "finisher_success_candidate_c",
+    0x0C4E6: "finisher_type_candidate_b",
 }
 
 P1_MAIN_INPUT_OFFSET = 0x0B732
@@ -54,6 +54,15 @@ OBJECT_X_OFFSET = 0x12
 OBJECT_Y_OFFSET = 0x16
 OBJECT_FLAGS_OFFSET = 0x2C
 OBJECT_CHARACTER_OFFSET = 0x3E
+P1_CHARACTER_OFFSET = 0x0C146
+P1_HEALTH_OFFSET = 0x0C14C
+P2_CHARACTER_OFFSET = 0x0C2BC
+P2_HEALTH_OFFSET = 0x0C2C2
+FINISHER_TYPE_A_OFFSET = 0x0C426
+FINISHER_SUCCESS_OFFSET = 0x0C442
+FINISH_PHASE_OFFSET = 0x0C454
+FINISHER_TYPE_B_OFFSET = 0x0C4E6
+RECENT_INPUT_FRAMES = 300
 
 MAIN_INPUT_BITS = (
     (0x01, "UP"),
@@ -169,12 +178,26 @@ def normalize_inputs(inputs: tuple[str, ...], facing: str) -> tuple[str, ...]:
     return tuple(swapped.get(name, name) for name in inputs)
 
 
+def finisher_kind(value: int) -> str:
+    return {
+        0x01: "fatality",
+        0x05: "babality",
+    }.get(value, f"unknown-0x{value:02X}")
+
+
+def recent_inputs(events: list[tuple[int, str]], frame: int) -> str:
+    cutoff = frame - RECENT_INPUT_FRAMES
+    events[:] = [(event_frame, value) for event_frame, value in events if event_frame >= cutoff]
+    return ",".join(value for _, value in events)
+
+
 def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     activity_path = output_dir / "frame-activity.csv"
     offsets_path = output_dir / "offset-activity.csv"
     inputs_path = output_dir / "input-events.csv"
     players_path = output_dir / "player-state.csv"
+    finishers_path = output_dir / "finisher-events.csv"
     summary_path = output_dir / "summary.txt"
 
     with gzip.open(capture_path, "rb") as stream:
@@ -196,6 +219,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             activity_path.open("w", newline="", encoding="utf-8-sig") as activity_file,
             inputs_path.open("w", newline="", encoding="utf-8-sig") as inputs_file,
             players_path.open("w", newline="", encoding="utf-8-sig") as players_file,
+            finishers_path.open("w", newline="", encoding="utf-8-sig") as finishers_file,
         ):
             writer = csv.writer(activity_file, delimiter=";")
             writer.writerow(
@@ -247,8 +271,31 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     "p2_facing",
                 ]
             )
+            finisher_writer = csv.writer(finishers_file, delimiter=";")
+            finisher_writer.writerow(
+                [
+                    "timestamp_utc",
+                    "frame",
+                    "finisher_type_a",
+                    "finisher_success",
+                    "finisher_type_b",
+                    "finisher_kind",
+                    "finish_phase",
+                    "winner_side",
+                    "p1_character",
+                    "p2_character",
+                    "p1_facing",
+                    "p2_facing",
+                    "p1_recent_inputs_normalized",
+                    "p2_recent_inputs_normalized",
+                ]
+            )
             previous_p1_inputs: tuple[str, ...] | None = None
             previous_p2_inputs: tuple[str, ...] | None = None
+            previous_finish_phase: int | None = None
+            previous_finisher_success: int | None = None
+            recent_p1_inputs: list[tuple[int, str]] = []
+            recent_p2_inputs: list[tuple[int, str]] = []
 
             while True:
                 frame_header = stream.read(FRAME.size)
@@ -305,6 +352,10 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 p1_object = object_state(current, P1_OBJECT_POINTER_OFFSET)
                 p2_object = object_state(current, P2_OBJECT_POINTER_OFFSET)
                 p1_facing, p2_facing = facing_directions(p1_object[1], p2_object[1])
+                finish_phase = current[FINISH_PHASE_OFFSET]
+                if finish_phase == 0x03 and previous_finish_phase != 0x03:
+                    recent_p1_inputs.clear()
+                    recent_p2_inputs.clear()
                 player_writer.writerow(
                     [
                         dotnet_ticks_to_iso(ticks),
@@ -340,6 +391,18 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 elif p1_inputs != previous_p1_inputs or p2_inputs != previous_p2_inputs:
                     p1_pressed, p1_released = input_delta(previous_p1_inputs, p1_inputs)
                     p2_pressed, p2_released = input_delta(previous_p2_inputs, p2_inputs)
+                    normalized_p1_pressed = normalize_inputs(
+                        tuple(p1_pressed.split(",")),
+                        p1_facing,
+                    ) if p1_pressed else ()
+                    normalized_p2_pressed = normalize_inputs(
+                        tuple(p2_pressed.split(",")),
+                        p2_facing,
+                    ) if p2_pressed else ()
+                    if normalized_p1_pressed:
+                        recent_p1_inputs.append((frame, "+".join(normalized_p1_pressed)))
+                    if normalized_p2_pressed:
+                        recent_p2_inputs.append((frame, "+".join(normalized_p2_pressed)))
                     input_writer.writerow(
                         [
                             dotnet_ticks_to_iso(ticks),
@@ -351,24 +414,50 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                             p1_pressed,
                             p1_released,
                             p1_facing,
-                            ",".join(
-                                normalize_inputs(tuple(p1_pressed.split(",")), p1_facing)
-                                if p1_pressed
-                                else ()
-                            ),
+                            ",".join(normalized_p1_pressed),
                             ",".join(p2_inputs),
                             p2_pressed,
                             p2_released,
                             p2_facing,
-                            ",".join(
-                                normalize_inputs(tuple(p2_pressed.split(",")), p2_facing)
-                                if p2_pressed
-                                else ()
-                            ),
+                            ",".join(normalized_p2_pressed),
                         ]
                     )
                     previous_p1_inputs = p1_inputs
                     previous_p2_inputs = p2_inputs
+
+                finisher_success = current[FINISHER_SUCCESS_OFFSET]
+                if (
+                    previous_finisher_success is not None
+                    and previous_finisher_success == 0
+                    and finisher_success != 0
+                ):
+                    type_a = current[FINISHER_TYPE_A_OFFSET]
+                    type_b = current[FINISHER_TYPE_B_OFFSET]
+                    winner_side = ""
+                    if current[P1_HEALTH_OFFSET] > 0 and current[P2_HEALTH_OFFSET] == 0:
+                        winner_side = "p1"
+                    elif current[P2_HEALTH_OFFSET] > 0 and current[P1_HEALTH_OFFSET] == 0:
+                        winner_side = "p2"
+                    finisher_writer.writerow(
+                        [
+                            dotnet_ticks_to_iso(ticks),
+                            frame,
+                            f"0x{type_a:02X}",
+                            f"0x{finisher_success:02X}",
+                            f"0x{type_b:02X}",
+                            finisher_kind(type_b),
+                            f"0x{finish_phase:02X}",
+                            winner_side,
+                            f"0x{current[P1_CHARACTER_OFFSET]:02X}",
+                            f"0x{current[P2_CHARACTER_OFFSET]:02X}",
+                            p1_facing,
+                            p2_facing,
+                            recent_inputs(recent_p1_inputs, frame),
+                            recent_inputs(recent_p2_inputs, frame),
+                        ]
+                    )
+                previous_finish_phase = finish_phase
+                previous_finisher_success = finisher_success
                 frame_count += 1
                 first_ticks = ticks if first_ticks is None else first_ticks
                 last_ticks = ticks
@@ -431,6 +520,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         f"offset_activity={offsets_path}",
         f"input_events={inputs_path}",
         f"player_state={players_path}",
+        f"finisher_events={finishers_path}",
     ]
     summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8-sig")
     print("\n".join(summary_lines))
