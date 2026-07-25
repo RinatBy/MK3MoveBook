@@ -4,6 +4,9 @@ desktop/build/
 desktop/package/
 desktop/release/
 desktop/vendor/
+desktop/research/build/
+desktop/research/__pycache__/
+desktop/research/research-captures/
 tools/ocr_work/
 tools/video_temp/
 tools/ocr_*.exe
