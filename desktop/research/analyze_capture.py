@@ -5,8 +5,9 @@ from __future__ import annotations
 
 import argparse
 import csv
-import gzip
 import struct
+import tempfile
+import zlib
 from array import array
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -100,6 +101,30 @@ def read_exact(stream, size: int) -> bytes:
     if len(data) != size:
         raise EOFError(f"Expected {size} bytes, got {len(data)}")
     return data
+
+
+def open_capture_stream(path: Path):
+    """Inflate a capture and preserve all complete data from a truncated GZip."""
+    stream = tempfile.SpooledTemporaryFile(max_size=64 * 1024 * 1024)
+    decompressor = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    damaged = False
+    with path.open("rb") as compressed:
+        while True:
+            chunk = compressed.read(1024 * 1024)
+            if not chunk:
+                break
+            try:
+                stream.write(decompressor.decompress(chunk))
+            except zlib.error:
+                damaged = True
+                break
+    try:
+        stream.write(decompressor.flush())
+    except zlib.error:
+        damaged = True
+    truncated = damaged or not decompressor.eof
+    stream.seek(0)
+    return stream, truncated
 
 
 def dotnet_ticks_to_iso(ticks: int) -> str:
@@ -203,10 +228,12 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
     inputs_path = output_dir / "input-events.csv"
     players_path = output_dir / "player-state.csv"
     finishers_path = output_dir / "finisher-events.csv"
+    finish_windows_path = output_dir / "finish-window-events.csv"
     markers_path = output_dir / "capture-markers.csv"
     summary_path = output_dir / "summary.txt"
 
-    with gzip.open(capture_path, "rb") as stream:
+    stream, capture_truncated = open_capture_stream(capture_path)
+    with stream:
         header = read_header(stream)
         changes = array("I", [0]) * header.ram_size
         first_frame = array("i", [-1]) * header.ram_size
@@ -226,6 +253,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             inputs_path.open("w", newline="", encoding="utf-8-sig") as inputs_file,
             players_path.open("w", newline="", encoding="utf-8-sig") as players_file,
             finishers_path.open("w", newline="", encoding="utf-8-sig") as finishers_file,
+            finish_windows_path.open("w", newline="", encoding="utf-8-sig") as finish_windows_file,
             markers_path.open("w", newline="", encoding="utf-8-sig") as markers_file,
         ):
             writer = csv.writer(activity_file, delimiter=";")
@@ -310,6 +338,27 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     "p2_recent_inputs_normalized",
                 ]
             )
+            finish_window_writer = csv.writer(finish_windows_file, delimiter=";")
+            finish_window_writer.writerow(
+                [
+                    "timestamp_utc",
+                    "frame",
+                    "attempt",
+                    "resolution",
+                    "previous_finish_phase",
+                    "finish_phase",
+                    "finisher_type_a",
+                    "finisher_success",
+                    "finisher_type_b",
+                    "winner_side",
+                    "p1_character",
+                    "p2_character",
+                    "p1_facing",
+                    "p2_facing",
+                    "p1_recent_inputs_normalized",
+                    "p2_recent_inputs_normalized",
+                ]
+            )
             previous_p1_inputs: tuple[str, ...] | None = None
             previous_p2_inputs: tuple[str, ...] | None = None
             previous_finish_phase: int | None = None
@@ -318,19 +367,26 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             recent_p1_inputs: list[tuple[int, str]] = []
             recent_p2_inputs: list[tuple[int, str]] = []
             attempt = 0
+            attempt_had_finisher = False
 
             while True:
                 frame_header = stream.read(FRAME.size)
                 if not frame_header:
                     break
                 if len(frame_header) != FRAME.size:
-                    raise EOFError("Truncated frame header")
+                    capture_truncated = True
+                    break
                 ticks, frame, process_id, ram_address, segment_count = FRAME.unpack(
                     frame_header
                 )
                 changed_bytes = 0
                 if segment_count == -1:
-                    current[:] = read_exact(stream, header.ram_size)
+                    try:
+                        complete_ram = read_exact(stream, header.ram_size)
+                    except EOFError:
+                        capture_truncated = True
+                        break
+                    current[:] = complete_ram
                     initial = bytes(current)
                     for offset, value in enumerate(current):
                         minimum[offset] = value
@@ -338,13 +394,21 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 elif segment_count < 0:
                     raise ValueError(f"Invalid segment count {segment_count} at frame {frame}")
                 else:
-                    for _ in range(segment_count):
-                        offset, length = SEGMENT.unpack(read_exact(stream, SEGMENT.size))
-                        if offset < 0 or length <= 0 or offset + length > header.ram_size:
-                            raise ValueError(
-                                f"Invalid segment offset={offset} length={length} at frame {frame}"
+                    segments: list[tuple[int, bytes]] = []
+                    try:
+                        for _ in range(segment_count):
+                            offset, length = SEGMENT.unpack(
+                                read_exact(stream, SEGMENT.size)
                             )
-                        values = read_exact(stream, length)
+                            if offset < 0 or length <= 0 or offset + length > header.ram_size:
+                                raise ValueError(
+                                    f"Invalid segment offset={offset} length={length} at frame {frame}"
+                                )
+                            segments.append((offset, read_exact(stream, length)))
+                    except EOFError:
+                        capture_truncated = True
+                        break
+                    for offset, values in segments:
                         for relative, value in enumerate(values):
                             absolute = offset + relative
                             if current[absolute] == value:
@@ -396,6 +460,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     attempt += 1
                     marker_kind = "state-load-candidate"
                 if marker_kind:
+                    attempt_had_finisher = False
                     recent_p1_inputs.clear()
                     recent_p2_inputs.clear()
                     marker_writer.writerow(
@@ -516,6 +581,36 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                             recent_inputs(recent_p2_inputs, frame),
                         ]
                     )
+                    attempt_had_finisher = True
+                finish_window_closed = (
+                    previous_finish_phase == 0x03 and finish_phase != 0x03
+                )
+                if finish_window_closed:
+                    winner_side = ""
+                    if current[P1_HEALTH_OFFSET] > 0 and current[P2_HEALTH_OFFSET] == 0:
+                        winner_side = "p1"
+                    elif current[P2_HEALTH_OFFSET] > 0 and current[P1_HEALTH_OFFSET] == 0:
+                        winner_side = "p2"
+                    finish_window_writer.writerow(
+                        [
+                            dotnet_ticks_to_iso(ticks),
+                            frame,
+                            attempt,
+                            "special-finisher" if attempt_had_finisher else "ordinary-or-timeout",
+                            f"0x{previous_finish_phase:02X}",
+                            f"0x{finish_phase:02X}",
+                            f"0x{finisher_type_a:02X}",
+                            f"0x{finisher_success:02X}",
+                            f"0x{current[FINISHER_TYPE_B_OFFSET]:02X}",
+                            winner_side,
+                            f"0x{current[P1_CHARACTER_OFFSET]:02X}",
+                            f"0x{current[P2_CHARACTER_OFFSET]:02X}",
+                            p1_facing,
+                            p2_facing,
+                            recent_inputs(recent_p1_inputs, frame),
+                            recent_inputs(recent_p2_inputs, frame),
+                        ]
+                    )
                 previous_finish_phase = finish_phase
                 previous_finisher_success = finisher_success
                 previous_finisher_type_a = finisher_type_a
@@ -571,6 +666,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         f"format=MK3RAM02/v2",
         f"ram_size={header.ram_size}",
         f"capture_interval_ms={header.interval_ms}",
+        f"capture_truncated={'true' if capture_truncated else 'false'}",
         f"frames={frame_count}",
         f"duration_seconds={duration_seconds:.3f}",
         f"active_offsets_total={sum(1 for count in changes if count)}",
@@ -582,6 +678,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         f"input_events={inputs_path}",
         f"player_state={players_path}",
         f"finisher_events={finishers_path}",
+        f"finish_window_events={finish_windows_path}",
         f"capture_markers={markers_path}",
     ]
     summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8-sig")
