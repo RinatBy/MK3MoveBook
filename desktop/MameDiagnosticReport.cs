@@ -47,6 +47,13 @@ namespace MK3MoveBook
             "event_kind",
             "event_title",
             "event_details",
+            "finisher_sequence",
+            "finisher_kind",
+            "finisher_winner_side",
+            "finisher_fighter_id_dec",
+            "finisher_opponent_id_dec",
+            "finisher_title",
+            "finisher_details",
             "bridge_title",
             "bridge_details"
         };
@@ -164,6 +171,13 @@ namespace MK3MoveBook
                     snapshot.EventKind,
                     snapshot.EventTitle,
                     snapshot.EventDetails,
+                    Number(snapshot.FinisherSequence),
+                    snapshot.FinisherKind,
+                    snapshot.FinisherWinnerSide,
+                    Number(snapshot.FinisherFighterId),
+                    Number(snapshot.FinisherOpponentId),
+                    snapshot.FinisherTitle,
+                    snapshot.FinisherDetails,
                     snapshot.Title,
                     snapshot.Details
                 };

@@ -5,6 +5,7 @@ desktop/package/
 desktop/release/
 desktop/vendor/
 desktop/research/build/
+desktop/tests/build/
 desktop/research/__pycache__/
 desktop/research/research-captures/
 tools/ocr_work/

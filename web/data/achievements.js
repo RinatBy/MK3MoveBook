@@ -1,5 +1,5 @@
 window.MOVEBOOK_ACHIEVEMENTS = {
-    preview: true,
+    preview: false,
     general: [
         {
             id: "victories-1",

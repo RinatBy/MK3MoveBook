@@ -2564,6 +2564,28 @@ button {
     font-size: 8px;
 }
 
+.achievement-card.is-unlocked {
+    background:
+        linear-gradient(105deg, rgba(255, 252, 226, .94), rgba(224, 236, 204, .72));
+    border-color: rgba(85, 112, 54, .42);
+    border-left-color: #5a843c;
+    box-shadow: 0 4px 12px rgba(65, 91, 43, .14);
+}
+
+.achievement-card.is-unlocked::after {
+    content: "✓";
+    color: #507435;
+    font: 13px/1 "Russo One", sans-serif;
+}
+
+.achievement-card.is-unlocked .achievement-card-icon img {
+    filter: none;
+}
+
+.achievement-card.is-unlocked .achievement-card-copy small {
+    color: #507435;
+}
+
 .achievement-card-icon {
     position: relative;
     display: grid;

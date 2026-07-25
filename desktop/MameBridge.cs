@@ -41,6 +41,13 @@ namespace MK3MoveBook
         public string FightPlayerTwo { get; set; }
         public int FightPlayerOneId { get; set; }
         public int FightPlayerTwoId { get; set; }
+        public int FinisherSequence { get; set; }
+        public string FinisherKind { get; set; }
+        public string FinisherWinnerSide { get; set; }
+        public int FinisherFighterId { get; set; }
+        public int FinisherOpponentId { get; set; }
+        public string FinisherTitle { get; set; }
+        public string FinisherDetails { get; set; }
 
         public string Signature()
         {
@@ -70,7 +77,12 @@ namespace MK3MoveBook
                 FightPlayerOne ?? "",
                 FightPlayerTwo ?? "",
                 FightPlayerOneId.ToString(),
-                FightPlayerTwoId.ToString()
+                FightPlayerTwoId.ToString(),
+                FinisherSequence.ToString(),
+                FinisherKind ?? "",
+                FinisherWinnerSide ?? "",
+                FinisherFighterId.ToString(),
+                FinisherOpponentId.ToString()
             );
         }
     }
@@ -85,10 +97,18 @@ namespace MK3MoveBook
         private const uint PageNoAccess = 0x01;
 
         private const int MainRamSize = 0x80000;
+        private const int PlayerOneObjectPointerOffset = 0x0C13A;
         private const int PlayerOneCharacterOffset = 0x0C146;
         private const int PlayerOneHealthOffset = 0x0C14C;
+        private const int PlayerTwoObjectPointerOffset = 0x0C2B0;
         private const int PlayerTwoCharacterOffset = 0x0C2BC;
         private const int PlayerTwoHealthOffset = 0x0C2C2;
+        private const int FinisherTypeAOffset = 0x0C426;
+        private const int FinisherSuccessOffset = 0x0C442;
+        private const int FinishPhaseOffset = 0x0C454;
+        private const int FinisherTypeBOffset = 0x0C4E6;
+        private const uint TmsMainRamAddress = 0x01000000;
+        private const int ObjectFlagsOffset = 0x2C;
         private const int FullHealth = 0xA6;
         private const long MaximumScanRegionSize = 64L * 1024L * 1024L;
         private const uint MainRamByteStart = 0x00200000;
@@ -105,6 +125,7 @@ namespace MK3MoveBook
 
         private readonly object syncRoot = new object();
         private readonly MameFightTracker fightTracker;
+        private readonly MameFinisherTracker finisherTracker;
         private Timer pollTimer;
         private int pollActive;
         private int processId;
@@ -121,6 +142,7 @@ namespace MK3MoveBook
         public MameBridge()
         {
             fightTracker = new MameFightTracker();
+            finisherTracker = new MameFinisherTracker();
             currentSnapshot = CreateNotRunningSnapshot();
             lastSnapshotSignature = "";
         }
@@ -144,7 +166,7 @@ namespace MK3MoveBook
                 {
                     return;
                 }
-                pollTimer = new Timer(Poll, null, 0, 1000);
+                pollTimer = new Timer(Poll, null, 0, 250);
             }
         }
 
@@ -503,7 +525,7 @@ namespace MK3MoveBook
         private bool TryReadPlayers(long ramAddress, out PlayerState players)
         {
             players = null;
-            byte[] buffer = new byte[PlayerTwoHealthOffset + 1];
+            byte[] buffer = new byte[MainRamSize];
             IntPtr bytesRead;
             bool read = ReadProcessMemory(
                 processHandle,
@@ -534,9 +556,40 @@ namespace MK3MoveBook
                 PlayerOne = CharacterName(p1Character),
                 PlayerTwo = CharacterName(p2Character),
                 PlayerOneHealth = p1Health,
-                PlayerTwoHealth = p2Health
+                PlayerTwoHealth = p2Health,
+                PlayerOneFlags = ReadObjectFlags(
+                    buffer,
+                    PlayerOneObjectPointerOffset
+                ),
+                PlayerTwoFlags = ReadObjectFlags(
+                    buffer,
+                    PlayerTwoObjectPointerOffset
+                ),
+                FinishPhase = buffer[FinishPhaseOffset],
+                FinisherTypeA = buffer[FinisherTypeAOffset],
+                FinisherSuccess = buffer[FinisherSuccessOffset],
+                FinisherTypeB = buffer[FinisherTypeBOffset]
             };
             return true;
+        }
+
+        private static int ReadObjectFlags(byte[] ram, int pointerOffset)
+        {
+            uint pointer = BitConverter.ToUInt32(ram, pointerOffset);
+            if (pointer < TmsMainRamAddress)
+            {
+                return -1;
+            }
+            long objectOffset = (pointer - TmsMainRamAddress) / 8;
+            if (objectOffset < 0 ||
+                objectOffset + ObjectFlagsOffset + 1 >= ram.LongLength)
+            {
+                return -1;
+            }
+            return BitConverter.ToUInt16(
+                ram,
+                checked((int)objectOffset) + ObjectFlagsOffset
+            );
         }
 
         private MameBridgeSnapshot CreateObservedSnapshot(
@@ -547,6 +600,8 @@ namespace MK3MoveBook
             PlayerState players
         )
         {
+            string romId = DetectRomId(windowTitle);
+            string romLabel = RomLabel(romId);
             MameFightProgress progress = fightTracker.Observe(
                 players.PlayerOneId,
                 players.PlayerOne,
@@ -555,8 +610,21 @@ namespace MK3MoveBook
                 players.PlayerTwo,
                 players.PlayerTwoHealth
             );
-            string romId = DetectRomId(windowTitle);
-            string romLabel = RomLabel(romId);
+            MameFinisherProgress finisher = finisherTracker.Observe(
+                romId,
+                players.PlayerOneId,
+                players.PlayerOne,
+                players.PlayerOneHealth,
+                players.PlayerOneFlags,
+                players.PlayerTwoId,
+                players.PlayerTwo,
+                players.PlayerTwoHealth,
+                players.PlayerTwoFlags,
+                players.FinishPhase,
+                players.FinisherTypeA,
+                players.FinisherSuccess,
+                players.FinisherTypeB
+            );
             bool waiting = string.Equals(
                 progress.State,
                 "waiting",
@@ -623,7 +691,14 @@ namespace MK3MoveBook
                 FightPlayerOne = progress.PlayerOne,
                 FightPlayerTwo = progress.PlayerTwo,
                 FightPlayerOneId = progress.PlayerOneId,
-                FightPlayerTwoId = progress.PlayerTwoId
+                FightPlayerTwoId = progress.PlayerTwoId,
+                FinisherSequence = finisher.Sequence,
+                FinisherKind = finisher.Kind,
+                FinisherWinnerSide = finisher.WinnerSide,
+                FinisherFighterId = finisher.FighterId,
+                FinisherOpponentId = finisher.OpponentId,
+                FinisherTitle = finisher.Title,
+                FinisherDetails = finisher.Details
             };
         }
 
@@ -800,6 +875,7 @@ namespace MK3MoveBook
             mainRamAddress = 0;
             nextMemoryScanUtc = DateTime.MinValue;
             fightTracker.Reset();
+            finisherTracker.Reset();
         }
 
         public void Dispose()
@@ -828,6 +904,12 @@ namespace MK3MoveBook
             public int PlayerTwoId { get; set; }
             public int PlayerOneHealth { get; set; }
             public int PlayerTwoHealth { get; set; }
+            public int PlayerOneFlags { get; set; }
+            public int PlayerTwoFlags { get; set; }
+            public int FinishPhase { get; set; }
+            public int FinisherTypeA { get; set; }
+            public int FinisherSuccess { get; set; }
+            public int FinisherTypeB { get; set; }
         }
 
         [StructLayout(LayoutKind.Sequential)]

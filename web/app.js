@@ -121,6 +121,49 @@
     const hostedSite = document.body.classList.contains("hosted-site");
     const latestReleaseUrl =
         "https://github.com/RinatBy/MK3MoveBook/releases/latest";
+    const achievementStorageKey = "movebook-achievement-progress-v1";
+    const achievementEngine = window.MOVEBOOK_ACHIEVEMENT_ENGINE;
+
+    function loadAchievementProgress() {
+        try {
+            const saved = JSON.parse(
+                localStorage.getItem(achievementStorageKey) || "null"
+            );
+            return achievementEngine.normalizeProgress(saved);
+        } catch {
+            return achievementEngine.emptyProgress();
+        }
+    }
+
+    let achievementProgress = loadAchievementProgress();
+
+    function saveAchievementProgress() {
+        try {
+            localStorage.setItem(
+                achievementStorageKey,
+                JSON.stringify(achievementProgress)
+            );
+        } catch {
+            // Local progress remains active for the current session.
+        }
+    }
+
+    function achievementDefinitions() {
+        return achievementEngine.definitions(achievementData);
+    }
+
+    function processMameAchievements(message) {
+        const result = achievementEngine.processStatus(
+            achievementProgress,
+            message,
+            achievementData
+        );
+        achievementProgress = result.progress;
+        if (result.changed) {
+            saveAchievementProgress();
+        }
+        return result.unlocked;
+    }
 
     const initialPlatform = loadPlatform();
     const state = {
@@ -154,11 +197,16 @@
         fightPlayerTwo: "",
         fightPlayerOneId: 0,
         fightPlayerTwoId: 0,
+        finisherSequence: 0,
+        finisherKind: "",
+        finisherFighterId: -1,
+        finisherOpponentId: -1,
         diagnosticReportName: ""
     };
     let mameDiagnosticEvents = [];
     let mameDiagnosticProcessId = 0;
     let lastMameEventSequence = 0;
+    let lastMameFinisherSequence = 0;
     let lastMameRomId = "";
 
     const elements = {
@@ -1155,11 +1203,16 @@
     }
 
     function renderAchievementCard(definition, iconHtml) {
+        const unlocked = Boolean(achievementProgress.unlocked[definition.id]);
+        const label = unlocked
+            ? `${definition.label || "Испытание"} · Получено`
+            : (definition.label || "Испытание");
         return `
-            <article class="achievement-card" data-achievement="${escapeHtml(definition.id)}">
+            <article class="achievement-card${unlocked ? " is-unlocked" : ""}"
+                data-achievement="${escapeHtml(definition.id)}">
                 ${iconHtml}
                 <span class="achievement-card-copy">
-                    <small>${escapeHtml(definition.label || "Испытание")}</small>
+                    <small>${escapeHtml(label)}</small>
                     <strong>${escapeHtml(definition.title)}</strong>
                     <span>${escapeHtml(definition.description)}</span>
                 </span>
@@ -1197,7 +1250,7 @@
         const report = reportName
             ? `<section class="mame-diagnostic-report">
                 <span><strong>Полный CSV-отчёт</strong>
-                    <small>каждый замер памяти раз в секунду</small></span>
+                    <small>четыре замера памяти в секунду</small></span>
                 <code>diagnostics\\${escapeHtml(reportName)}</code>
                 <small>Папка находится рядом с MK3 MoveBook.exe</small>
             </section>`
@@ -1230,6 +1283,9 @@
         const total = generalAchievements.length +
             fighterAchievements.length + loreAchievements.length +
             specialAchievements.length;
+        const completed = achievementDefinitions().filter(definition =>
+            achievementProgress.unlocked[definition.id]
+        ).length;
 
         const generalCards = generalAchievements.map(item =>
             renderAchievementCard(
@@ -1284,7 +1340,8 @@
         elements.heroPortrait.alt = "";
         elements.fighterTitle.textContent = "Достижения";
         elements.fighterSubtitle.hidden = false;
-        elements.fighterSubtitle.textContent = `${total} испытаний · макет`;
+        elements.fighterSubtitle.textContent =
+            `${completed} из ${total} испытаний · локально`;
         elements.rightPageNumber.textContent = "ДОСТИЖЕНИЯ";
         elements.bookNote.hidden = true;
         elements.bookNoteLabel.hidden = true;
@@ -1310,7 +1367,7 @@
             <div class="achievements-page">
                 <header class="achievements-hero">
                     <div class="achievements-hero-copy">
-                        <span class="achievements-kicker">Предварительный макет</span>
+                        <span class="achievements-kicker">Локальный профиль</span>
                         <h2>Книга испытаний</h2>
                         <p>
                             Личная летопись побед, боевых дебютов и знаковых
@@ -1318,8 +1375,8 @@
                         </p>
                     </div>
                     <div class="achievements-summary">
-                        <strong>0 / ${total}</strong>
-                        <span>будет доступно после подключения профиля</span>
+                        <strong>${completed} / ${total}</strong>
+                        <span>${achievementProgress.victories} побед · прогресс на этом компьютере</span>
                     </div>
                 </header>
                 ${mameDiagnosticMarkup()}
@@ -1345,7 +1402,7 @@
                 <section id="category-achievement-fighters"
                     class="achievement-group" data-achievement-group="fighters">
                     <header class="achievement-group-heading">
-                        <h3>Боевые дебюты</h3><span>${debutFighters.length}</span>
+                        <h3>Боевые дебюты</h3><span>${fighterAchievements.length}</span>
                     </header>
                     <div class="achievement-card-grid">${fighterCards}</div>
                 </section>
@@ -1364,14 +1421,58 @@
                     <div class="achievement-card-grid">${specialCards}</div>
                 </section>
                 <p class="achievement-preview-note">
-                    Портреты бойцов используются как основа значков боевого дебюта.
-                    Отдельные иллюстрации понадобятся только для редких сюжетных
-                    и сложных испытаний.
+                    Это первый локальный профиль для проверки правил достижений.
+                    После подключения аккаунта подтверждённый прогресс можно будет
+                    перенести на сервер.
                 </p>
             </div>`;
         elements.pageContent.scrollTop = 0;
         elements.statusText.textContent =
-            `Макет центра достижений · ${total} испытаний`;
+            `Достижения · ${completed} из ${total}`;
+    }
+
+    function refreshAchievementProgress() {
+        if (state.tab !== "achievements") {
+            return;
+        }
+        const definitions = new Map(
+            achievementDefinitions().map(definition => [definition.id, definition])
+        );
+        elements.pageContent.querySelectorAll("[data-achievement]")
+            .forEach(card => {
+                const definition = definitions.get(card.dataset.achievement);
+                const unlocked = Boolean(
+                    definition && achievementProgress.unlocked[definition.id]
+                );
+                card.classList.toggle("is-unlocked", unlocked);
+                const label = card.querySelector(".achievement-card-copy small");
+                if (label && definition) {
+                    label.textContent = unlocked
+                        ? `${definition.label || "Испытание"} · Получено`
+                        : (definition.label || "Испытание");
+                }
+            });
+        const completed = achievementDefinitions().filter(definition =>
+            achievementProgress.unlocked[definition.id]
+        ).length;
+        const total = achievementDefinitions().length;
+        const summaryValue = elements.pageContent.querySelector(
+            ".achievements-summary strong"
+        );
+        const summaryText = elements.pageContent.querySelector(
+            ".achievements-summary span"
+        );
+        if (summaryValue) {
+            summaryValue.textContent = `${completed} / ${total}`;
+        }
+        if (summaryText) {
+            summaryText.textContent =
+                `${achievementProgress.victories} побед · прогресс на этом компьютере`;
+        }
+        elements.fighterSubtitle.textContent =
+            `${completed} из ${total} испытаний · локально`;
+        elements.statusText.textContent =
+            `Достижения · ${completed} из ${total}`;
     }
 
     function renderMoves(fighter) {
@@ -2060,13 +2161,18 @@
         }
         const processId = Number(message.processId) || 0;
         const eventSequence = Number(message.eventSequence) || 0;
+        const finisherSequence = Number(message.finisherSequence) || 0;
         const romId = String(message.romId || "");
         const processChanged = processId !== mameDiagnosticProcessId;
         const romChanged = lastMameRomId && romId && romId !== lastMameRomId;
         const sequenceRestarted = eventSequence < lastMameEventSequence;
-        if (processChanged || romChanged || sequenceRestarted) {
+        const finisherSequenceRestarted =
+            finisherSequence < lastMameFinisherSequence;
+        if (processChanged || romChanged || sequenceRestarted ||
+            finisherSequenceRestarted) {
             mameDiagnosticEvents = [];
             lastMameEventSequence = 0;
+            lastMameFinisherSequence = 0;
         }
         mameDiagnosticProcessId = processId;
         if (romId) {
@@ -2084,10 +2190,28 @@
             mameDiagnosticEvents = mameDiagnosticEvents.slice(0, 5);
             lastMameEventSequence = eventSequence;
         }
+        if (finisherSequence > 0 &&
+            finisherSequence !== lastMameFinisherSequence &&
+            message.finisherTitle) {
+            mameDiagnosticEvents.unshift({
+                sequence: `F${finisherSequence}`,
+                kind: `finisher-${String(message.finisherKind || "event")}`,
+                title: String(message.finisherTitle),
+                details: String(message.finisherDetails || "")
+            });
+            mameDiagnosticEvents = mameDiagnosticEvents.slice(0, 5);
+            lastMameFinisherSequence = finisherSequence;
+        }
+        const unlocked = processMameAchievements(message);
         mameDiagnostic = {
             ...mameDiagnostic,
             ...message
         };
+        if (unlocked.length && state.tab !== "achievements") {
+            elements.statusText.textContent = unlocked.length === 1
+                ? `Получено достижение: ${unlocked[0].title}`
+                : `Получено достижений: ${unlocked.length}`;
+        }
         if (state.tab !== "achievements") {
             return;
         }
@@ -2095,6 +2219,7 @@
         if (current) {
             current.outerHTML = mameDiagnosticMarkup();
         }
+        refreshAchievementProgress();
     }
 
     function initializeUpdater() {

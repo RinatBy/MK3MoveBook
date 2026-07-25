@@ -1099,6 +1099,13 @@ namespace MK3MoveBook
             payload["fightPlayerTwo"] = snapshot.FightPlayerTwo;
             payload["fightPlayerOneId"] = snapshot.FightPlayerOneId;
             payload["fightPlayerTwoId"] = snapshot.FightPlayerTwoId;
+            payload["finisherSequence"] = snapshot.FinisherSequence;
+            payload["finisherKind"] = snapshot.FinisherKind;
+            payload["finisherWinnerSide"] = snapshot.FinisherWinnerSide;
+            payload["finisherFighterId"] = snapshot.FinisherFighterId;
+            payload["finisherOpponentId"] = snapshot.FinisherOpponentId;
+            payload["finisherTitle"] = snapshot.FinisherTitle;
+            payload["finisherDetails"] = snapshot.FinisherDetails;
             payload["diagnosticReportPath"] =
                 mameDiagnosticReport.ReportPath;
             payload["diagnosticReportName"] = string.IsNullOrEmpty(
