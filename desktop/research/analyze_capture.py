@@ -65,6 +65,9 @@ FINISH_PHASE_OFFSET = 0x0C454
 FINISHER_TYPE_B_OFFSET = 0x0C4E6
 RECENT_INPUT_FRAMES = 300
 STATE_LOAD_CHANGED_BYTES = 8000
+KABAL_CHARACTER_ID = 0x0A
+ANTIFATALITY_FLAGS_BEFORE = 0x12
+ANTIFATALITY_FLAGS_AFTER = 0x22
 
 MAIN_INPUT_BITS = (
     (0x01, "UP"),
@@ -328,6 +331,9 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     "finisher_success",
                     "finisher_type_b",
                     "finisher_kind",
+                    "detection_signal",
+                    "winner_object_flags_before",
+                    "winner_object_flags_after",
                     "finish_phase",
                     "winner_side",
                     "p1_character",
@@ -364,6 +370,8 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             previous_finish_phase: int | None = None
             previous_finisher_success: int | None = None
             previous_finisher_type_a: int | None = None
+            previous_p1_object_flags: int | None = None
+            previous_p2_object_flags: int | None = None
             recent_p1_inputs: list[tuple[int, str]] = []
             recent_p2_inputs: list[tuple[int, str]] = []
             attempt = 0
@@ -553,10 +561,54 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     and finisher_type_a == 0x02
                     and previous_finisher_type_a != 0x02
                 )
-                if generic_finisher_started or stage_fatality_started:
+                p1_antifatality_started = (
+                    finish_phase == 0x03
+                    and finisher_type_a == 0
+                    and finisher_success == 0
+                    and current[FINISHER_TYPE_B_OFFSET] == 0
+                    and current[P1_CHARACTER_OFFSET] == KABAL_CHARACTER_ID
+                    and current[P1_HEALTH_OFFSET] > 0
+                    and current[P2_HEALTH_OFFSET] == 0
+                    and previous_p1_object_flags is not None
+                    and previous_p1_object_flags >= 0
+                    and p1_object[3] >= 0
+                    and previous_p1_object_flags >> 8 == p1_object[3] >> 8
+                    and previous_p1_object_flags & 0xFF == ANTIFATALITY_FLAGS_BEFORE
+                    and p1_object[3] & 0xFF == ANTIFATALITY_FLAGS_AFTER
+                )
+                p2_antifatality_started = (
+                    finish_phase == 0x03
+                    and finisher_type_a == 0
+                    and finisher_success == 0
+                    and current[FINISHER_TYPE_B_OFFSET] == 0
+                    and current[P2_CHARACTER_OFFSET] == KABAL_CHARACTER_ID
+                    and current[P2_HEALTH_OFFSET] > 0
+                    and current[P1_HEALTH_OFFSET] == 0
+                    and previous_p2_object_flags is not None
+                    and previous_p2_object_flags >= 0
+                    and p2_object[3] >= 0
+                    and previous_p2_object_flags >> 8 == p2_object[3] >> 8
+                    and previous_p2_object_flags & 0xFF == ANTIFATALITY_FLAGS_BEFORE
+                    and p2_object[3] & 0xFF == ANTIFATALITY_FLAGS_AFTER
+                )
+                antifatality_started = (
+                    p1_antifatality_started or p2_antifatality_started
+                )
+                if generic_finisher_started or stage_fatality_started or antifatality_started:
                     type_a = finisher_type_a
                     type_b = current[FINISHER_TYPE_B_OFFSET]
                     effective_type = type_b if generic_finisher_started else type_a
+                    effective_kind = (
+                        "antifatality" if antifatality_started
+                        else finisher_kind(effective_type)
+                    )
+                    detection_signal = (
+                        "winner-object-flags-0x12-to-0x22"
+                        if antifatality_started
+                        else "stage-type-a"
+                        if stage_fatality_started
+                        else "standard-success-type"
+                    )
                     winner_side = ""
                     if current[P1_HEALTH_OFFSET] > 0 and current[P2_HEALTH_OFFSET] == 0:
                         winner_side = "p1"
@@ -570,7 +622,22 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                             f"0x{type_a:02X}",
                             f"0x{finisher_success:02X}",
                             f"0x{type_b:02X}",
-                            finisher_kind(effective_type),
+                            effective_kind,
+                            detection_signal,
+                            (
+                                f"0x{previous_p1_object_flags:04X}"
+                                if p1_antifatality_started
+                                else f"0x{previous_p2_object_flags:04X}"
+                                if p2_antifatality_started
+                                else ""
+                            ),
+                            (
+                                f"0x{p1_object[3]:04X}"
+                                if p1_antifatality_started
+                                else f"0x{p2_object[3]:04X}"
+                                if p2_antifatality_started
+                                else ""
+                            ),
                             f"0x{finish_phase:02X}",
                             winner_side,
                             f"0x{current[P1_CHARACTER_OFFSET]:02X}",
@@ -614,6 +681,8 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 previous_finish_phase = finish_phase
                 previous_finisher_success = finisher_success
                 previous_finisher_type_a = finisher_type_a
+                previous_p1_object_flags = p1_object[3]
+                previous_p2_object_flags = p2_object[3]
                 frame_count += 1
                 first_ticks = ticks if first_ticks is None else first_ticks
                 last_ticks = ticks
