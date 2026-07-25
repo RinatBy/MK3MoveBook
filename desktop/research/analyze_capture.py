@@ -18,6 +18,12 @@ FRAME = struct.Struct("<qiiqi")
 SEGMENT = struct.Struct("<ii")
 
 KNOWN_OFFSETS = {
+    0x0B732: "p1_input_current",
+    0x0B733: "p2_input_current",
+    0x0B734: "p1_p2_aux_input_current",
+    0x0B736: "p1_input_previous",
+    0x0B737: "p2_input_previous",
+    0x0B738: "p1_p2_aux_input_previous",
     0x0C146: "p1_character",
     0x0C14C: "p1_health",
     0x0C14E: "p1_run",
@@ -25,12 +31,41 @@ KNOWN_OFFSETS = {
     0x0C2C2: "p2_health",
     0x0C2C4: "p2_run",
     0x0C44C: "kombat_zone",
-    0x0C424: "no_powerbars",
+    0x0C424: "powerbars_enabled",
+    0x0C426: "finisher_success_candidate_a",
+    0x0C442: "finisher_success_candidate_b",
     0x0C55C: "no_throwing",
     0x0C560: "no_blocking",
     0x0C57C: "fast_uppercut",
     0x0C57E: "unlimited_run",
+    0x0C4E6: "finisher_success_candidate_c",
 }
+
+P1_MAIN_INPUT_OFFSET = 0x0B732
+P2_MAIN_INPUT_OFFSET = 0x0B733
+AUX_INPUT_OFFSET = 0x0B734
+
+MAIN_INPUT_BITS = (
+    (0x01, "UP"),
+    (0x02, "DOWN"),
+    (0x04, "LEFT"),
+    (0x08, "RIGHT"),
+    (0x10, "HP"),
+    (0x20, "BL"),
+    (0x40, "HK"),
+)
+
+P1_AUX_INPUT_BITS = (
+    (0x01, "LP"),
+    (0x02, "LK"),
+    (0x04, "RUN"),
+)
+
+P2_AUX_INPUT_BITS = (
+    (0x10, "LP"),
+    (0x20, "LK"),
+    (0x40, "RUN"),
+)
 
 
 @dataclass
@@ -72,10 +107,24 @@ def read_header(stream) -> CaptureHeader:
     return CaptureHeader(ram_size, interval_ms, started_ticks)
 
 
+def held_inputs(main_value: int, aux_value: int, player_two: bool) -> tuple[str, ...]:
+    names = [name for bit, name in MAIN_INPUT_BITS if not main_value & bit]
+    aux_bits = P2_AUX_INPUT_BITS if player_two else P1_AUX_INPUT_BITS
+    names.extend(name for bit, name in aux_bits if not aux_value & bit)
+    return tuple(names)
+
+
+def input_delta(previous: tuple[str, ...], current: tuple[str, ...]) -> tuple[str, str]:
+    pressed = ",".join(name for name in current if name not in previous)
+    released = ",".join(name for name in previous if name not in current)
+    return pressed, released
+
+
 def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     activity_path = output_dir / "frame-activity.csv"
     offsets_path = output_dir / "offset-activity.csv"
+    inputs_path = output_dir / "input-events.csv"
     summary_path = output_dir / "summary.txt"
 
     with gzip.open(capture_path, "rb") as stream:
@@ -93,7 +142,10 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         process_ids: set[int] = set()
         ram_addresses: set[int] = set()
 
-        with activity_path.open("w", newline="", encoding="utf-8-sig") as activity_file:
+        with (
+            activity_path.open("w", newline="", encoding="utf-8-sig") as activity_file,
+            inputs_path.open("w", newline="", encoding="utf-8-sig") as inputs_file,
+        ):
             writer = csv.writer(activity_file, delimiter=";")
             writer.writerow(
                 [
@@ -105,6 +157,24 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     "changed_bytes",
                 ]
             )
+            input_writer = csv.writer(inputs_file, delimiter=";")
+            input_writer.writerow(
+                [
+                    "timestamp_utc",
+                    "frame",
+                    "p1_main_hex",
+                    "p2_main_hex",
+                    "aux_hex",
+                    "p1_held",
+                    "p1_pressed",
+                    "p1_released",
+                    "p2_held",
+                    "p2_pressed",
+                    "p2_released",
+                ]
+            )
+            previous_p1_inputs: tuple[str, ...] | None = None
+            previous_p2_inputs: tuple[str, ...] | None = None
 
             while True:
                 frame_header = stream.read(FRAME.size)
@@ -157,6 +227,40 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                         changed_bytes,
                     ]
                 )
+
+                p1_inputs = held_inputs(
+                    current[P1_MAIN_INPUT_OFFSET],
+                    current[AUX_INPUT_OFFSET],
+                    False,
+                )
+                p2_inputs = held_inputs(
+                    current[P2_MAIN_INPUT_OFFSET],
+                    current[AUX_INPUT_OFFSET],
+                    True,
+                )
+                if previous_p1_inputs is None or previous_p2_inputs is None:
+                    previous_p1_inputs = p1_inputs
+                    previous_p2_inputs = p2_inputs
+                elif p1_inputs != previous_p1_inputs or p2_inputs != previous_p2_inputs:
+                    p1_pressed, p1_released = input_delta(previous_p1_inputs, p1_inputs)
+                    p2_pressed, p2_released = input_delta(previous_p2_inputs, p2_inputs)
+                    input_writer.writerow(
+                        [
+                            dotnet_ticks_to_iso(ticks),
+                            frame,
+                            f"0x{current[P1_MAIN_INPUT_OFFSET]:02X}",
+                            f"0x{current[P2_MAIN_INPUT_OFFSET]:02X}",
+                            f"0x{current[AUX_INPUT_OFFSET]:02X}",
+                            ",".join(p1_inputs),
+                            p1_pressed,
+                            p1_released,
+                            ",".join(p2_inputs),
+                            p2_pressed,
+                            p2_released,
+                        ]
+                    )
+                    previous_p1_inputs = p1_inputs
+                    previous_p2_inputs = p2_inputs
                 frame_count += 1
                 first_ticks = ticks if first_ticks is None else first_ticks
                 last_ticks = ticks
@@ -217,6 +321,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         "ram_addresses=" + ",".join(f"0x{value:X}" for value in sorted(ram_addresses)),
         f"frame_activity={activity_path}",
         f"offset_activity={offsets_path}",
+        f"input_events={inputs_path}",
     ]
     summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8-sig")
     print("\n".join(summary_lines))

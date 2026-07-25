@@ -30,7 +30,7 @@ namespace MK3MoveBook.Research
         private const int PlayerTwoHealthOffset = 0x0C2C2;
         private const int PlayerTwoRunOffset = 0x0C2C4;
         private const int KombatZoneOffset = 0x0C44C;
-        private const int NoPowerbarsOffset = 0x0C424;
+        private const int PowerbarsEnabledOffset = 0x0C424;
         private const int NoThrowingOffset = 0x0C55C;
         private const int NoBlockingOffset = 0x0C560;
         private const int FastUppercutOffset = 0x0C57C;
@@ -332,7 +332,7 @@ namespace MK3MoveBook.Research
                 "timestamp_utc;frame;process_id;ram_address;" +
                 "p1_id;p1_name;p1_health;p1_run;p2_id;p2_name;p2_health;p2_run;" +
                 "fight_state;round;p1_rounds;p2_rounds;winner_side;winner;event_kind;zone;" +
-                "no_powerbars;no_throwing;no_blocking;fast_uppercut;unlimited_run"
+                "powerbars_enabled;no_throwing;no_blocking;fast_uppercut;unlimited_run"
             );
             writer.Flush();
             return writer;
@@ -379,7 +379,7 @@ namespace MK3MoveBook.Research
                 progress == null ? "" : progress.WinnerSide,
                 progress == null ? "" : progress.EventKind,
                 ram[KombatZoneOffset],
-                ram[NoPowerbarsOffset],
+                ram[PowerbarsEnabledOffset],
                 ram[NoThrowingOffset],
                 ram[NoBlockingOffset],
                 ram[FastUppercutOffset],
@@ -416,7 +416,7 @@ namespace MK3MoveBook.Research
                     progress == null ? "" : progress.Winner,
                     progress == null ? "" : progress.EventKind,
                     Hex(ram[KombatZoneOffset]),
-                    Hex(ram[NoPowerbarsOffset]),
+                    Hex(ram[PowerbarsEnabledOffset]),
                     Hex(ram[NoThrowingOffset]),
                     Hex(ram[NoBlockingOffset]),
                     Hex(ram[FastUppercutOffset]),
