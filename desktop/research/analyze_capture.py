@@ -182,6 +182,7 @@ def normalize_inputs(inputs: tuple[str, ...], facing: str) -> tuple[str, ...]:
 def finisher_kind(value: int) -> str:
     return {
         0x01: "fatality",
+        0x02: "stage-fatality",
         0x03: "animality",
         0x04: "friendship",
         0x05: "babality",
@@ -313,6 +314,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             previous_p2_inputs: tuple[str, ...] | None = None
             previous_finish_phase: int | None = None
             previous_finisher_success: int | None = None
+            previous_finisher_type_a: int | None = None
             recent_p1_inputs: list[tuple[int, str]] = []
             recent_p2_inputs: list[tuple[int, str]] = []
             attempt = 0
@@ -374,6 +376,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 p1_facing, p2_facing = facing_directions(p1_object[1], p2_object[1])
                 finish_phase = current[FINISH_PHASE_OFFSET]
                 finisher_success = current[FINISHER_SUCCESS_OFFSET]
+                finisher_type_a = current[FINISHER_TYPE_A_OFFSET]
                 phase_started = finish_phase == 0x03 and previous_finish_phase != 0x03
                 success_rewound = (
                     previous_finisher_success is not None
@@ -475,13 +478,20 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     previous_p1_inputs = p1_inputs
                     previous_p2_inputs = p2_inputs
 
-                if (
+                generic_finisher_started = (
                     previous_finisher_success is not None
                     and previous_finisher_success == 0
                     and finisher_success != 0
-                ):
-                    type_a = current[FINISHER_TYPE_A_OFFSET]
+                )
+                stage_fatality_started = (
+                    finish_phase == 0x03
+                    and finisher_type_a == 0x02
+                    and previous_finisher_type_a != 0x02
+                )
+                if generic_finisher_started or stage_fatality_started:
+                    type_a = finisher_type_a
                     type_b = current[FINISHER_TYPE_B_OFFSET]
+                    effective_type = type_b if generic_finisher_started else type_a
                     winner_side = ""
                     if current[P1_HEALTH_OFFSET] > 0 and current[P2_HEALTH_OFFSET] == 0:
                         winner_side = "p1"
@@ -495,7 +505,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                             f"0x{type_a:02X}",
                             f"0x{finisher_success:02X}",
                             f"0x{type_b:02X}",
-                            finisher_kind(type_b),
+                            finisher_kind(effective_type),
                             f"0x{finish_phase:02X}",
                             winner_side,
                             f"0x{current[P1_CHARACTER_OFFSET]:02X}",
@@ -508,6 +518,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     )
                 previous_finish_phase = finish_phase
                 previous_finisher_success = finisher_success
+                previous_finisher_type_a = finisher_type_a
                 frame_count += 1
                 first_ticks = ticks if first_ticks is None else first_ticks
                 last_ticks = ticks

@@ -420,7 +420,10 @@ namespace MK3MoveBook.Research
                 ram[FinisherTypeCandidateAOffset],
                 ram[FinisherSuccessOffset],
                 ram[FinisherTypeCandidateBOffset],
-                FinisherKind(ram[FinisherTypeCandidateBOffset]),
+                FinisherKind(
+                    ram[FinisherTypeCandidateAOffset],
+                    ram[FinisherTypeCandidateBOffset]
+                ),
                 progress == null ? "" : progress.State,
                 progress == null ? 0 : progress.RoundNumber,
                 progress == null ? 0 : progress.PlayerOneRounds,
@@ -476,7 +479,10 @@ namespace MK3MoveBook.Research
                     Hex(ram[FinisherTypeCandidateAOffset]),
                     Hex(ram[FinisherSuccessOffset]),
                     Hex(ram[FinisherTypeCandidateBOffset]),
-                    FinisherKind(ram[FinisherTypeCandidateBOffset]),
+                    FinisherKind(
+                        ram[FinisherTypeCandidateAOffset],
+                        ram[FinisherTypeCandidateBOffset]
+                    ),
                     progress == null ? "" : progress.State,
                     progress == null ? "" : progress.RoundNumber.ToString(CultureInfo.InvariantCulture),
                     progress == null ? "" : progress.PlayerOneRounds.ToString(CultureInfo.InvariantCulture),
@@ -500,12 +506,15 @@ namespace MK3MoveBook.Research
             return "0x" + value.ToString("X2");
         }
 
-        private static string FinisherKind(byte value)
+        private static string FinisherKind(byte typeA, byte typeB)
         {
+            byte value = typeB != 0 ? typeB : typeA;
             switch (value)
             {
                 case 0x01:
                     return "fatality";
+                case 0x02:
+                    return "stage-fatality";
                 case 0x03:
                     return "animality";
                 case 0x04:
