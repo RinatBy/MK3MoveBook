@@ -29,8 +29,15 @@ namespace MK3MoveBook.Research
         private const int PlayerTwoCharacterOffset = 0x0C2BC;
         private const int PlayerTwoHealthOffset = 0x0C2C2;
         private const int PlayerTwoRunOffset = 0x0C2C4;
+        private const int PlayerOneInputOffset = 0x0B732;
+        private const int PlayerTwoInputOffset = 0x0B733;
+        private const int AuxiliaryInputOffset = 0x0B734;
         private const int KombatZoneOffset = 0x0C44C;
         private const int PowerbarsEnabledOffset = 0x0C424;
+        private const int FinisherSuccessCandidateAOffset = 0x0C426;
+        private const int FinisherSuccessCandidateBOffset = 0x0C442;
+        private const int FinishPhaseCandidateOffset = 0x0C454;
+        private const int FinisherSuccessCandidateCOffset = 0x0C4E6;
         private const int NoThrowingOffset = 0x0C55C;
         private const int NoBlockingOffset = 0x0C560;
         private const int FastUppercutOffset = 0x0C57C;
@@ -331,6 +338,8 @@ namespace MK3MoveBook.Research
             writer.WriteLine(
                 "timestamp_utc;frame;process_id;ram_address;" +
                 "p1_id;p1_name;p1_health;p1_run;p2_id;p2_name;p2_health;p2_run;" +
+                "p1_input;p2_input;aux_input;finish_phase;" +
+                "finisher_success_a;finisher_success_b;finisher_success_c;" +
                 "fight_state;round;p1_rounds;p2_rounds;winner_side;winner;event_kind;zone;" +
                 "powerbars_enabled;no_throwing;no_blocking;fast_uppercut;unlimited_run"
             );
@@ -372,6 +381,13 @@ namespace MK3MoveBook.Research
                 p2Id,
                 p2Health,
                 ram[PlayerTwoRunOffset],
+                ram[PlayerOneInputOffset],
+                ram[PlayerTwoInputOffset],
+                ram[AuxiliaryInputOffset],
+                ram[FinishPhaseCandidateOffset],
+                ram[FinisherSuccessCandidateAOffset],
+                ram[FinisherSuccessCandidateBOffset],
+                ram[FinisherSuccessCandidateCOffset],
                 progress == null ? "" : progress.State,
                 progress == null ? 0 : progress.RoundNumber,
                 progress == null ? 0 : progress.PlayerOneRounds,
@@ -408,6 +424,13 @@ namespace MK3MoveBook.Research
                     CharacterName(p2Id),
                     p2Health.ToString(CultureInfo.InvariantCulture),
                     ram[PlayerTwoRunOffset].ToString(CultureInfo.InvariantCulture),
+                    Hex(ram[PlayerOneInputOffset]),
+                    Hex(ram[PlayerTwoInputOffset]),
+                    Hex(ram[AuxiliaryInputOffset]),
+                    Hex(ram[FinishPhaseCandidateOffset]),
+                    Hex(ram[FinisherSuccessCandidateAOffset]),
+                    Hex(ram[FinisherSuccessCandidateBOffset]),
+                    Hex(ram[FinisherSuccessCandidateCOffset]),
                     progress == null ? "" : progress.State,
                     progress == null ? "" : progress.RoundNumber.ToString(CultureInfo.InvariantCulture),
                     progress == null ? "" : progress.PlayerOneRounds.ToString(CultureInfo.InvariantCulture),

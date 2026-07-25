@@ -34,6 +34,7 @@ KNOWN_OFFSETS = {
     0x0C424: "powerbars_enabled",
     0x0C426: "finisher_success_candidate_a",
     0x0C442: "finisher_success_candidate_b",
+    0x0C454: "finish_phase_candidate",
     0x0C55C: "no_throwing",
     0x0C560: "no_blocking",
     0x0C57C: "fast_uppercut",
