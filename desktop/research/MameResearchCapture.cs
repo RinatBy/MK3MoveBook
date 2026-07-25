@@ -506,8 +506,14 @@ namespace MK3MoveBook.Research
             {
                 case 0x01:
                     return "fatality";
+                case 0x03:
+                    return "animality";
+                case 0x04:
+                    return "friendship";
                 case 0x05:
                     return "babality";
+                case 0x06:
+                    return "brutality";
                 default:
                     return "";
             }

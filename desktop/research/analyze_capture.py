@@ -182,7 +182,10 @@ def normalize_inputs(inputs: tuple[str, ...], facing: str) -> tuple[str, ...]:
 def finisher_kind(value: int) -> str:
     return {
         0x01: "fatality",
+        0x03: "animality",
+        0x04: "friendship",
         0x05: "babality",
+        0x06: "brutality",
     }.get(value, f"unknown-0x{value:02X}")
 
 
