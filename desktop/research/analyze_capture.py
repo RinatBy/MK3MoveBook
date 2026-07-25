@@ -63,6 +63,7 @@ FINISHER_SUCCESS_OFFSET = 0x0C442
 FINISH_PHASE_OFFSET = 0x0C454
 FINISHER_TYPE_B_OFFSET = 0x0C4E6
 RECENT_INPUT_FRAMES = 300
+STATE_LOAD_CHANGED_BYTES = 8000
 
 MAIN_INPUT_BITS = (
     (0x01, "UP"),
@@ -198,6 +199,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
     inputs_path = output_dir / "input-events.csv"
     players_path = output_dir / "player-state.csv"
     finishers_path = output_dir / "finisher-events.csv"
+    markers_path = output_dir / "capture-markers.csv"
     summary_path = output_dir / "summary.txt"
 
     with gzip.open(capture_path, "rb") as stream:
@@ -220,6 +222,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             inputs_path.open("w", newline="", encoding="utf-8-sig") as inputs_file,
             players_path.open("w", newline="", encoding="utf-8-sig") as players_file,
             finishers_path.open("w", newline="", encoding="utf-8-sig") as finishers_file,
+            markers_path.open("w", newline="", encoding="utf-8-sig") as markers_file,
         ):
             writer = csv.writer(activity_file, delimiter=";")
             writer.writerow(
@@ -230,6 +233,18 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     "ram_address",
                     "segments",
                     "changed_bytes",
+                ]
+            )
+            marker_writer = csv.writer(markers_file, delimiter=";")
+            marker_writer.writerow(
+                [
+                    "timestamp_utc",
+                    "frame",
+                    "attempt",
+                    "kind",
+                    "changed_bytes",
+                    "finish_phase",
+                    "finisher_success",
                 ]
             )
             input_writer = csv.writer(inputs_file, delimiter=";")
@@ -276,6 +291,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 [
                     "timestamp_utc",
                     "frame",
+                    "attempt",
                     "finisher_type_a",
                     "finisher_success",
                     "finisher_type_b",
@@ -296,6 +312,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
             previous_finisher_success: int | None = None
             recent_p1_inputs: list[tuple[int, str]] = []
             recent_p2_inputs: list[tuple[int, str]] = []
+            attempt = 0
 
             while True:
                 frame_header = stream.read(FRAME.size)
@@ -353,9 +370,39 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                 p2_object = object_state(current, P2_OBJECT_POINTER_OFFSET)
                 p1_facing, p2_facing = facing_directions(p1_object[1], p2_object[1])
                 finish_phase = current[FINISH_PHASE_OFFSET]
-                if finish_phase == 0x03 and previous_finish_phase != 0x03:
+                finisher_success = current[FINISHER_SUCCESS_OFFSET]
+                phase_started = finish_phase == 0x03 and previous_finish_phase != 0x03
+                success_rewound = (
+                    previous_finisher_success is not None
+                    and previous_finisher_success != 0
+                    and finisher_success == 0
+                    and finish_phase == 0x03
+                )
+                state_load_candidate = (
+                    finish_phase == 0x03
+                    and (success_rewound or changed_bytes >= STATE_LOAD_CHANGED_BYTES)
+                )
+                marker_kind = ""
+                if phase_started:
+                    attempt += 1
+                    marker_kind = "finish-phase-start"
+                elif state_load_candidate:
+                    attempt += 1
+                    marker_kind = "state-load-candidate"
+                if marker_kind:
                     recent_p1_inputs.clear()
                     recent_p2_inputs.clear()
+                    marker_writer.writerow(
+                        [
+                            dotnet_ticks_to_iso(ticks),
+                            frame,
+                            attempt,
+                            marker_kind,
+                            changed_bytes,
+                            f"0x{finish_phase:02X}",
+                            f"0x{finisher_success:02X}",
+                        ]
+                    )
                 player_writer.writerow(
                     [
                         dotnet_ticks_to_iso(ticks),
@@ -425,7 +472,6 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                     previous_p1_inputs = p1_inputs
                     previous_p2_inputs = p2_inputs
 
-                finisher_success = current[FINISHER_SUCCESS_OFFSET]
                 if (
                     previous_finisher_success is not None
                     and previous_finisher_success == 0
@@ -442,6 +488,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
                         [
                             dotnet_ticks_to_iso(ticks),
                             frame,
+                            attempt,
                             f"0x{type_a:02X}",
                             f"0x{finisher_success:02X}",
                             f"0x{type_b:02X}",
@@ -521,6 +568,7 @@ def analyze(capture_path: Path, output_dir: Path, top: int) -> None:
         f"input_events={inputs_path}",
         f"player_state={players_path}",
         f"finisher_events={finishers_path}",
+        f"capture_markers={markers_path}",
     ]
     summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8-sig")
     print("\n".join(summary_lines))
