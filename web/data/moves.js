@@ -133,7 +133,7 @@ window.MOVEBOOK_DATA = {
                 {"label":"Fatality 1               (sweep)","notation":"_2,_2,_4,_6,BL","pretty":"↓,↓,←,→,BL"},
                 {"label":"Fatality 2              (close)","notation":"RUN,BL,BL,BL,HK","pretty":"RUN,BL,BL,BL,HK"},
                 {"label":"Animality              (close)","notation":"hold HP _6,_6,_2,_6","pretty":"hold HP →,→,↓,→"},
-                {"label":"Antifatality           (close)","notation":"hold HP _6,_6,_2,_6","pretty":"hold HP →,→,↓,→"},
+                {"label":"Antifatality           (close)","notation":"hold HP _6,_6,_2,_6","pretty":"hold HP →,→,↓,→","editionBadge":"ТОЛЬКО UMK3 UK","editionNote":"Приём работает в ROM UMK3 UK [260709] и недоступен в Team Edition."},
                 {"label":"Friendship            (sweep)","notation":"RUN,LK,RUN,RUN,_8","pretty":"RUN,LK,RUN,RUN,↑"},
                 {"label":"Babality","notation":"RUN,RUN,LK","pretty":"RUN,RUN,LK"},
                 {"label":"Stage Fatality","notation":"BL,BL,HK","pretty":"BL,BL,HK"},

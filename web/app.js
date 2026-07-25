@@ -22,8 +22,9 @@
     const achievementData = window.MOVEBOOK_ACHIEVEMENTS || {
         preview: true,
         general: [],
-        fighterTemplate: {},
-        lore: []
+        fighters: [],
+        lore: [],
+        special: []
     };
     const tabLabels = {
         moves: "Приёмы",
@@ -1222,17 +1223,13 @@
         hideMovePreview();
         const fighters = currentVersion().fighters;
         const fighterById = new Map(fighters.map(fighter => [fighter.id, fighter]));
-        const fighterTemplate = achievementData.fighterTemplate || {};
-        const excludedFighterIds = new Set(
-            fighterTemplate.excludedFighterIds || []
-        );
-        const debutFighters = fighters.filter(
-            fighter => !excludedFighterIds.has(fighter.id)
-        );
         const generalAchievements = achievementData.general || [];
+        const fighterAchievements = achievementData.fighters || [];
         const loreAchievements = achievementData.lore || [];
+        const specialAchievements = achievementData.special || [];
         const total = generalAchievements.length +
-            debutFighters.length + loreAchievements.length;
+            fighterAchievements.length + loreAchievements.length +
+            specialAchievements.length;
 
         const generalCards = generalAchievements.map(item =>
             renderAchievementCard(
@@ -1240,19 +1237,15 @@
                 `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`
             )
         ).join("");
-        const fighterCards = debutFighters.map(fighter => {
-            const description = String(fighterTemplate.description || "")
-                .replace("{fighter}", fighter.name);
+        const fighterCards = fighterAchievements.map(item => {
+            const fighter = fighterById.get(item.fighterId);
             return renderAchievementCard(
-                {
-                    id: `${fighterTemplate.idPrefix || "fighter-debut-"}${fighter.id}`,
-                    title: fighterTemplate.title || "Боевой дебют",
-                    description,
-                    label: fighter.name
-                },
-                `<span class="achievement-card-icon">
-                    <img src="${portraitPath(fighter)}" alt="">
-                </span>`
+                item,
+                fighter
+                    ? `<span class="achievement-card-icon">
+                        <img src="${portraitPath(fighter)}" alt="">
+                    </span>`
+                    : `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`
             );
         }).join("");
         const loreCards = loreAchievements.map(item => {
@@ -1265,6 +1258,15 @@
                 </span>`
                 : `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`;
             return renderAchievementCard(item, portraits);
+        }).join("");
+        const specialCards = specialAchievements.map(item => {
+            const fighter = fighterById.get(item.fighterId);
+            const icon = fighter
+                ? `<span class="achievement-card-icon">
+                    <img src="${portraitPath(fighter)}" alt="">
+                </span>`
+                : `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`;
+            return renderAchievementCard(item, icon);
         }).join("");
 
         document.documentElement.style.setProperty("--accent", "#b62a43");
@@ -1293,10 +1295,13 @@
                 <span>Общие</span><b>${generalAchievements.length}</b>
             </button>
             <button class="category-link" type="button" data-category="achievement-fighters">
-                <span>Бойцы</span><b>${debutFighters.length}</b>
+                <span>Бойцы</span><b>${fighterAchievements.length}</b>
             </button>
             <button class="category-link" type="button" data-category="achievement-lore">
                 <span>Противостояния</span><b>${loreAchievements.length}</b>
+            </button>
+            <button class="category-link" type="button" data-category="achievement-special">
+                <span>Особые</span><b>${specialAchievements.length}</b>
             </button>`;
         elements.routeBar.innerHTML =
             `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>ДОСТИЖЕНИЯ</b>`;
@@ -1327,6 +1332,8 @@
                         aria-pressed="false">Бойцы</button>
                     <button type="button" data-achievement-filter="lore"
                         aria-pressed="false">Противостояния</button>
+                    <button type="button" data-achievement-filter="special"
+                        aria-pressed="false">Особые</button>
                 </nav>
                 <section id="category-achievement-general"
                     class="achievement-group" data-achievement-group="general">
@@ -1348,6 +1355,13 @@
                         <h3>Противостояния</h3><span>${loreAchievements.length}</span>
                     </header>
                     <div class="achievement-card-grid">${loreCards}</div>
+                </section>
+                <section id="category-achievement-special"
+                    class="achievement-group" data-achievement-group="special">
+                    <header class="achievement-group-heading">
+                        <h3>Особые испытания</h3><span>${specialAchievements.length}</span>
+                    </header>
+                    <div class="achievement-card-grid">${specialCards}</div>
                 </section>
                 <p class="achievement-preview-note">
                     Портреты бойцов используются как основа значков боевого дебюта.
@@ -1383,6 +1397,11 @@
                                 `${badge.note ? `title="${escapeHtml(badge.note)}" ` : ""}>` +
                                 `${escapeHtml(badge.label)}</em>`
                             : "";
+                        const editionBadgeMarkup = sourceMove.editionBadge
+                            ? `<em class="move-platform-badge is-edition" ` +
+                                `${sourceMove.editionNote ? `title="${escapeHtml(sourceMove.editionNote)}" ` : ""}>` +
+                                `${escapeHtml(sourceMove.editionBadge)}</em>`
+                            : "";
                         const morphPortraitMarkup = morphTarget
                             ? `<img class="morph-target-portrait" ` +
                                 `src="${portraitPath(morphTarget)}" alt="" ` +
@@ -1391,8 +1410,9 @@
                         return `
                             <article class="move-card${morphTarget ? " has-morph-target" : ""}" tabindex="0" data-move="${key}">
                                 <div class="move-name">
-                                    <span>${escapeHtml(move.label || "Без названия")}</span>
-                                    ${badgeMarkup}
+                                     <span>${escapeHtml(move.label || "Без названия")}</span>
+                                     ${badgeMarkup}
+                                     ${editionBadgeMarkup}
                                 </div>
                                 <div class="move-command">${renderSequence(move.notation)}</div>
                                 ${morphPortraitMarkup}

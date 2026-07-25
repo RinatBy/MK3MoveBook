@@ -2168,6 +2168,12 @@ button {
     text-align: center;
 }
 
+.move-platform-badge.is-edition {
+    color: #fff0b8;
+    background: #7d2634;
+    border-color: #b96f48;
+}
+
 .achievements-page {
     color: #34282c;
 }
