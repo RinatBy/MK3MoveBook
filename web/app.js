@@ -121,12 +121,21 @@
     const hostedSite = document.body.classList.contains("hosted-site");
     const latestReleaseUrl =
         "https://github.com/RinatBy/MK3MoveBook/releases/latest";
-    const achievementStoragePrefix = "movebook-achievement-progress-v2:user:";
+    const achievementStoragePrefix =
+        "movebook-achievement-progress-v3:server-user:";
     const achievementEngine = window.MOVEBOOK_ACHIEVEMENT_ENGINE;
     const achievementAccess = {
         signedIn: false,
         userId: 0,
         displayName: ""
+    };
+    const achievementSync = {
+        state: "signed-out",
+        details: "Войдите через Discord для синхронизации.",
+        matchesPlayed: 0,
+        finishers: 0,
+        pendingEvents: 0,
+        verificationState: ""
     };
 
     function achievementStorageKey(userId) {
@@ -185,19 +194,9 @@
     }
 
     function processMameAchievements(message) {
-        if (!achievementAccess.signedIn) {
-            return [];
-        }
-        const result = achievementEngine.processStatus(
-            achievementProgress,
-            message,
-            achievementData
-        );
-        achievementProgress = result.progress;
-        if (result.changed) {
-            saveAchievementProgress();
-        }
-        return result.unlocked;
+        // The C# host sends normalized MAME events to the authenticated API.
+        // JavaScript never grants account achievements on its own.
+        return [];
     }
 
     const initialPlatform = loadPlatform();
@@ -1348,8 +1347,29 @@
         const profileName = trackingEnabled
             ? escapeHtml(achievementAccess.displayName)
             : "";
+        const syncState = escapeHtml(achievementSync.state);
+        const syncPanel = `<section class="achievement-sync-status"
+                data-state="${syncState}">
+            <span class="achievement-sync-light" aria-hidden="true"></span>
+            <span>
+                <small>СЕРВЕРНЫЙ ПРОФИЛЬ</small>
+                <strong>${achievementSync.state === "synced"
+                    ? "Прогресс синхронизирован"
+                    : achievementSync.state === "syncing"
+                        ? "Сохраняем событие MAME…"
+                        : achievementSync.state === "offline"
+                            ? "Синхронизация приостановлена"
+                            : "Загружаем прогресс…"}</strong>
+                <span>${escapeHtml(achievementSync.details)}</span>
+            </span>
+            ${achievementSync.state === "offline"
+                ? `<button type="button" data-achievement-sync-retry>
+                    Повторить
+                </button>`
+                : ""}
+        </section>`;
         const trackingPanel = trackingEnabled
-            ? mameDiagnosticMarkup()
+            ? `${syncPanel}${mameDiagnosticMarkup()}`
             : `<section class="achievement-auth-gate">
                 <span class="achievement-auth-gate-mark" aria-hidden="true">◆</span>
                 <div>
@@ -1465,7 +1485,7 @@
                     <div class="achievements-summary">
                         <strong>${trackingEnabled ? completed : "—"} / ${total}</strong>
                         <span>${trackingEnabled
-                            ? `${achievementProgress.victories} побед · профиль ${profileName}`
+                            ? `${achievementProgress.victories} побед · ${achievementSync.matchesPlayed} матчей`
                             : "События MAME сейчас не записываются"}</span>
                     </div>
                 </header>
@@ -1512,8 +1532,9 @@
                 </section>
                 <p class="achievement-preview-note">
                     ${trackingEnabled
-                        ? `Прогресс пока хранится локально для этого аккаунта.
-                            Серверная синхронизация будет подключена следующим этапом.`
+                        ? `Прогресс привязан к профилю ${profileName} и хранится
+                            на сервере MoveBook. Текущие события имеют статус
+                            «локально не подтверждено» до появления защищённого режима игры.`
                         : `Без авторизации этот раздел работает только как каталог:
                             игровой прогресс не создаётся и не сохраняется.`}
                 </p>
@@ -2265,6 +2286,14 @@
             achievementProgress = nextSignedIn
                 ? loadAchievementProgress(normalizedUserId)
                 : achievementEngine.emptyProgress();
+            achievementSync.state = nextSignedIn ? "loading" : "signed-out";
+            achievementSync.details = nextSignedIn
+                ? "Ожидаем серверный профиль MoveBook."
+                : "Войдите через Discord для синхронизации.";
+            achievementSync.matchesPlayed = 0;
+            achievementSync.finishers = 0;
+            achievementSync.pendingEvents = 0;
+            achievementSync.verificationState = "";
         }
 
         document.body.classList.toggle(
@@ -2286,6 +2315,76 @@
             mobileHint.textContent = nextSignedIn
                 ? "Открыть центр испытаний"
                 : "Войдите через Discord для учёта прогресса";
+        }
+
+        if (state.tab === "achievements") {
+            renderAchievementsPage();
+        }
+    }
+
+    function applyAchievementProgress(message) {
+        if (!message || message.type !== "movebook-achievement-progress" ||
+            !achievementAccess.signedIn) {
+            return;
+        }
+        const userId = Number(message.userId) || 0;
+        if (userId !== achievementAccess.userId) {
+            return;
+        }
+
+        achievementSync.state = String(message.state || "offline");
+        achievementSync.details = String(
+            message.details || "Состояние синхронизации неизвестно."
+        );
+        achievementSync.pendingEvents = Math.max(
+            0,
+            Number(message.pendingEvents) || 0
+        );
+        achievementSync.verificationState = String(
+            message.verificationState || ""
+        );
+
+        if (message.hasProgress) {
+            const unlocked = message.unlocked &&
+                typeof message.unlocked === "object"
+                ? Object.fromEntries(
+                    Object.entries(message.unlocked).map(([id, timestamp]) => [
+                        String(id),
+                        String(timestamp || "")
+                    ])
+                )
+                : {};
+            achievementProgress = achievementEngine.normalizeProgress({
+                victories: Math.max(0, Number(message.victories) || 0),
+                unlocked,
+                processedEvents: []
+            });
+            achievementSync.matchesPlayed = Math.max(
+                0,
+                Number(message.matchesPlayed) || 0
+            );
+            achievementSync.finishers = Math.max(
+                0,
+                Number(message.finishers) || 0
+            );
+            saveAchievementProgress();
+        }
+
+        const newUnlockIds = Array.isArray(message.newUnlocks)
+            ? message.newUnlocks.map(String)
+            : [];
+        if (newUnlockIds.length) {
+            const definitionsById = new Map(
+                achievementDefinitions().map(definition => [definition.id, definition])
+            );
+            const newlyUnlocked = newUnlockIds
+                .map(id => definitionsById.get(id))
+                .filter(Boolean);
+            if (newlyUnlocked.length) {
+                elements.statusText.textContent = newlyUnlocked.length === 1
+                    ? `Получено достижение: ${newlyUnlocked[0].title}`
+                    : `Получено достижений: ${newlyUnlocked.length}`;
+            }
         }
 
         if (state.tab === "achievements") {
@@ -2429,6 +2528,7 @@
             applyUpdateStatus(event.data);
             applyMameStatus(event.data);
             applyAuthStatus(event.data);
+            applyAchievementProgress(event.data);
         });
         elements.updateButton.dataset.action = "check";
         bridge.postMessage("check-updates");
@@ -2597,6 +2697,20 @@
     });
 
     elements.pageContent.addEventListener("click", event => {
+        const achievementSyncRetry = event.target.closest(
+            "[data-achievement-sync-retry]"
+        );
+        if (achievementSyncRetry) {
+            const bridge = updateBridge();
+            if (bridge) {
+                achievementSync.state = "loading";
+                achievementSync.details =
+                    "Повторно подключаемся к серверу MoveBook…";
+                renderAchievementsPage();
+                bridge.postMessage("retry-achievement-sync");
+            }
+            return;
+        }
         const achievementLogin = event.target.closest("[data-achievement-login]");
         if (achievementLogin) {
             const bridge = updateBridge();

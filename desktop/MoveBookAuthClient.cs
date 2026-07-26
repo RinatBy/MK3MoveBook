@@ -1,7 +1,9 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,6 +52,40 @@ namespace MK3MoveBook
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }
         public MoveBookAuthUser User { get; set; }
+    }
+
+    internal sealed class MoveBookAchievementEvent
+    {
+        public string EventKey { get; set; }
+        public string EventType { get; set; }
+        public string RomId { get; set; }
+        public string WinnerSide { get; set; }
+        public int PlayerOneId { get; set; }
+        public int PlayerTwoId { get; set; }
+        public int PlayerOneHealth { get; set; }
+        public int PlayerTwoHealth { get; set; }
+        public string FinisherKind { get; set; }
+        public string FinisherWinnerSide { get; set; }
+        public int FinisherFighterId { get; set; }
+        public int FinisherOpponentId { get; set; }
+        public DateTime OccurredAtUtc { get; set; }
+    }
+
+    internal sealed class MoveBookAchievementProgress
+    {
+        public int UserId { get; set; }
+        public long Victories { get; set; }
+        public long MatchesPlayed { get; set; }
+        public long Finishers { get; set; }
+        public string VerificationState { get; set; }
+        public Dictionary<string, string> Unlocked { get; set; }
+    }
+
+    internal sealed class MoveBookAchievementSubmitResult
+    {
+        public bool Accepted { get; set; }
+        public string[] NewUnlocks { get; set; }
+        public MoveBookAchievementProgress Progress { get; set; }
     }
 
     internal sealed class MoveBookAuthClient : IDisposable
@@ -188,6 +224,66 @@ namespace MK3MoveBook
             );
         }
 
+        public async Task<MoveBookAchievementProgress> GetAchievementProgressAsync(
+            string accessToken,
+            CancellationToken cancellationToken
+        )
+        {
+            AuthHttpResult result = await SendForResultAsync(
+                HttpMethod.Get,
+                "/api/v1/achievements/me",
+                null,
+                new[] { HttpStatusCode.OK },
+                cancellationToken,
+                accessToken
+            );
+            return ParseAchievementProgress(result.Payload);
+        }
+
+        public async Task<MoveBookAchievementSubmitResult> SubmitAchievementEventAsync(
+            string accessToken,
+            MoveBookAchievementEvent achievementEvent,
+            CancellationToken cancellationToken
+        )
+        {
+            if (achievementEvent == null)
+            {
+                throw new ArgumentNullException("achievementEvent");
+            }
+            Dictionary<string, object> body = new Dictionary<string, object>();
+            body["event_key"] = achievementEvent.EventKey;
+            body["event_type"] = achievementEvent.EventType;
+            body["rom_id"] = achievementEvent.RomId;
+            body["winner_side"] = achievementEvent.WinnerSide;
+            body["player_one_id"] = achievementEvent.PlayerOneId;
+            body["player_two_id"] = achievementEvent.PlayerTwoId;
+            body["player_one_health"] = achievementEvent.PlayerOneHealth;
+            body["player_two_health"] = achievementEvent.PlayerTwoHealth;
+            body["finisher_kind"] = achievementEvent.FinisherKind;
+            body["finisher_winner_side"] =
+                achievementEvent.FinisherWinnerSide;
+            body["finisher_fighter_id"] = achievementEvent.FinisherFighterId;
+            body["finisher_opponent_id"] = achievementEvent.FinisherOpponentId;
+            body["occurred_at"] = achievementEvent.OccurredAtUtc.ToString("o");
+
+            AuthHttpResult result = await SendForResultAsync(
+                HttpMethod.Post,
+                "/api/v1/achievements/events",
+                body,
+                new[] { HttpStatusCode.OK },
+                cancellationToken,
+                accessToken
+            );
+            return new MoveBookAchievementSubmitResult
+            {
+                Accepted = OptionalBool(result.Payload, "accepted"),
+                NewUnlocks = ReadStringArray(result.Payload, "new_unlocks"),
+                Progress = ParseAchievementProgress(
+                    RequireDictionary(result.Payload, "progress")
+                )
+            };
+        }
+
         public void Dispose()
         {
             httpClient.Dispose();
@@ -201,11 +297,35 @@ namespace MK3MoveBook
             CancellationToken cancellationToken
         )
         {
+            return await SendForResultAsync(
+                method,
+                path,
+                body,
+                acceptedStatuses,
+                cancellationToken,
+                ""
+            );
+        }
+
+        private async Task<AuthHttpResult> SendForResultAsync(
+            HttpMethod method,
+            string path,
+            Dictionary<string, object> body,
+            HttpStatusCode[] acceptedStatuses,
+            CancellationToken cancellationToken,
+            string accessToken
+        )
+        {
             using (HttpRequestMessage request = new HttpRequestMessage(
                 method,
                 apiBaseUrl + path
             ))
             {
+                if (!string.IsNullOrWhiteSpace(accessToken))
+                {
+                    request.Headers.Authorization =
+                        new AuthenticationHeaderValue("Bearer", accessToken);
+                }
                 if (body != null)
                 {
                     request.Content = new StringContent(
@@ -356,6 +476,50 @@ namespace MK3MoveBook
             };
         }
 
+        private static MoveBookAchievementProgress ParseAchievementProgress(
+            Dictionary<string, object> payload
+        )
+        {
+            Dictionary<string, string> unlocked =
+                new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (object item in ReadArray(payload, "unlocks"))
+            {
+                Dictionary<string, object> unlock =
+                    item as Dictionary<string, object>;
+                if (unlock == null)
+                {
+                    continue;
+                }
+                string achievementId = OptionalString(
+                    unlock,
+                    "achievement_id"
+                );
+                if (!string.IsNullOrWhiteSpace(achievementId))
+                {
+                    unlocked[achievementId] = OptionalString(
+                        unlock,
+                        "unlocked_at"
+                    );
+                }
+            }
+
+            return new MoveBookAchievementProgress
+            {
+                UserId = RequirePositiveInt(payload, "user_id"),
+                Victories = RequireNonNegativeLong(payload, "victories"),
+                MatchesPlayed = RequireNonNegativeLong(
+                    payload,
+                    "matches_played"
+                ),
+                Finishers = RequireNonNegativeLong(payload, "finishers"),
+                VerificationState = OptionalString(
+                    payload,
+                    "verification_state"
+                ),
+                Unlocked = unlocked
+            };
+        }
+
         private static Dictionary<string, object> RequireDictionary(
             Dictionary<string, object> payload,
             string key
@@ -415,6 +579,67 @@ namespace MK3MoveBook
                 );
             }
             return result;
+        }
+
+        private static long RequireNonNegativeLong(
+            Dictionary<string, object> payload,
+            string key
+        )
+        {
+            object value;
+            long result;
+            if (!payload.TryGetValue(key, out value) ||
+                !long.TryParse(Convert.ToString(value), out result) ||
+                result < 0)
+            {
+                throw new MoveBookAuthException(
+                    "Сервер MoveBook вернул неполные данные достижений."
+                );
+            }
+            return result;
+        }
+
+        private static bool OptionalBool(
+            Dictionary<string, object> payload,
+            string key
+        )
+        {
+            object value;
+            bool result;
+            return payload.TryGetValue(key, out value) &&
+                bool.TryParse(Convert.ToString(value), out result) &&
+                result;
+        }
+
+        private static IEnumerable ReadArray(
+            Dictionary<string, object> payload,
+            string key
+        )
+        {
+            object value;
+            IEnumerable values;
+            return payload.TryGetValue(key, out value) &&
+                (values = value as IEnumerable) != null &&
+                !(value is string)
+                ? values
+                : new object[0];
+        }
+
+        private static string[] ReadStringArray(
+            Dictionary<string, object> payload,
+            string key
+        )
+        {
+            List<string> result = new List<string>();
+            foreach (object item in ReadArray(payload, key))
+            {
+                string value = item == null ? "" : Convert.ToString(item);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    result.Add(value);
+                }
+            }
+            return result.ToArray();
         }
 
         private sealed class AuthHttpResult

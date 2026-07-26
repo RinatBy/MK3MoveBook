@@ -34,6 +34,7 @@ function status(overrides = {}) {
         playerTwoHealth: 0,
         finisherSequence: 0,
         finisherKind: "",
+        finisherWinnerSide: "",
         finisherFighterId: -1,
         ...overrides
     };
@@ -83,6 +84,7 @@ result = engine.processStatus(
         romId: "umk3tm",
         finisherSequence: 1,
         finisherKind: "antifatality",
+        finisherWinnerSide: "p1",
         finisherFighterId: 0x0A
     }),
     data
@@ -97,6 +99,7 @@ result = engine.processStatus(
         romId: "umk3tm",
         finisherSequence: 2,
         finisherKind: "fatality",
+        finisherWinnerSide: "p1",
         finisherFighterId: 0x0A
     }),
     data
@@ -111,6 +114,7 @@ result = engine.processStatus(
         romId: "umk3tm",
         finisherSequence: 3,
         finisherKind: "brutality",
+        finisherWinnerSide: "p1",
         finisherFighterId: 0x02
     }),
     data
@@ -126,6 +130,7 @@ result = engine.processStatus(
         romId: "umk3tm",
         finisherSequence: 4,
         finisherKind: "brutality",
+        finisherWinnerSide: "p1",
         finisherFighterId: 0x0B
     }),
     data
@@ -140,6 +145,7 @@ result = engine.processStatus(
         romId: "umk3uk",
         finisherSequence: 1,
         finisherKind: "antifatality",
+        finisherWinnerSide: "p1",
         finisherFighterId: 0x0A
     }),
     data,
@@ -162,10 +168,24 @@ for (let sequence = 2; sequence <= 10; sequence++) {
     );
     progress = result.progress;
 }
-assert.equal(progress.victories, 10);
-assert.equal(Boolean(progress.unlocked["victories-5"]), true);
-assert.equal(Boolean(progress.unlocked["victories-10"]), true);
+assert.equal(progress.victories, 1);
+assert.equal(Boolean(progress.unlocked["victories-5"]), false);
+assert.equal(Boolean(progress.unlocked["victories-10"]), false);
 assert.equal(Boolean(progress.unlocked["victories-25"]), false);
+
+result = engine.processStatus(
+    progress,
+    status({
+        processId: 202,
+        romId: "umk3tm",
+        finisherSequence: 1,
+        finisherKind: "friendship",
+        finisherWinnerSide: "p2",
+        finisherFighterId: 0x00
+    }),
+    data
+);
+assert.deepEqual(unlockedIds(result), []);
 
 let flawlessProgress = engine.emptyProgress();
 result = engine.processStatus(
@@ -223,7 +243,7 @@ result = engine.processStatus(
     }),
     data
 );
-assert.deepEqual(unlockedIds(result), ["flawless-victory"]);
+assert.deepEqual(unlockedIds(result), []);
 
 const debutFighters = new Set(Array.from(data.fighters, item => item.fighterId));
 const confrontationFighters = Array.from(data.lore, item => item.fighterId);

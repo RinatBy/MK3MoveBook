@@ -19,11 +19,13 @@ namespace MK3MoveBook
             RunAsync(TestPendingAndAuthorizedPoll, "Poll authorization");
             RunAsync(TestRefresh, "Refresh authorization");
             RunAsync(TestLogout, "Logout");
+            RunAsync(TestGetAchievementProgress, "Get achievement progress");
+            RunAsync(TestSubmitAchievementEvent, "Submit achievement event");
             TestRemoteHttpIsRejected();
 
             if (failures == 0)
             {
-                Console.WriteLine("MoveBookAuthClient: 5 tests passed.");
+                Console.WriteLine("MoveBookAuthClient: 7 tests passed.");
                 return 0;
             }
             Console.Error.WriteLine(
@@ -145,6 +147,88 @@ namespace MK3MoveBook
             Contains("refresh body", handler.Requests[0].Body, "old-refresh");
         }
 
+        private static async Task TestGetAchievementProgress()
+        {
+            QueueHandler handler = new QueueHandler();
+            handler.Enqueue(
+                HttpStatusCode.OK,
+                "{\"user_id\":7,\"victories\":5,\"matches_played\":8," +
+                "\"finishers\":2,\"verification_state\":\"unverified-local\"," +
+                "\"unlocks\":[{\"achievement_id\":\"victories-5\"," +
+                "\"unlocked_at\":\"2026-07-26T12:00:00Z\"}]}"
+            );
+            using (MoveBookAuthClient client = CreateClient(handler))
+            {
+                MoveBookAchievementProgress progress =
+                    await client.GetAchievementProgressAsync(
+                        "access-secret",
+                        CancellationToken.None
+                    );
+                Equal("progress victories", 5L, progress.Victories);
+                Equal("progress matches", 8L, progress.MatchesPlayed);
+                Equal("progress finishers", 2L, progress.Finishers);
+                Equal(
+                    "progress unlock",
+                    true,
+                    progress.Unlocked.ContainsKey("victories-5")
+                );
+            }
+            Equal(
+                "progress path",
+                "/api/v1/achievements/me",
+                handler.Requests[0].Path
+            );
+            Equal("progress bearer", "Bearer access-secret", handler.Requests[0].Authorization);
+        }
+
+        private static async Task TestSubmitAchievementEvent()
+        {
+            QueueHandler handler = new QueueHandler();
+            handler.Enqueue(
+                HttpStatusCode.OK,
+                "{\"accepted\":true,\"new_unlocks\":[\"first-fatality\"]," +
+                "\"progress\":{\"user_id\":7,\"victories\":1," +
+                "\"matches_played\":1,\"finishers\":1," +
+                "\"verification_state\":\"unverified-local\"," +
+                "\"unlocks\":[{\"achievement_id\":\"first-fatality\"," +
+                "\"unlocked_at\":\"2026-07-26T12:00:00Z\"}]}}"
+            );
+            using (MoveBookAuthClient client = CreateClient(handler))
+            {
+                MoveBookAchievementSubmitResult result =
+                    await client.SubmitAchievementEventAsync(
+                        "access-secret",
+                        new MoveBookAchievementEvent
+                        {
+                            EventKey = "session:finisher:1",
+                            EventType = "finisher",
+                            RomId = "umk3uk",
+                            WinnerSide = "",
+                            PlayerOneId = 10,
+                            PlayerTwoId = 0,
+                            PlayerOneHealth = 100,
+                            PlayerTwoHealth = 0,
+                            FinisherKind = "fatality",
+                            FinisherWinnerSide = "p1",
+                            FinisherFighterId = 10,
+                            FinisherOpponentId = 0,
+                            OccurredAtUtc = DateTime.UtcNow
+                        },
+                        CancellationToken.None
+                    );
+                Equal("event accepted", true, result.Accepted);
+                Equal("event unlock", "first-fatality", result.NewUnlocks[0]);
+                Equal("event finishers", 1L, result.Progress.Finishers);
+            }
+            Equal(
+                "event path",
+                "/api/v1/achievements/events",
+                handler.Requests[0].Path
+            );
+            Contains("event body key", handler.Requests[0].Body, "session:finisher:1");
+            Contains("event body type", handler.Requests[0].Body, "finisher_kind");
+        }
+
         private static void TestRemoteHttpIsRejected()
         {
             bool rejected = false;
@@ -246,7 +330,10 @@ namespace MK3MoveBook
                 {
                     Method = request.Method.Method,
                     Path = request.RequestUri.AbsolutePath,
-                    Body = body
+                    Body = body,
+                    Authorization = request.Headers.Authorization == null
+                        ? ""
+                        : request.Headers.Authorization.ToString()
                 });
                 return responses.Dequeue();
             }
@@ -257,6 +344,7 @@ namespace MK3MoveBook
             public string Method { get; set; }
             public string Path { get; set; }
             public string Body { get; set; }
+            public string Authorization { get; set; }
         }
     }
 }

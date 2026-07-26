@@ -2440,6 +2440,79 @@ button {
     background: linear-gradient(180deg, #ad3550, #7e2239);
 }
 
+.achievement-sync-status {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    margin: -4px 0 10px;
+    padding: 10px 13px;
+    color: #5f4a51;
+    background: rgba(255, 251, 238, .78);
+    border: 1px solid rgba(111, 73, 70, .26);
+    border-left: 3px solid #9a7c3c;
+    border-radius: 6px;
+    box-shadow: 0 3px 9px rgba(74, 45, 45, .08);
+}
+
+.achievement-sync-light {
+    width: 9px;
+    height: 9px;
+    background: #9a7c3c;
+    border: 2px solid rgba(255, 255, 255, .72);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(87, 57, 45, .28);
+}
+
+.achievement-sync-status > span:nth-child(2) {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.achievement-sync-status small {
+    color: #8b6f36;
+    font: 7px/1.15 "Russo One", sans-serif;
+    letter-spacing: .12em;
+}
+
+.achievement-sync-status strong {
+    color: #533941;
+    font: 10px/1.25 "Russo One", sans-serif;
+}
+
+.achievement-sync-status > span:nth-child(2) > span {
+    color: #7c686c;
+    font: 600 9px/1.35 "Literata", serif;
+}
+
+.achievement-sync-status button {
+    padding: 8px 11px;
+    color: #fff2bd;
+    background: linear-gradient(180deg, #982b43, #6e1d31);
+    border: 1px solid #b68f42;
+    border-radius: 5px;
+    cursor: pointer;
+    font: 8px/1 "Russo One", sans-serif;
+    text-transform: uppercase;
+}
+
+.achievement-sync-status[data-state="synced"] {
+    border-left-color: #2f8c61;
+}
+
+.achievement-sync-status[data-state="synced"] .achievement-sync-light {
+    background: #2f8c61;
+}
+
+.achievement-sync-status[data-state="offline"] {
+    border-left-color: #b0443a;
+}
+
+.achievement-sync-status[data-state="offline"] .achievement-sync-light {
+    background: #b0443a;
+}
+
 .mame-diagnostic-stack {
     margin: -4px 0 14px;
 }
@@ -4009,6 +4082,16 @@ button {
 
     .achievement-auth-gate button,
     .achievement-auth-gate a {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .achievement-sync-status {
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 10px;
+    }
+
+    .achievement-sync-status button {
         grid-column: 1 / -1;
         width: 100%;
     }

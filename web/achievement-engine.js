@@ -102,10 +102,8 @@
         const winnerSide = String(message.winnerSide || "");
         const playerOneId = mameFighterIds[Number(message.fightPlayerOneId)];
         const playerTwoId = mameFighterIds[Number(message.fightPlayerTwoId)];
-        const winnerId = winnerSide === "p1" ? playerOneId
-            : winnerSide === "p2" ? playerTwoId : "";
-        const opponentId = winnerSide === "p1" ? playerTwoId
-            : winnerSide === "p2" ? playerOneId : "";
+        const winnerId = winnerSide === "p1" ? playerOneId : "";
+        const opponentId = winnerSide === "p1" ? playerTwoId : "";
 
         if (winnerId) {
             progress.victories++;
@@ -128,7 +126,8 @@
     function processFinisher(progress, message, data, unlocked, timestamp) {
         const sequence = Number(message.finisherSequence) || 0;
         const kind = String(message.finisherKind || "");
-        if (!sequence || !kind) {
+        const winnerSide = String(message.finisherWinnerSide || "");
+        if (!sequence || !kind || winnerSide !== "p1") {
             return false;
         }
         const eventKey = [
@@ -171,7 +170,7 @@
         const playerTwoHealth = Number(message.playerTwoHealth);
         const healthWinnerSide = playerOneHealth > 0 && playerTwoHealth === 0
             ? "p1"
-            : playerTwoHealth > 0 && playerOneHealth === 0 ? "p2" : "";
+            : "";
         const reportedWinnerSide = String(message.winnerSide || "");
         if (!healthWinnerSide ||
             (reportedWinnerSide && reportedWinnerSide !== healthWinnerSide)) {

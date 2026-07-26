@@ -634,6 +634,9 @@ namespace MK3MoveBook
         private readonly JavaScriptSerializer jsonSerializer;
         private readonly MoveBookAuthClient authClient;
         private readonly MoveBookSessionStore authSessionStore;
+        private readonly Queue<MoveBookAchievementEvent> achievementEventQueue;
+        private readonly HashSet<string> achievementSeenEventKeys;
+        private readonly string achievementSessionId;
         private readonly MameBridge mameBridge;
         private readonly MameDiagnosticReport mameDiagnosticReport;
         private readonly string localDataDirectory;
@@ -648,10 +651,13 @@ namespace MK3MoveBook
         private bool mameBridgeStarted;
         private bool authBusy;
         private bool authRestorePending;
+        private bool achievementCaptureEnabled;
+        private bool achievementSyncBusy;
         private bool windowClosing;
         private string authAccessToken;
         private string authRefreshToken;
         private MoveBookAuthUser authUser;
+        private MoveBookAchievementProgress serverAchievementProgress;
         private CancellationTokenSource authLoginCancellation;
         private UpdateManifest availableUpdate;
 
@@ -678,6 +684,11 @@ namespace MK3MoveBook
                 apiBaseUrl,
                 jsonSerializer
             );
+            achievementEventQueue = new Queue<MoveBookAchievementEvent>();
+            achievementSeenEventKeys = new HashSet<string>(
+                StringComparer.Ordinal
+            );
+            achievementSessionId = Guid.NewGuid().ToString("N");
             authRestorePending = true;
             mameBridge = new MameBridge();
             mameDiagnosticReport = new MameDiagnosticReport(
@@ -1044,6 +1055,15 @@ namespace MK3MoveBook
             ))
             {
                 SendAuthState();
+                if (serverAchievementProgress != null)
+                {
+                    SendAchievementProgress(
+                        "synced",
+                        serverAchievementProgress,
+                        new string[0],
+                        "Прогресс загружен с сервера MoveBook."
+                    );
+                }
             }
             else if (string.Equals(
                 message,
@@ -1060,6 +1080,15 @@ namespace MK3MoveBook
             ))
             {
                 await LogoutMoveBookAsync(true);
+            }
+            else if (string.Equals(
+                message,
+                "retry-achievement-sync",
+                StringComparison.Ordinal
+            ))
+            {
+                await LoadServerAchievementProgressAsync();
+                ProcessAchievementQueueAsync();
             }
         }
 
@@ -1130,6 +1159,8 @@ namespace MK3MoveBook
                             ? "Вход через Discord выполнен и сохранён."
                             : "Вход выполнен, но Windows не смогла сохранить сессию."
                     );
+                    BeginAchievementCapture();
+                    await LoadServerAchievementProgressAsync();
                     return;
                 }
                 throw new MoveBookAuthException(
@@ -1213,6 +1244,8 @@ namespace MK3MoveBook
                         ? "Сессия Discord восстановлена."
                         : "Сессия восстановлена, но Windows не смогла сохранить новый ключ."
                 );
+                BeginAchievementCapture();
+                await LoadServerAchievementProgressAsync();
             }
             catch (MoveBookAuthException exception)
             {
@@ -1341,6 +1374,10 @@ namespace MK3MoveBook
             authAccessToken = "";
             authRefreshToken = "";
             authUser = null;
+            serverAchievementProgress = null;
+            achievementCaptureEnabled = false;
+            achievementEventQueue.Clear();
+            achievementSeenEventKeys.Clear();
         }
 
         private void SendAuthState()
@@ -1396,6 +1433,212 @@ namespace MK3MoveBook
             payload["avatarUrl"] = authUser == null
                 ? ""
                 : authUser.AvatarUrl;
+            browser.CoreWebView2.PostWebMessageAsJson(
+                jsonSerializer.Serialize(payload)
+            );
+        }
+
+        private void BeginAchievementCapture()
+        {
+            achievementCaptureEnabled = authUser != null &&
+                !string.IsNullOrEmpty(authAccessToken);
+            achievementEventQueue.Clear();
+            achievementSeenEventKeys.Clear();
+            if (achievementCaptureEnabled)
+            {
+                MarkCurrentAchievementEventsSeen(mameBridge.CurrentSnapshot);
+            }
+        }
+
+        private async Task LoadServerAchievementProgressAsync()
+        {
+            if (authUser == null || string.IsNullOrEmpty(authAccessToken))
+            {
+                return;
+            }
+            int expectedUserId = authUser.Id;
+            SendAchievementProgress(
+                "loading",
+                serverAchievementProgress,
+                new string[0],
+                "Загружаем прогресс профиля с сервера MoveBook…"
+            );
+            try
+            {
+                MoveBookAchievementProgress progress =
+                    await GetAchievementProgressWithRefreshAsync(
+                        expectedUserId
+                    );
+                if (authUser == null || authUser.Id != expectedUserId)
+                {
+                    return;
+                }
+                serverAchievementProgress = progress;
+                SendAchievementProgress(
+                    "synced",
+                    progress,
+                    new string[0],
+                    "Прогресс профиля синхронизирован."
+                );
+                ProcessAchievementQueueAsync();
+            }
+            catch (MoveBookAuthException exception)
+            {
+                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    ExpireAuthSession(exception.Message);
+                    return;
+                }
+                SendAchievementProgress(
+                    "offline",
+                    serverAchievementProgress,
+                    new string[0],
+                    "Сервер достижений временно недоступен. Новые события не засчитываются."
+                );
+            }
+            catch
+            {
+                SendAchievementProgress(
+                    "offline",
+                    serverAchievementProgress,
+                    new string[0],
+                    "Сервер достижений временно недоступен. Новые события не засчитываются."
+                );
+            }
+        }
+
+        private async Task<MoveBookAchievementProgress>
+            GetAchievementProgressWithRefreshAsync(int expectedUserId)
+        {
+            try
+            {
+                return await authClient.GetAchievementProgressAsync(
+                    authAccessToken,
+                    CancellationToken.None
+                );
+            }
+            catch (MoveBookAuthException exception)
+            {
+                if (exception.StatusCode != HttpStatusCode.Unauthorized)
+                {
+                    throw;
+                }
+            }
+
+            await RefreshAccessSessionAsync(expectedUserId);
+            return await authClient.GetAchievementProgressAsync(
+                authAccessToken,
+                CancellationToken.None
+            );
+        }
+
+        private async Task<MoveBookAchievementSubmitResult>
+            SubmitAchievementEventWithRefreshAsync(
+                int expectedUserId,
+                MoveBookAchievementEvent achievementEvent
+            )
+        {
+            try
+            {
+                return await authClient.SubmitAchievementEventAsync(
+                    authAccessToken,
+                    achievementEvent,
+                    CancellationToken.None
+                );
+            }
+            catch (MoveBookAuthException exception)
+            {
+                if (exception.StatusCode != HttpStatusCode.Unauthorized)
+                {
+                    throw;
+                }
+            }
+
+            await RefreshAccessSessionAsync(expectedUserId);
+            return await authClient.SubmitAchievementEventAsync(
+                authAccessToken,
+                achievementEvent,
+                CancellationToken.None
+            );
+        }
+
+        private async Task RefreshAccessSessionAsync(int expectedUserId)
+        {
+            if (authUser == null ||
+                authUser.Id != expectedUserId ||
+                string.IsNullOrEmpty(authRefreshToken))
+            {
+                throw new MoveBookAuthException(
+                    "Сессия MoveBook завершена.",
+                    HttpStatusCode.Unauthorized
+                );
+            }
+
+            MoveBookAuthPollResult refreshed = await authClient.RefreshAsync(
+                authRefreshToken,
+                CancellationToken.None
+            );
+            if (refreshed.User == null || refreshed.User.Id != expectedUserId)
+            {
+                throw new MoveBookAuthException(
+                    "Сервер вернул другой профиль MoveBook.",
+                    HttpStatusCode.Unauthorized
+                );
+            }
+            SetAuthSession(refreshed, true);
+            SendAuthState(
+                "signed-in",
+                authUser.DisplayName,
+                "Сессия Discord продлена."
+            );
+        }
+
+        private void ExpireAuthSession(string details)
+        {
+            authSessionStore.Clear();
+            ClearAuthSession();
+            SendAuthState(
+                "signed-out",
+                "Войти",
+                string.IsNullOrWhiteSpace(details)
+                    ? "Сессия истекла. Войдите через Discord снова."
+                    : details
+            );
+        }
+
+        private void SendAchievementProgress(
+            string state,
+            MoveBookAchievementProgress progress,
+            string[] newUnlocks,
+            string details
+        )
+        {
+            if (windowClosing || browser.CoreWebView2 == null)
+            {
+                return;
+            }
+            Dictionary<string, object> payload =
+                new Dictionary<string, object>();
+            payload["type"] = "movebook-achievement-progress";
+            payload["state"] = state;
+            payload["details"] = details;
+            payload["hasProgress"] = progress != null;
+            payload["userId"] = progress == null
+                ? (authUser == null ? 0 : authUser.Id)
+                : progress.UserId;
+            payload["victories"] = progress == null ? 0 : progress.Victories;
+            payload["matchesPlayed"] = progress == null
+                ? 0
+                : progress.MatchesPlayed;
+            payload["finishers"] = progress == null ? 0 : progress.Finishers;
+            payload["verificationState"] = progress == null
+                ? ""
+                : progress.VerificationState;
+            payload["unlocked"] = progress == null
+                ? new Dictionary<string, string>()
+                : progress.Unlocked;
+            payload["newUnlocks"] = newUnlocks ?? new string[0];
+            payload["pendingEvents"] = achievementEventQueue.Count;
             browser.CoreWebView2.PostWebMessageAsJson(
                 jsonSerializer.Serialize(payload)
             );
@@ -1464,11 +1707,259 @@ namespace MK3MoveBook
                 return;
             }
             SendMameBridgeState(snapshot);
+            CaptureAchievementEvents(snapshot);
         }
 
         private void OnMameBridgeSnapshotObserved(MameBridgeSnapshot snapshot)
         {
             mameDiagnosticReport.Append(snapshot);
+        }
+
+        private void CaptureAchievementEvents(MameBridgeSnapshot snapshot)
+        {
+            if (!achievementCaptureEnabled ||
+                authUser == null ||
+                snapshot == null)
+            {
+                return;
+            }
+
+            string eventKind = snapshot.EventKind ?? "";
+            if (snapshot.EventSequence > 0 &&
+                (string.Equals(
+                    eventKind,
+                    "round-ended",
+                    StringComparison.Ordinal
+                ) || string.Equals(
+                    eventKind,
+                    "match-ended",
+                    StringComparison.Ordinal
+                )))
+            {
+                MoveBookAchievementEvent fightEvent =
+                    CreateAchievementEvent(
+                        BuildAchievementEventKey(
+                            "fight",
+                            snapshot,
+                            snapshot.EventSequence,
+                            eventKind
+                        ),
+                        eventKind,
+                        snapshot
+                    );
+                QueueAchievementEvent(fightEvent);
+            }
+
+            if (snapshot.FinisherSequence > 0 &&
+                !string.IsNullOrWhiteSpace(snapshot.FinisherKind))
+            {
+                MoveBookAchievementEvent finisherEvent =
+                    CreateAchievementEvent(
+                        BuildAchievementEventKey(
+                            "finisher",
+                            snapshot,
+                            snapshot.FinisherSequence,
+                            snapshot.FinisherKind
+                        ),
+                        "finisher",
+                        snapshot
+                    );
+                QueueAchievementEvent(finisherEvent);
+            }
+
+            ProcessAchievementQueueAsync();
+        }
+
+        private void MarkCurrentAchievementEventsSeen(
+            MameBridgeSnapshot snapshot
+        )
+        {
+            if (snapshot == null)
+            {
+                return;
+            }
+            string eventKind = snapshot.EventKind ?? "";
+            if (snapshot.EventSequence > 0 &&
+                (string.Equals(
+                    eventKind,
+                    "round-ended",
+                    StringComparison.Ordinal
+                ) || string.Equals(
+                    eventKind,
+                    "match-ended",
+                    StringComparison.Ordinal
+                )))
+            {
+                achievementSeenEventKeys.Add(BuildAchievementEventKey(
+                    "fight",
+                    snapshot,
+                    snapshot.EventSequence,
+                    eventKind
+                ));
+            }
+            if (snapshot.FinisherSequence > 0 &&
+                !string.IsNullOrWhiteSpace(snapshot.FinisherKind))
+            {
+                achievementSeenEventKeys.Add(BuildAchievementEventKey(
+                    "finisher",
+                    snapshot,
+                    snapshot.FinisherSequence,
+                    snapshot.FinisherKind
+                ));
+            }
+        }
+
+        private void QueueAchievementEvent(
+            MoveBookAchievementEvent achievementEvent
+        )
+        {
+            if (achievementEvent == null ||
+                string.IsNullOrWhiteSpace(achievementEvent.EventKey) ||
+                !achievementSeenEventKeys.Add(achievementEvent.EventKey))
+            {
+                return;
+            }
+            achievementEventQueue.Enqueue(achievementEvent);
+            SendAchievementProgress(
+                "syncing",
+                serverAchievementProgress,
+                new string[0],
+                "Отправляем событие MAME в профиль MoveBook…"
+            );
+        }
+
+        private async void ProcessAchievementQueueAsync()
+        {
+            if (achievementSyncBusy ||
+                !achievementCaptureEnabled ||
+                authUser == null ||
+                achievementEventQueue.Count == 0)
+            {
+                return;
+            }
+
+            achievementSyncBusy = true;
+            int expectedUserId = authUser.Id;
+            try
+            {
+                while (achievementCaptureEnabled &&
+                    authUser != null &&
+                    authUser.Id == expectedUserId &&
+                    achievementEventQueue.Count > 0)
+                {
+                    MoveBookAchievementEvent achievementEvent =
+                        achievementEventQueue.Peek();
+                    MoveBookAchievementSubmitResult result =
+                        await SubmitAchievementEventWithRefreshAsync(
+                            expectedUserId,
+                            achievementEvent
+                        );
+                    if (authUser == null || authUser.Id != expectedUserId)
+                    {
+                        return;
+                    }
+                    achievementEventQueue.Dequeue();
+                    serverAchievementProgress = result.Progress;
+                    SendAchievementProgress(
+                        "synced",
+                        result.Progress,
+                        result.NewUnlocks,
+                        result.Accepted
+                            ? "Событие MAME сохранено в профиле."
+                            : "Событие уже было сохранено ранее."
+                    );
+                }
+            }
+            catch (MoveBookAuthException exception)
+            {
+                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    ExpireAuthSession(exception.Message);
+                    return;
+                }
+                SendAchievementProgress(
+                    "offline",
+                    serverAchievementProgress,
+                    new string[0],
+                    "Событие ожидает повторной отправки. Сервер MoveBook недоступен."
+                );
+            }
+            catch
+            {
+                SendAchievementProgress(
+                    "offline",
+                    serverAchievementProgress,
+                    new string[0],
+                    "Событие ожидает повторной отправки. Сервер MoveBook недоступен."
+                );
+            }
+            finally
+            {
+                achievementSyncBusy = false;
+            }
+        }
+
+        private MoveBookAchievementEvent CreateAchievementEvent(
+            string eventKey,
+            string eventType,
+            MameBridgeSnapshot snapshot
+        )
+        {
+            return new MoveBookAchievementEvent
+            {
+                EventKey = eventKey,
+                EventType = eventType,
+                RomId = string.IsNullOrWhiteSpace(snapshot.RomId)
+                    ? "unknown"
+                    : snapshot.RomId,
+                WinnerSide = snapshot.WinnerSide ?? "",
+                PlayerOneId = snapshot.FightPlayerOneId,
+                PlayerTwoId = snapshot.FightPlayerTwoId,
+                PlayerOneHealth = snapshot.PlayerOneHealth,
+                PlayerTwoHealth = snapshot.PlayerTwoHealth,
+                FinisherKind = snapshot.FinisherKind ?? "",
+                FinisherWinnerSide = snapshot.FinisherWinnerSide ?? "",
+                FinisherFighterId = snapshot.FinisherFighterId,
+                FinisherOpponentId = snapshot.FinisherOpponentId,
+                OccurredAtUtc = DateTime.UtcNow
+            };
+        }
+
+        private string BuildAchievementEventKey(
+            string category,
+            MameBridgeSnapshot snapshot,
+            int sequence,
+            string detail
+        )
+        {
+            return string.Join(
+                ":",
+                achievementSessionId,
+                SafeAchievementEventKeyPart(category),
+                snapshot.ProcessId.ToString(),
+                SafeAchievementEventKeyPart(snapshot.RomId),
+                sequence.ToString(),
+                SafeAchievementEventKeyPart(detail)
+            );
+        }
+
+        private static string SafeAchievementEventKeyPart(string value)
+        {
+            string source = string.IsNullOrWhiteSpace(value)
+                ? "unknown"
+                : value.Trim();
+            StringBuilder result = new StringBuilder();
+            for (int index = 0; index < source.Length && result.Length < 32; index++)
+            {
+                char character = source[index];
+                if (char.IsLetterOrDigit(character) ||
+                    character == '-' ||
+                    character == '_')
+                {
+                    result.Append(character);
+                }
+            }
+            return result.Length == 0 ? "unknown" : result.ToString();
         }
 
         private void SendMameBridgeState(MameBridgeSnapshot snapshot)
