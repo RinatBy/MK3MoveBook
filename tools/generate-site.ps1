@@ -53,10 +53,31 @@ if (Test-Path -LiteralPath $SegaMovesPath) {
     $SegaMoves = $SegaMovesJson | ConvertFrom-Json
 }
 $Template = [IO.File]::ReadAllText($TemplatePath, [Text.Encoding]::UTF8)
+$LegalStylesheet = '    <link rel="stylesheet" href="legal.css">'
+if (-not $Template.Contains('href="legal.css"')) {
+    $Template = $Template.Replace(
+        "</head>",
+        "$LegalStylesheet`r`n</head>"
+    )
+}
+$LegalLinks = @"
+            <nav class="legal-links" aria-label="Правовая информация">
+                <a href="privacy/">Конфиденциальность</a>
+                <span aria-hidden="true">·</span>
+                <a href="terms/">Условия</a>
+            </nav>
+"@
+if (-not $Template.Contains('class="legal-links"')) {
+    $Template = $Template.Replace(
+        '<span id="statusText">',
+        "$LegalLinks`r`n            <span id=`"statusText`">"
+    )
+}
 if (-not [string]::IsNullOrWhiteSpace($AssetVersion)) {
     $Version = [Uri]::EscapeDataString($AssetVersion.Trim())
     $VersionedAssets = @(
         "styles.css",
+        "legal.css",
         "data/moves.js",
         "data/sega-moves.js",
         "data/lore.js",
@@ -755,6 +776,18 @@ foreach ($Platform in @("arcade", "sega")) {
             -Platform $Platform `
             -Fighter $Fighter
     }
+}
+
+foreach ($LegalRelativeUrl in @("privacy/", "terms/")) {
+    $LegalIndexPath = Join-Path $OutputPath (
+        ($LegalRelativeUrl.TrimEnd("/") -replace "/", [IO.Path]::DirectorySeparatorChar) +
+            [IO.Path]::DirectorySeparatorChar +
+            "index.html"
+    )
+    if (-not (Test-Path -LiteralPath $LegalIndexPath)) {
+        throw "Legal page is missing from generated site: $LegalRelativeUrl"
+    }
+    $SitemapUrls.Add($NormalizedBaseUrl + $LegalRelativeUrl)
 }
 
 $SitemapEntries = foreach ($Url in $SitemapUrls) {

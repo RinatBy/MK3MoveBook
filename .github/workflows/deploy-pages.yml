@@ -149,6 +149,23 @@ jobs:
           }
           Copy-Item -LiteralPath $sourceChangelog -Destination $targetChangelog -Force
 
+      - name: Apply current legal documents
+        shell: pwsh
+        run: |
+          Copy-Item `
+            -LiteralPath (Join-Path $PWD "web/legal.css") `
+            -Destination (Join-Path $env:WEB_ROOT "legal.css") `
+            -Force
+          foreach ($name in @("privacy", "terms")) {
+            $sourceDirectory = Join-Path $PWD "web/$name"
+            $targetDirectory = Join-Path $env:WEB_ROOT $name
+            New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+            Get-ChildItem -LiteralPath $sourceDirectory -Force | Copy-Item `
+              -Destination $targetDirectory `
+              -Recurse `
+              -Force
+          }
+
       - name: Generate static site
         shell: pwsh
         run: |
