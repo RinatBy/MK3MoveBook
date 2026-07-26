@@ -160,6 +160,47 @@
         return true;
     }
 
+    function processFlawlessRound(progress, message, data, unlocked, timestamp) {
+        const kind = String(message.eventKind || "");
+        const sequence = Number(message.eventSequence) || 0;
+        if (!sequence || (kind !== "round-ended" && kind !== "match-ended")) {
+            return false;
+        }
+
+        const playerOneHealth = Number(message.playerOneHealth);
+        const playerTwoHealth = Number(message.playerTwoHealth);
+        const healthWinnerSide = playerOneHealth > 0 && playerTwoHealth === 0
+            ? "p1"
+            : playerTwoHealth > 0 && playerOneHealth === 0 ? "p2" : "";
+        const reportedWinnerSide = String(message.winnerSide || "");
+        if (!healthWinnerSide ||
+            (reportedWinnerSide && reportedWinnerSide !== healthWinnerSide)) {
+            return false;
+        }
+
+        const eventKey = [
+            "round-result",
+            Number(message.processId) || 0,
+            String(message.romId || "unknown"),
+            sequence
+        ].join(":");
+        if (!rememberEvent(progress, eventKey)) {
+            return false;
+        }
+
+        const winnerHealth = healthWinnerSide === "p1"
+            ? playerOneHealth
+            : playerTwoHealth;
+        (data.special || []).forEach(definition => {
+            const condition = definition.condition || {};
+            if (condition.type === "flawless-round" &&
+                winnerHealth === Number(condition.fullHealth)) {
+                unlock(progress, definition, unlocked, timestamp);
+            }
+        });
+        return true;
+    }
+
     function processStatus(current, message, data, timestamp) {
         const progress = normalizeProgress(current);
         const unlocked = [];
@@ -178,10 +219,17 @@
             unlocked,
             unlockedAt
         );
+        const flawlessChanged = processFlawlessRound(
+            progress,
+            message,
+            data,
+            unlocked,
+            unlockedAt
+        );
         return {
             progress,
             unlocked,
-            changed: victoryChanged || finisherChanged
+            changed: victoryChanged || finisherChanged || flawlessChanged
         };
     }
 

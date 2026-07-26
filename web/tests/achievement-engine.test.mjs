@@ -30,6 +30,8 @@ function status(overrides = {}) {
         winnerSide: "",
         fightPlayerOneId: 0,
         fightPlayerTwoId: 0,
+        playerOneHealth: 0,
+        playerTwoHealth: 0,
         finisherSequence: 0,
         finisherKind: "",
         finisherFighterId: -1,
@@ -55,10 +57,7 @@ let result = engine.processStatus(
     "2026-07-25T12:00:00.000Z"
 );
 progress = result.progress;
-assert.deepEqual(unlockedIds(result), [
-    "fighter-debut-sonya",
-    "old-scores"
-]);
+assert.deepEqual(unlockedIds(result), ["old-scores"]);
 assert.equal(progress.victories, 1);
 
 result = engine.processStatus(
@@ -168,6 +167,79 @@ assert.equal(Boolean(progress.unlocked["victories-5"]), true);
 assert.equal(Boolean(progress.unlocked["victories-10"]), true);
 assert.equal(Boolean(progress.unlocked["victories-25"]), false);
 
+let flawlessProgress = engine.emptyProgress();
+result = engine.processStatus(
+    flawlessProgress,
+    status({
+        processId: 300,
+        eventSequence: 2,
+        eventKind: "round-ended",
+        playerOneHealth: 166,
+        playerTwoHealth: 0
+    }),
+    data
+);
+flawlessProgress = result.progress;
+assert.deepEqual(unlockedIds(result), ["flawless-victory"]);
+
+result = engine.processStatus(
+    flawlessProgress,
+    status({
+        processId: 300,
+        eventSequence: 2,
+        eventKind: "round-ended",
+        playerOneHealth: 166,
+        playerTwoHealth: 0
+    }),
+    data
+);
+assert.equal(result.changed, false);
+assert.deepEqual(unlockedIds(result), []);
+
+result = engine.processStatus(
+    engine.emptyProgress(),
+    status({
+        processId: 301,
+        eventSequence: 2,
+        eventKind: "round-ended",
+        playerOneHealth: 165,
+        playerTwoHealth: 0
+    }),
+    data
+);
+assert.deepEqual(unlockedIds(result), []);
+
+result = engine.processStatus(
+    engine.emptyProgress(),
+    status({
+        processId: 302,
+        eventSequence: 4,
+        eventKind: "match-ended",
+        winnerSide: "p2",
+        fightPlayerOneId: 0x00,
+        fightPlayerTwoId: 0x12,
+        playerOneHealth: 0,
+        playerTwoHealth: 166
+    }),
+    data
+);
+assert.deepEqual(unlockedIds(result), ["flawless-victory"]);
+
+const debutFighters = new Set(Array.from(data.fighters, item => item.fighterId));
+const confrontationFighters = Array.from(data.lore, item => item.fighterId);
+const personalFinisherFighters = Array.from(
+    data.special,
+    item => item.fighterId
+).filter(Boolean);
+assert.deepEqual(
+    confrontationFighters.filter(fighterId => debutFighters.has(fighterId)),
+    []
+);
+assert.deepEqual(
+    personalFinisherFighters.filter(fighterId => debutFighters.has(fighterId)),
+    []
+);
+
 const reconciled = engine.reconcileProgress({
     victories: 15,
     unlocked: {},
@@ -175,6 +247,6 @@ const reconciled = engine.reconcileProgress({
 }, data, "2026-07-26T12:00:00.000Z");
 assert.deepEqual(unlockedIds(reconciled), ["victories-10", "victories-5"]);
 assert.equal(reconciled.progress.victories, 15);
-assert.equal(engine.definitions(data).length, 28);
+assert.equal(engine.definitions(data).length, 24);
 
-console.log("Achievement engine: 9 scenarios passed.");
+console.log("Achievement engine: all scenarios passed.");

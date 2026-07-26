@@ -46,14 +46,6 @@ window.MOVEBOOK_ACHIEVEMENTS = {
     ],
     fighters: [
         {
-            id: "fighter-debut-kabal",
-            fighterId: "kabal",
-            title: "Новая дорога",
-            description: "Одержать победу, играя за Kabal.",
-            label: "Боевой дебют",
-            loreNote: "В концовке MK3 бывший участник Black Dragon Кабал оставляет преступное прошлое и посвящает себя борьбе с преступностью."
-        },
-        {
             id: "fighter-debut-nightwolf",
             fighterId: "nightwolf",
             title: "Хранитель священной земли",
@@ -69,40 +61,11 @@ window.MOVEBOOK_ACHIEVEMENTS = {
             loreNote: "Перед событиями MK3 Шао Кан возвращает Синдел к жизни, чтобы открыть путь для вторжения в Земное царство."
         },
         {
-            id: "fighter-debut-jax",
-            fighterId: "jax",
-            title: "Полная боевая готовность",
-            description: "Одержать победу, играя за Jax.",
-            label: "Боевой дебют"
-        },
-        {
-            id: "fighter-debut-sonya",
-            fighterId: "sonya",
-            title: "Спецназ в деле",
-            description: "Одержать победу, играя за Sonya.",
-            label: "Боевой дебют"
-        },
-        {
-            id: "fighter-debut-kitana",
-            fighterId: "kitana",
-            title: "Стальные веера",
-            description: "Одержать победу, играя за Kitana.",
-            label: "Боевой дебют"
-        },
-        {
             id: "fighter-debut-stryker",
             fighterId: "stryker",
             title: "Последний защитник города",
             description: "Одержать победу, играя за Stryker.",
             label: "Боевой дебют"
-        },
-        {
-            id: "fighter-debut-unmasked-sub-zero",
-            fighterId: "unmasked-sub-zero",
-            title: "Без маски",
-            description: "Одержать победу, играя за Unmasked Sub-Zero.",
-            label: "Боевой дебют",
-            loreNote: "Lin Kuei — клан Саб-Зиро. В MK3 он покидает клан, нарушает его правила и становится целью бывших союзников."
         },
         {
             id: "fighter-debut-jade",
@@ -158,6 +121,13 @@ window.MOVEBOOK_ACHIEVEMENTS = {
         }
     ],
     special: [
+        {
+            id: "flawless-victory",
+            title: "Без единой царапины",
+            description: "Завершить раунд с полным запасом здоровья.",
+            label: "Flawless Victory",
+            condition: { type: "flawless-round", fullHealth: 166 }
+        },
         {
             id: "first-fatality",
             title: "Точка поставлена",

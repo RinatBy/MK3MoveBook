@@ -2652,22 +2652,46 @@ button {
 }
 
 .achievement-lore-note {
-    display: inline-grid;
-    place-items: center;
-    width: 15px;
-    height: 15px;
-    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-height: 18px;
+    padding: 1px 5px;
     color: #fff5cd;
     background: #8e263b;
     border: 1px solid #b89a41;
-    border-radius: 50%;
-    cursor: help;
-    font: 10px/1 "Russo One", sans-serif;
+    border-radius: 9px;
+    cursor: pointer;
+    font: 7px/1 "Russo One", sans-serif;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.achievement-lore-note b {
+    font-size: 10px;
+}
+
+.achievement-lore-note[aria-expanded="true"] {
+    color: #3b252c;
+    background: #e4bd4c;
 }
 
 .achievement-lore-note:focus-visible {
     outline: 2px solid #c59d37;
     outline-offset: 2px;
+}
+
+.achievement-lore-details {
+    margin-top: 5px;
+    padding: 6px 8px;
+    color: #654750;
+    background: rgba(142, 38, 59, .07);
+    border-left: 2px solid #a1273d;
+    font: 600 9.5px/1.35 "Literata", serif;
+}
+
+.achievement-lore-details[hidden] {
+    display: none;
 }
 
 .achievement-card-copy strong {

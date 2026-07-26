@@ -1217,10 +1217,16 @@
         const label = unlocked
             ? `${definition.label || "Испытание"} · Получено`
             : (definition.label || "Испытание");
+        const loreId = `achievement-lore-${definition.id}`;
         const loreNote = definition.loreNote
             ? `<button class="achievement-lore-note" type="button"
-                title="${escapeHtml(definition.loreNote)}"
-                aria-label="Сюжетная справка: ${escapeHtml(definition.loreNote)}">!</button>`
+                aria-expanded="false" aria-controls="${escapeHtml(loreId)}"
+                aria-label="Показать сюжетную справку"><b aria-hidden="true">!</b> Лор</button>`
+            : "";
+        const loreDetails = definition.loreNote
+            ? `<span class="achievement-lore-details" id="${escapeHtml(loreId)}" hidden>
+                ${escapeHtml(definition.loreNote)}
+            </span>`
             : "";
         return `
             <article class="achievement-card${unlocked ? " is-unlocked" : ""}"
@@ -1233,6 +1239,7 @@
                     </span>
                     <strong>${escapeHtml(definition.title)}</strong>
                     <span class="achievement-card-description">${escapeHtml(definition.description)}</span>
+                    ${loreDetails}
                 </span>
             </article>`;
     }
@@ -2422,6 +2429,26 @@
     });
 
     elements.pageContent.addEventListener("click", event => {
+        const loreButton = event.target.closest(".achievement-lore-note");
+        if (loreButton) {
+            const detailsId = loreButton.getAttribute("aria-controls");
+            const details = detailsId && document.getElementById(detailsId);
+            const willOpen = loreButton.getAttribute("aria-expanded") !== "true";
+            elements.pageContent.querySelectorAll(".achievement-lore-note[aria-expanded=\"true\"]")
+                .forEach(button => {
+                    button.setAttribute("aria-expanded", "false");
+                    const otherId = button.getAttribute("aria-controls");
+                    const otherDetails = otherId && document.getElementById(otherId);
+                    if (otherDetails) {
+                        otherDetails.hidden = true;
+                    }
+                });
+            if (details) {
+                loreButton.setAttribute("aria-expanded", String(willOpen));
+                details.hidden = !willOpen;
+            }
+            return;
+        }
         const achievementFilter = event.target.closest("[data-achievement-filter]");
         if (achievementFilter) {
             const requestedGroup = achievementFilter.dataset.achievementFilter;
