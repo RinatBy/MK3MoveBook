@@ -21,11 +21,12 @@ namespace MK3MoveBook
             RunAsync(TestLogout, "Logout");
             RunAsync(TestGetAchievementProgress, "Get achievement progress");
             RunAsync(TestSubmitAchievementEvent, "Submit achievement event");
+            TestApiBaseUrlResolution();
             TestRemoteHttpIsRejected();
 
             if (failures == 0)
             {
-                Console.WriteLine("MoveBookAuthClient: 7 tests passed.");
+                Console.WriteLine("MoveBookAuthClient: 8 tests passed.");
                 return 0;
             }
             Console.Error.WriteLine(
@@ -246,6 +247,35 @@ namespace MK3MoveBook
                 rejected = true;
             }
             Equal("remote HTTP rejected", true, rejected);
+        }
+
+        private static void TestApiBaseUrlResolution()
+        {
+            const string VariableName = "MOVEBOOK_API_BASE_URL";
+            string original = Environment.GetEnvironmentVariable(VariableName);
+            try
+            {
+                Environment.SetEnvironmentVariable(VariableName, null);
+                Equal(
+                    "production API default",
+                    "https://api.movebook.ru",
+                    MoveBookAuthClient.ResolveApiBaseUrl()
+                );
+
+                Environment.SetEnvironmentVariable(
+                    VariableName,
+                    "http://127.0.0.1:8010"
+                );
+                Equal(
+                    "local API override",
+                    "http://127.0.0.1:8010",
+                    MoveBookAuthClient.ResolveApiBaseUrl()
+                );
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(VariableName, original);
+            }
         }
 
         private static MoveBookAuthClient CreateClient(QueueHandler handler)

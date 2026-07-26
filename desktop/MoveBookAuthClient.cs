@@ -90,7 +90,7 @@ namespace MK3MoveBook
 
     internal sealed class MoveBookAuthClient : IDisposable
     {
-        private const string DefaultApiBaseUrl = "http://127.0.0.1:8010";
+        private const string DefaultApiBaseUrl = "https://api.movebook.ru";
 
         private readonly HttpClient httpClient;
         private readonly JavaScriptSerializer serializer;

@@ -637,6 +637,7 @@ namespace MK3MoveBook
         private readonly Queue<MoveBookAchievementEvent> achievementEventQueue;
         private readonly HashSet<string> achievementSeenEventKeys;
         private readonly string achievementSessionId;
+        private readonly string achievementProfileScope;
         private readonly MameBridge mameBridge;
         private readonly MameDiagnosticReport mameDiagnosticReport;
         private readonly string localDataDirectory;
@@ -675,6 +676,7 @@ namespace MK3MoveBook
                 "MK3MoveBook"
             );
             string apiBaseUrl = MoveBookAuthClient.ResolveApiBaseUrl();
+            achievementProfileScope = apiBaseUrl.Trim().TrimEnd('/').ToLowerInvariant();
             authClient = new MoveBookAuthClient(
                 apiBaseUrl,
                 jsonSerializer
@@ -1425,6 +1427,7 @@ namespace MK3MoveBook
             payload["state"] = state;
             payload["label"] = label;
             payload["details"] = details;
+            payload["profileScope"] = achievementProfileScope;
             payload["provider"] = authUser == null ? "" : "discord";
             payload["userId"] = authUser == null ? 0 : authUser.Id;
             payload["displayName"] = authUser == null

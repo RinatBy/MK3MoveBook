@@ -11,6 +11,12 @@ The production API is isolated from other VDS applications:
 - private upstream: `127.0.0.1:8020`;
 - public endpoint: `https://api.movebook.ru` through Nginx.
 
+Production Portable builds use `https://api.movebook.ru` by default. Local
+development can override it with
+`MOVEBOOK_API_BASE_URL=http://127.0.0.1:8010`. The desktop host passes the
+normalized API address to the web UI so cached progress is scoped to one
+server and cannot cross between local and production user IDs.
+
 The service runs one Uvicorn worker. SQLite uses foreign keys, WAL mode and a
 five-second busy timeout. Existing services and the PostgreSQL instance on the
 VDS are not reused.

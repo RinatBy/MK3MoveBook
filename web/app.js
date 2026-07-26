@@ -122,12 +122,13 @@
     const latestReleaseUrl =
         "https://github.com/RinatBy/MK3MoveBook/releases/latest";
     const achievementStoragePrefix =
-        "movebook-achievement-progress-v3:server-user:";
+        "movebook-achievement-progress-v4:server-scope:";
     const achievementEngine = window.MOVEBOOK_ACHIEVEMENT_ENGINE;
     const achievementAccess = {
         signedIn: false,
         userId: 0,
-        displayName: ""
+        displayName: "",
+        profileScope: ""
     };
     const achievementSync = {
         state: "signed-out",
@@ -140,8 +141,11 @@
 
     function achievementStorageKey(userId) {
         const normalizedUserId = Number(userId);
-        return Number.isInteger(normalizedUserId) && normalizedUserId > 0
-            ? `${achievementStoragePrefix}${normalizedUserId}`
+        const profileScope = String(achievementAccess.profileScope || "");
+        return Number.isInteger(normalizedUserId) && normalizedUserId > 0 &&
+            profileScope
+            ? `${achievementStoragePrefix}${encodeURIComponent(profileScope)}:` +
+                normalizedUserId
             : "";
     }
 
@@ -2269,18 +2273,32 @@
         }
     }
 
-    function applyAchievementAccess(signedIn, userId, displayName) {
+    function applyAchievementAccess(
+        signedIn,
+        userId,
+        displayName,
+        profileScope
+    ) {
         const normalizedUserId = signedIn ? Number(userId) : 0;
+        const normalizedProfileScope = signedIn
+            ? String(profileScope || "")
+            : "";
         const validUserId = Number.isInteger(normalizedUserId) &&
             normalizedUserId > 0;
-        const nextSignedIn = Boolean(signedIn && validUserId);
+        const nextSignedIn = Boolean(
+            signedIn && validUserId && normalizedProfileScope
+        );
         const identityChanged = achievementAccess.signedIn !== nextSignedIn ||
-            achievementAccess.userId !== normalizedUserId;
+            achievementAccess.userId !== normalizedUserId ||
+            achievementAccess.profileScope !== normalizedProfileScope;
 
         achievementAccess.signedIn = nextSignedIn;
         achievementAccess.userId = nextSignedIn ? normalizedUserId : 0;
         achievementAccess.displayName = nextSignedIn
             ? String(displayName || "Discord")
+            : "";
+        achievementAccess.profileScope = nextSignedIn
+            ? normalizedProfileScope
             : "";
         if (identityChanged) {
             achievementProgress = nextSignedIn
@@ -2404,6 +2422,7 @@
         const label = String(message.label || (signedIn ? "Аккаунт" : "Войти"));
         const details = String(message.details || "Войти через Discord");
         const avatarUrl = String(message.avatarUrl || "");
+        const profileScope = String(message.profileScope || "");
 
         elements.accountControl.hidden = false;
         elements.accountButton.dataset.state = authState;
@@ -2430,7 +2449,7 @@
         if (authState !== "signed-out") {
             elements.statusText.textContent = details;
         }
-        applyAchievementAccess(signedIn, userId, label);
+        applyAchievementAccess(signedIn, userId, label, profileScope);
     }
 
     function applyMameStatus(message) {
@@ -2821,7 +2840,7 @@
     window.addEventListener("hashchange", handleLocationChange);
     window.addEventListener("popstate", handleLocationChange);
 
-    applyAchievementAccess(false, 0, "");
+    applyAchievementAccess(false, 0, "", "");
     initializeUpdater();
     placeResponsiveElements();
     setMobileRoster(false);
