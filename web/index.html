@@ -48,6 +48,25 @@
                 <b>Достижения</b>
             </button>
 
+            <div id="accountControl" class="account-control" hidden>
+                <button id="accountButton" class="account-button" type="button"
+                    data-state="signed-out" title="Войти через Discord"
+                    aria-label="Войти через Discord">
+                    <span class="account-avatar" aria-hidden="true">
+                        <img id="accountAvatar" alt="" hidden>
+                        <svg id="accountFallback" viewBox="0 0 24 24"
+                            focusable="false">
+                            <circle cx="12" cy="8" r="4"></circle>
+                            <path d="M4.8 20c.8-4.1 3.2-6.2 7.2-6.2s6.4 2.1 7.2 6.2"></path>
+                        </svg>
+                    </span>
+                    <span class="account-copy">
+                        <b id="accountLabel">Войти</b>
+                        <small id="accountDetails">Discord</small>
+                    </span>
+                </button>
+            </div>
+
             <div class="update-control">
                 <button id="updateButton" class="update-button" type="button"
                     data-state="idle" title="Открыть обновления"

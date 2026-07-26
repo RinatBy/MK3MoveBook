@@ -632,6 +632,7 @@ namespace MK3MoveBook
         private readonly WebView2 browser;
         private readonly LoadingView loadingView;
         private readonly JavaScriptSerializer jsonSerializer;
+        private readonly MoveBookAuthClient authClient;
         private readonly MameBridge mameBridge;
         private readonly MameDiagnosticReport mameDiagnosticReport;
         private readonly string localDataDirectory;
@@ -644,6 +645,11 @@ namespace MK3MoveBook
         private bool usingDownloadedContent;
         private bool updateBusy;
         private bool mameBridgeStarted;
+        private bool authBusy;
+        private bool windowClosing;
+        private string authRefreshToken;
+        private MoveBookAuthUser authUser;
+        private CancellationTokenSource authLoginCancellation;
         private UpdateManifest availableUpdate;
 
         public MoveBookWindow()
@@ -655,6 +661,10 @@ namespace MK3MoveBook
             MinimumSize = new Size(1080, 700);
 
             jsonSerializer = new JavaScriptSerializer();
+            authClient = new MoveBookAuthClient(
+                MoveBookAuthClient.ResolveApiBaseUrl(),
+                jsonSerializer
+            );
             mameBridge = new MameBridge();
             mameDiagnosticReport = new MameDiagnosticReport(
                 AppDomain.CurrentDomain.BaseDirectory
@@ -1016,6 +1026,285 @@ namespace MK3MoveBook
             {
                 SendMameBridgeState(mameBridge.CurrentSnapshot);
             }
+            else if (string.Equals(
+                message,
+                "request-auth-status",
+                StringComparison.Ordinal
+            ))
+            {
+                SendAuthState();
+            }
+            else if (string.Equals(
+                message,
+                "start-discord-login",
+                StringComparison.Ordinal
+            ))
+            {
+                await StartDiscordLoginAsync();
+            }
+            else if (string.Equals(
+                message,
+                "logout-movebook",
+                StringComparison.Ordinal
+            ))
+            {
+                await LogoutMoveBookAsync(true);
+            }
+        }
+
+        private async Task StartDiscordLoginAsync()
+        {
+            if (authBusy)
+            {
+                return;
+            }
+            if (authUser != null && !string.IsNullOrEmpty(authRefreshToken))
+            {
+                SendAuthState();
+                return;
+            }
+
+            authBusy = true;
+            CancellationTokenSource cancellation =
+                new CancellationTokenSource();
+            authLoginCancellation = cancellation;
+            SendAuthState(
+                "starting",
+                "Открываем Discord…",
+                "Создаём защищённую сессию входа."
+            );
+
+            try
+            {
+                MoveBookDeviceSession device =
+                    await authClient.CreateDeviceSessionAsync(
+                        cancellation.Token
+                    );
+                OpenExternalBrowser(device.VerificationUri);
+                SendAuthState(
+                    "waiting",
+                    "Подтвердите вход",
+                    "Завершите авторизацию в открывшемся окне Discord."
+                );
+
+                int interval = Math.Max(1, Math.Min(10, device.Interval));
+                DateTime deadline = DateTime.UtcNow.AddSeconds(
+                    Math.Max(30, device.ExpiresIn)
+                );
+                while (DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(
+                        TimeSpan.FromSeconds(interval),
+                        cancellation.Token
+                    );
+                    MoveBookAuthPollResult result =
+                        await authClient.PollDeviceSessionAsync(
+                            device.DeviceCode,
+                            cancellation.Token
+                        );
+                    if (result.IsPending)
+                    {
+                        interval = Math.Max(
+                            1,
+                            Math.Min(10, result.Interval)
+                        );
+                        continue;
+                    }
+
+                    authRefreshToken = result.RefreshToken;
+                    authUser = result.User;
+                    SendAuthState(
+                        "signed-in",
+                        authUser.DisplayName,
+                        "Вход через Discord выполнен."
+                    );
+                    return;
+                }
+                throw new MoveBookAuthException(
+                    "Время входа истекло. Попробуйте ещё раз."
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                if (!windowClosing && !cancellation.IsCancellationRequested)
+                {
+                    ClearAuthSession();
+                    SendAuthState(
+                        "error",
+                        "Повторить вход",
+                        "Сервер MoveBook не ответил вовремя."
+                    );
+                }
+            }
+            catch (MoveBookAuthException exception)
+            {
+                ClearAuthSession();
+                SendAuthState(
+                    "error",
+                    "Повторить вход",
+                    exception.Message
+                );
+            }
+            catch (Exception)
+            {
+                ClearAuthSession();
+                SendAuthState(
+                    "error",
+                    "Повторить вход",
+                    "Сервер MoveBook недоступен. Запустите сервер и попробуйте ещё раз."
+                );
+            }
+            finally
+            {
+                if (ReferenceEquals(authLoginCancellation, cancellation))
+                {
+                    authLoginCancellation = null;
+                }
+                cancellation.Dispose();
+                authBusy = false;
+            }
+        }
+
+        private async Task LogoutMoveBookAsync(bool confirm)
+        {
+            if (authBusy)
+            {
+                return;
+            }
+            if (authUser == null || string.IsNullOrEmpty(authRefreshToken))
+            {
+                ClearAuthSession();
+                SendAuthState();
+                return;
+            }
+            if (confirm)
+            {
+                DialogResult answer = MessageBox.Show(
+                    this,
+                    "Выйти из аккаунта " + authUser.DisplayName + "?",
+                    "MK3 MoveBook",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question
+                );
+                if (answer != DialogResult.Yes)
+                {
+                    SendAuthState();
+                    return;
+                }
+            }
+
+            authBusy = true;
+            string refreshToken = authRefreshToken;
+            SendAuthState(
+                "signing-out",
+                "Выходим…",
+                "Завершаем сессию MoveBook."
+            );
+            try
+            {
+                await authClient.LogoutAsync(
+                    refreshToken,
+                    CancellationToken.None
+                );
+            }
+            catch
+            {
+                // Local logout still removes all client-held credentials.
+            }
+            finally
+            {
+                ClearAuthSession();
+                authBusy = false;
+                SendAuthState(
+                    "signed-out",
+                    "Войти",
+                    "Сессия завершена."
+                );
+            }
+        }
+
+        private void ClearAuthSession()
+        {
+            authRefreshToken = "";
+            authUser = null;
+        }
+
+        private void SendAuthState()
+        {
+            if (authUser != null && !string.IsNullOrEmpty(authRefreshToken))
+            {
+                SendAuthState(
+                    "signed-in",
+                    authUser.DisplayName,
+                    "Вход через Discord выполнен."
+                );
+                return;
+            }
+            SendAuthState(
+                "signed-out",
+                "Войти",
+                "Войти через Discord"
+            );
+        }
+
+        private void SendAuthState(
+            string state,
+            string label,
+            string details
+        )
+        {
+            if (windowClosing || browser.CoreWebView2 == null)
+            {
+                return;
+            }
+            Dictionary<string, object> payload =
+                new Dictionary<string, object>();
+            payload["type"] = "movebook-auth-status";
+            payload["state"] = state;
+            payload["label"] = label;
+            payload["details"] = details;
+            payload["provider"] = authUser == null ? "" : "discord";
+            payload["displayName"] = authUser == null
+                ? ""
+                : authUser.DisplayName;
+            payload["avatarUrl"] = authUser == null
+                ? ""
+                : authUser.AvatarUrl;
+            browser.CoreWebView2.PostWebMessageAsJson(
+                jsonSerializer.Serialize(payload)
+            );
+        }
+
+        private static void OpenExternalBrowser(string url)
+        {
+            Uri target;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out target) ||
+                (!string.Equals(
+                    target.Scheme,
+                    Uri.UriSchemeHttp,
+                    StringComparison.OrdinalIgnoreCase
+                ) &&
+                !string.Equals(
+                    target.Scheme,
+                    Uri.UriSchemeHttps,
+                    StringComparison.OrdinalIgnoreCase
+                )))
+            {
+                throw new MoveBookAuthException(
+                    "Сервер вернул некорректную ссылку входа."
+                );
+            }
+            ProcessStartInfo startInfo = new ProcessStartInfo();
+            startInfo.FileName = target.AbsoluteUri;
+            startInfo.UseShellExecute = true;
+            Process process = Process.Start(startInfo);
+            if (process == null)
+            {
+                throw new MoveBookAuthException(
+                    "Не удалось открыть системный браузер."
+                );
+            }
+            process.Dispose();
         }
 
         private void StartMameBridge()
@@ -1120,6 +1409,28 @@ namespace MK3MoveBook
 
         private void OnWindowClosed(object sender, FormClosedEventArgs eventArgs)
         {
+            windowClosing = true;
+            if (authLoginCancellation != null)
+            {
+                authLoginCancellation.Cancel();
+            }
+            string refreshToken = authRefreshToken;
+            ClearAuthSession();
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                try
+                {
+                    authClient.LogoutAsync(
+                        refreshToken,
+                        CancellationToken.None
+                    ).Wait(1500);
+                }
+                catch
+                {
+                    // Window shutdown must not be blocked by network cleanup.
+                }
+            }
+            authClient.Dispose();
             mameBridge.SnapshotChanged -= OnMameBridgeSnapshotChanged;
             mameBridge.SnapshotObserved -= OnMameBridgeSnapshotObserved;
             mameBridge.Dispose();

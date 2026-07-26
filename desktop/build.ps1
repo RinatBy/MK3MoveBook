@@ -14,6 +14,7 @@ $formsAssembly = Join-Path $webViewDirectory "lib\net462\Microsoft.Web.WebView2.
 $loader = Join-Path $webViewDirectory "runtimes\win-x64\native\WebView2Loader.dll"
 $bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
+$authClientSource = Join-Path $desktopDirectory "MoveBookAuthClient.cs"
 $mameBridgeSource = Join-Path $desktopDirectory "MameBridge.cs"
 $mameDiagnosticReportSource = Join-Path $desktopDirectory "MameDiagnosticReport.cs"
 $mameFightTrackerSource = Join-Path $desktopDirectory "MameFightTracker.cs"
@@ -33,6 +34,7 @@ $requiredFiles = @(
     $loader,
     $bootstrapper,
     $source,
+    $authClientSource,
     $mameBridgeSource,
     $mameDiagnosticReportSource,
     $mameFightTrackerSource,
@@ -61,11 +63,13 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     "/reference:$(Join-Path $frameworkDirectory 'System.Core.dll')" `
     "/reference:$(Join-Path $frameworkDirectory 'System.Drawing.dll')" `
     "/reference:$(Join-Path $frameworkDirectory 'System.IO.Compression.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Net.Http.dll')" `
     "/reference:$(Join-Path $frameworkDirectory 'System.Web.Extensions.dll')" `
     "/reference:$(Join-Path $frameworkDirectory 'System.Windows.Forms.dll')" `
     "/reference:$coreAssembly" `
     "/reference:$formsAssembly" `
     $source `
+    $authClientSource `
     $mameBridgeSource `
     $mameDiagnosticReportSource `
     $mameFightTrackerSource `

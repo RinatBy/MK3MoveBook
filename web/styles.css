@@ -63,7 +63,7 @@ button {
 
 .topbar {
     display: grid;
-    grid-template-columns: 54px 230px auto minmax(220px, 1fr) auto auto;
+    grid-template-columns: 54px 230px auto minmax(180px, 1fr) auto auto auto;
     align-items: center;
     gap: 12px;
     padding: 8px 18px;
@@ -222,6 +222,118 @@ button {
 .achievement-entry[hidden],
 .roster-achievement-entry[hidden] {
     display: none !important;
+}
+
+.account-control {
+    position: relative;
+}
+
+.account-control[hidden] {
+    display: none !important;
+}
+
+.account-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 116px;
+    height: 40px;
+    padding: 0 10px;
+    color: #e8d9ed;
+    background: linear-gradient(180deg, #352344, #291934);
+    border: 1px solid #634976;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.account-button:hover:not(:disabled) {
+    color: #fff7d8;
+    background: #4b315f;
+    border-color: #8b6a9e;
+}
+
+.account-button[data-state="signed-in"] {
+    color: #fff3bd;
+    background: linear-gradient(180deg, #6e263d, #4e1a2c);
+    border-color: #d3ae47;
+}
+
+.account-button[data-state="error"] {
+    color: #ffd6da;
+    border-color: #b94b5f;
+}
+
+.account-button:disabled {
+    cursor: progress;
+    opacity: .78;
+}
+
+.account-avatar {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    overflow: hidden;
+    color: #e7c95f;
+    background: rgba(11, 6, 16, .46);
+    border: 1px solid rgba(226, 189, 76, .48);
+    border-radius: 50%;
+}
+
+.account-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.account-avatar svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.6;
+}
+
+.account-button:disabled .account-avatar {
+    animation: account-pulse 1.15s ease-in-out infinite;
+}
+
+.account-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.account-copy b {
+    max-width: 106px;
+    overflow: hidden;
+    font: 10px/1 "Russo One", sans-serif;
+    letter-spacing: .03em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+}
+
+.account-copy small {
+    max-width: 106px;
+    overflow: hidden;
+    color: #bba9c4;
+    font: 600 8px/1 "Literata", serif;
+    text-overflow: ellipsis;
+}
+
+@keyframes account-pulse {
+    50% {
+        opacity: .45;
+        transform: scale(.92);
+    }
 }
 
 .update-control {
@@ -2958,7 +3070,7 @@ button {
     }
 
     .topbar {
-        grid-template-columns: 54px 230px auto minmax(120px, 1fr) auto auto;
+        grid-template-columns: 54px 210px auto minmax(100px, 1fr) auto auto auto;
         gap: 8px;
         padding-inline: 12px;
     }
@@ -2978,6 +3090,16 @@ button {
     }
 
     .achievement-entry > b {
+        display: none;
+    }
+
+    .account-button {
+        width: 40px;
+        min-width: 40px;
+        padding: 0;
+    }
+
+    .account-copy {
         display: none;
     }
 
@@ -3073,8 +3195,8 @@ button {
         position: sticky;
         top: 0;
         z-index: 60;
-        grid-template-areas: "mark brand achievement update roster";
-        grid-template-columns: 36px minmax(0, 1fr) 36px 36px auto;
+        grid-template-areas: "mark brand account achievement update roster";
+        grid-template-columns: 36px minmax(0, 1fr) 36px 36px 36px auto;
         gap: 7px;
         min-height: 52px;
         padding: 6px max(9px, env(safe-area-inset-right)) 6px max(9px, env(safe-area-inset-left));
@@ -3137,6 +3259,21 @@ button {
 
     .update-control {
         grid-area: update;
+    }
+
+    .account-control {
+        grid-area: account;
+    }
+
+    .account-button {
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+    }
+
+    .account-avatar {
+        width: 24px;
+        height: 24px;
     }
 
     .achievement-entry {
@@ -3836,8 +3973,8 @@ button {
 
 @media (max-width: 380px) {
     .topbar {
-        grid-template-areas: "mark brand update roster";
-        grid-template-columns: 34px minmax(0, 1fr) 34px auto;
+        grid-template-areas: "mark brand account update roster";
+        grid-template-columns: 34px minmax(0, 1fr) 34px 34px auto;
     }
 
     .achievement-entry {

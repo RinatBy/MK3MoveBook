@@ -233,6 +233,12 @@
         routeBar: document.querySelector("#routeBar"),
         achievementButton: document.querySelector("#achievementButton"),
         mobileAchievementButton: document.querySelector("#mobileAchievementButton"),
+        accountControl: document.querySelector("#accountControl"),
+        accountButton: document.querySelector("#accountButton"),
+        accountAvatar: document.querySelector("#accountAvatar"),
+        accountFallback: document.querySelector("#accountFallback"),
+        accountLabel: document.querySelector("#accountLabel"),
+        accountDetails: document.querySelector("#accountDetails"),
         updateButton: document.querySelector("#updateButton"),
         updatePanel: document.querySelector("#updatePanel"),
         updatePanelClose: document.querySelector("#updatePanelClose"),
@@ -2180,6 +2186,44 @@
         }
     }
 
+    function applyAuthStatus(message) {
+        if (!message || message.type !== "movebook-auth-status") {
+            return;
+        }
+        const authState = String(message.state || "signed-out");
+        const busy = ["starting", "waiting", "signing-out"].includes(authState);
+        const signedIn = authState === "signed-in";
+        const label = String(message.label || (signedIn ? "Аккаунт" : "Войти"));
+        const details = String(message.details || "Войти через Discord");
+        const avatarUrl = String(message.avatarUrl || "");
+
+        elements.accountControl.hidden = false;
+        elements.accountButton.dataset.state = authState;
+        elements.accountButton.disabled = busy;
+        elements.accountLabel.textContent = label;
+        elements.accountDetails.textContent = "Discord";
+        elements.accountButton.title = signedIn
+            ? `${label} · нажмите, чтобы выйти`
+            : details;
+        elements.accountButton.setAttribute(
+            "aria-label",
+            signedIn ? `Аккаунт ${label}. Нажмите, чтобы выйти` : details
+        );
+
+        const validAvatar = signedIn && /^https:\/\//i.test(avatarUrl);
+        elements.accountAvatar.hidden = !validAvatar;
+        elements.accountFallback.hidden = validAvatar;
+        if (validAvatar) {
+            elements.accountAvatar.src = avatarUrl;
+        } else {
+            elements.accountAvatar.removeAttribute("src");
+        }
+
+        if (authState !== "signed-out") {
+            elements.statusText.textContent = details;
+        }
+    }
+
     function applyMameStatus(message) {
         if (!message || message.type !== "movebook-mame-status") {
             return;
@@ -2274,10 +2318,12 @@
         bridge.addEventListener("message", event => {
             applyUpdateStatus(event.data);
             applyMameStatus(event.data);
+            applyAuthStatus(event.data);
         });
         elements.updateButton.dataset.action = "check";
         bridge.postMessage("check-updates");
         bridge.postMessage("request-mame-status");
+        bridge.postMessage("request-auth-status");
     }
 
     elements.searchInput.addEventListener("input", event => {
@@ -2355,6 +2401,18 @@
 
     elements.achievementButton.addEventListener("click", openAchievements);
     elements.mobileAchievementButton.addEventListener("click", openAchievements);
+
+    elements.accountButton.addEventListener("click", () => {
+        const bridge = updateBridge();
+        if (!bridge || elements.accountButton.disabled) {
+            return;
+        }
+        bridge.postMessage(
+            elements.accountButton.dataset.state === "signed-in"
+                ? "logout-movebook"
+                : "start-discord-login"
+        );
+    });
 
     elements.fighterSeal.addEventListener("click", () => {
         if (state.tab === "secrets") {
