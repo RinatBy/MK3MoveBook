@@ -6,5 +6,6 @@
 powershell -ExecutionPolicy Bypass -File .\run-tests.ps1
 ```
 
-Тесты проверяют стандартный Fatality, Stage Fatality и отдельный ROM-зависимый
-сигнал Antifatality Kabal для обеих сторон игрока.
+Тесты проверяют Fatality, Animality, Friendship, Babality, Brutality,
+Stage Fatality и отдельный ROM-зависимый сигнал Antifatality Kabal для обеих
+сторон игрока.

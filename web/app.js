@@ -129,7 +129,17 @@
             const saved = JSON.parse(
                 localStorage.getItem(achievementStorageKey) || "null"
             );
-            return achievementEngine.normalizeProgress(saved);
+            const reconciled = achievementEngine.reconcileProgress(
+                saved,
+                achievementData
+            );
+            if (reconciled.changed) {
+                localStorage.setItem(
+                    achievementStorageKey,
+                    JSON.stringify(reconciled.progress)
+                );
+            }
+            return reconciled.progress;
         } catch {
             return achievementEngine.emptyProgress();
         }
@@ -1207,14 +1217,22 @@
         const label = unlocked
             ? `${definition.label || "Испытание"} · Получено`
             : (definition.label || "Испытание");
+        const loreNote = definition.loreNote
+            ? `<button class="achievement-lore-note" type="button"
+                title="${escapeHtml(definition.loreNote)}"
+                aria-label="Сюжетная справка: ${escapeHtml(definition.loreNote)}">!</button>`
+            : "";
         return `
             <article class="achievement-card${unlocked ? " is-unlocked" : ""}"
                 data-achievement="${escapeHtml(definition.id)}">
                 ${iconHtml}
                 <span class="achievement-card-copy">
-                    <small>${escapeHtml(label)}</small>
+                    <span class="achievement-card-meta">
+                        <small>${escapeHtml(label)}</small>
+                        ${loreNote}
+                    </span>
                     <strong>${escapeHtml(definition.title)}</strong>
-                    <span>${escapeHtml(definition.description)}</span>
+                    <span class="achievement-card-description">${escapeHtml(definition.description)}</span>
                 </span>
             </article>`;
     }

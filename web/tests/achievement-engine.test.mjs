@@ -57,8 +57,7 @@ let result = engine.processStatus(
 progress = result.progress;
 assert.deepEqual(unlockedIds(result), [
     "fighter-debut-sonya",
-    "old-scores",
-    "victories-1"
+    "old-scores"
 ]);
 assert.equal(progress.victories, 1);
 
@@ -95,6 +94,49 @@ assert.equal(Boolean(progress.unlocked["kabal-antifatality"]), false);
 result = engine.processStatus(
     progress,
     status({
+        processId: 200,
+        romId: "umk3tm",
+        finisherSequence: 2,
+        finisherKind: "fatality",
+        finisherFighterId: 0x0A
+    }),
+    data
+);
+progress = result.progress;
+assert.deepEqual(unlockedIds(result), ["first-fatality"]);
+
+result = engine.processStatus(
+    progress,
+    status({
+        processId: 200,
+        romId: "umk3tm",
+        finisherSequence: 3,
+        finisherKind: "brutality",
+        finisherFighterId: 0x02
+    }),
+    data
+);
+progress = result.progress;
+assert.deepEqual(unlockedIds(result), ["jax-brutality"]);
+assert.equal(Boolean(progress.unlocked["sheeva-brutality"]), false);
+
+result = engine.processStatus(
+    progress,
+    status({
+        processId: 200,
+        romId: "umk3tm",
+        finisherSequence: 4,
+        finisherKind: "brutality",
+        finisherFighterId: 0x0B
+    }),
+    data
+);
+progress = result.progress;
+assert.deepEqual(unlockedIds(result), ["sheeva-brutality"]);
+
+result = engine.processStatus(
+    progress,
+    status({
         processId: 201,
         romId: "umk3uk",
         finisherSequence: 1,
@@ -122,7 +164,17 @@ for (let sequence = 2; sequence <= 10; sequence++) {
     progress = result.progress;
 }
 assert.equal(progress.victories, 10);
+assert.equal(Boolean(progress.unlocked["victories-5"]), true);
 assert.equal(Boolean(progress.unlocked["victories-10"]), true);
-assert.equal(engine.definitions(data).length, 21);
+assert.equal(Boolean(progress.unlocked["victories-25"]), false);
 
-console.log("Achievement engine: 5 scenarios passed.");
+const reconciled = engine.reconcileProgress({
+    victories: 15,
+    unlocked: {},
+    processedEvents: []
+}, data, "2026-07-26T12:00:00.000Z");
+assert.deepEqual(unlockedIds(reconciled), ["victories-10", "victories-5"]);
+assert.equal(reconciled.progress.victories, 15);
+assert.equal(engine.definitions(data).length, 28);
+
+console.log("Achievement engine: 9 scenarios passed.");

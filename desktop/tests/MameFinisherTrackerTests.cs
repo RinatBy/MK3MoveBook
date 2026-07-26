@@ -12,11 +12,15 @@ namespace MK3MoveBook
             TestAntifatalityPlayerTwo();
             TestAntifatalityRejectedInTeamEdition();
             TestStageFatality();
-            TestStandardFatality();
+            TestGenericFinisher("Fatality", 0x01, "fatality");
+            TestGenericFinisher("Animality", 0x03, "animality");
+            TestGenericFinisher("Friendship", 0x04, "friendship");
+            TestGenericFinisher("Babality", 0x05, "babality");
+            TestGenericFinisher("Brutality", 0x06, "brutality");
 
             if (failures == 0)
             {
-                Console.WriteLine("MameFinisherTracker: 5 tests passed.");
+                Console.WriteLine("MameFinisherTracker: 9 tests passed.");
                 return 0;
             }
             Console.Error.WriteLine(
@@ -115,7 +119,11 @@ namespace MK3MoveBook
             Equal("Stage Fatality kind", "stage-fatality", result.Kind);
         }
 
-        private static void TestStandardFatality()
+        private static void TestGenericFinisher(
+            string name,
+            int type,
+            string expectedKind
+        )
         {
             MameFinisherTracker tracker = new MameFinisherTracker();
             Observe(tracker, "umk3uk", 0x02, 166, 0x0012, 0x00, 0, 0x0216);
@@ -132,9 +140,9 @@ namespace MK3MoveBook
                 0x03,
                 0x01,
                 0x01,
-                0x01
+                type
             );
-            Equal("Standard Fatality kind", "fatality", result.Kind);
+            Equal(name + " kind", expectedKind, result.Kind);
         }
 
         private static MameFinisherProgress Observe(

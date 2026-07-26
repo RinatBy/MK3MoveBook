@@ -74,6 +74,16 @@
         unlocked.push(definition);
     }
 
+    function applyVictoryMilestones(progress, data, unlocked, timestamp) {
+        (data.general || []).forEach(definition => {
+            const condition = definition.condition || {};
+            if (condition.type === "victories" &&
+                progress.victories >= Number(condition.count)) {
+                unlock(progress, definition, unlocked, timestamp);
+            }
+        });
+    }
+
     function processVictory(progress, message, data, unlocked, timestamp) {
         if (message.eventKind !== "match-ended" ||
             Number(message.eventSequence) <= 0) {
@@ -99,13 +109,7 @@
 
         if (winnerId) {
             progress.victories++;
-            (data.general || []).forEach(definition => {
-                const condition = definition.condition || {};
-                if (condition.type === "victories" &&
-                    progress.victories >= Number(condition.count)) {
-                    unlock(progress, definition, unlocked, timestamp);
-                }
-            });
+            applyVictoryMilestones(progress, data, unlocked, timestamp);
             (data.fighters || [])
                 .filter(definition => definition.fighterId === winnerId)
                 .forEach(definition =>
@@ -144,9 +148,11 @@
             const condition = definition.condition || {};
             const validRom = !Array.isArray(condition.romIds) ||
                 condition.romIds.includes(romId);
+            const validFighter = !definition.fighterId ||
+                definition.fighterId === fighterId;
             if (condition.type === "finisher" &&
                 condition.kind === kind &&
-                definition.fighterId === fighterId &&
+                validFighter &&
                 validRom) {
                 unlock(progress, definition, unlocked, timestamp);
             }
@@ -179,10 +185,27 @@
         };
     }
 
+    function reconcileProgress(current, data, timestamp) {
+        const progress = normalizeProgress(current);
+        const unlocked = [];
+        applyVictoryMilestones(
+            progress,
+            data,
+            unlocked,
+            timestamp || new Date().toISOString()
+        );
+        return {
+            progress,
+            unlocked,
+            changed: unlocked.length > 0
+        };
+    }
+
     root.MOVEBOOK_ACHIEVEMENT_ENGINE = {
         emptyProgress,
         normalizeProgress,
         definitions,
-        processStatus
+        processStatus,
+        reconcileProgress
     };
 }(typeof window === "undefined" ? globalThis : window));
