@@ -1,11 +1,25 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from movebook_server.db import create_database_engine
 from movebook_server.models import AchievementEvent, AchievementUnlock, User
+
+
+def test_sqlite_engine_enables_production_pragmas(
+    migrated_database: str,
+) -> None:
+    engine = create_database_engine(migrated_database)
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("PRAGMA foreign_keys")) == 1
+            assert connection.scalar(text("PRAGMA busy_timeout")) >= 5000
+            assert connection.scalar(text("PRAGMA journal_mode")) == "wal"
+    finally:
+        engine.dispose()
 
 
 def test_achievement_unlock_is_unique_per_user(

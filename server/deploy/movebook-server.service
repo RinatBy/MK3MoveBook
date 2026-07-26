@@ -1,0 +1,38 @@
+[Unit]
+Description=MK3 MoveBook API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=movebook
+Group=movebook
+WorkingDirectory=/opt/movebook-server/current
+EnvironmentFile=/etc/movebook-server.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+StateDirectory=movebook-server
+StateDirectoryMode=0700
+UMask=0077
+ExecStartPre=/opt/movebook-server/venv/bin/alembic -c /opt/movebook-server/current/alembic.ini upgrade head
+ExecStart=/opt/movebook-server/venv/bin/uvicorn movebook_server.main:app --host 127.0.0.1 --port 8020 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1 --no-access-log
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

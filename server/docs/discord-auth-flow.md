@@ -41,5 +41,6 @@ installation flow if MoveBook later needs server commands.
   the current Windows user. Closing the book keeps the session; explicit logout
   revokes it and removes the local encrypted copy.
 
-This flow does not yet decide whether MAME P1 or P2 belongs to the authenticated
-account and does not synchronize achievements.
+The current achievement model treats P1 as the authenticated account. Portable
+sends normalized MAME events to the server after sign-in; the server evaluates
+and stores the resulting progress as `unverified-local`.
