@@ -64,6 +64,10 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    device_login_sessions: Mapped[list[DeviceLoginSession]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     achievement_unlocks: Mapped[list[AchievementUnlock]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
@@ -142,6 +146,64 @@ class RefreshToken(Base):
     ip_address: Mapped[str | None] = mapped_column(String(64))
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")
+
+
+class DeviceLoginSession(Base):
+    __tablename__ = "device_login_sessions"
+    __table_args__ = (
+        UniqueConstraint(
+            "device_code_hash",
+            name="uq_device_login_sessions_device_code_hash",
+        ),
+        UniqueConstraint(
+            "browser_code_hash",
+            name="uq_device_login_sessions_browser_code_hash",
+        ),
+        UniqueConstraint(
+            "oauth_state_hash",
+            name="uq_device_login_sessions_oauth_state_hash",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'authorized', 'consumed', 'failed', 'expired')",
+            name="valid_status",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
+    provider: Mapped[str] = mapped_column(
+        String(32),
+        default="discord",
+        nullable=False,
+    )
+    device_code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    browser_code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    oauth_state_hash: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(
+        String(16),
+        default="pending",
+        nullable=False,
+    )
+    failure_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utcnow,
+        nullable=False,
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+        nullable=False,
+    )
+    authorized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User | None] = relationship(
+        back_populates="device_login_sessions",
+    )
 
 
 class AchievementEvent(Base):
