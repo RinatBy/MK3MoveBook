@@ -1,0 +1,28 @@
+[Unit]
+Description=MK3 MoveBook verified SQLite backup
+After=local-fs.target
+ConditionPathExists=/var/lib/movebook-server/movebook.db
+
+[Service]
+Type=oneshot
+User=movebook
+Group=movebook
+UMask=0077
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /usr/local/libexec/movebook-server/backup_sqlite.py --database /var/lib/movebook-server/movebook.db --output-directory /var/backups/movebook-server --retention-days 30
+
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/movebook-server /var/backups/movebook-server
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX

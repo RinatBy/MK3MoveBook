@@ -59,7 +59,50 @@ the expected public smoke-test result.
 
 ## Backup and rollback
 
-Stop the MoveBook service before copying the SQLite database, then start it
-again immediately. Keep the previous release directory and change only the
-`current` symlink when rolling back code. Never modify or restart unrelated VDS
-services during either operation.
+Install the backup utility and timer without restarting the API:
+
+```bash
+install -d -o root -g root -m 0755 /usr/local/libexec/movebook-server
+install -o root -g root -m 0755 \
+  deploy/backup_sqlite.py \
+  /usr/local/libexec/movebook-server/backup_sqlite.py
+install -d -o movebook -g movebook -m 0700 \
+  /var/backups/movebook-server
+install -o root -g root -m 0644 \
+  deploy/movebook-server-backup.service \
+  /etc/systemd/system/movebook-server-backup.service
+install -o root -g root -m 0644 \
+  deploy/movebook-server-backup.timer \
+  /etc/systemd/system/movebook-server-backup.timer
+systemctl daemon-reload
+systemctl enable --now movebook-server-backup.timer
+systemctl start movebook-server-backup.service
+```
+
+The timer runs daily between 03:20 and 03:40 server time and keeps 30 days of
+snapshots in `/var/backups/movebook-server`. The utility uses SQLite's online
+backup API, verifies the new copy with `PRAGMA integrity_check`, publishes it
+atomically with mode `0600`, and only then removes expired managed snapshots.
+The API does not need to be stopped.
+
+Check the timer and the newest snapshot:
+
+```bash
+systemctl list-timers --all movebook-server-backup.timer --no-pager
+systemctl show movebook-server-backup.service \
+  -p Result -p ExecMainStatus -p ActiveState
+latest="$(find /var/backups/movebook-server -maxdepth 1 -type f \
+  -name 'movebook-*.sqlite3' -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)"
+sqlite3 -readonly "$latest" 'PRAGMA integrity_check;'
+```
+
+The oneshot service returns to `ActiveState=inactive` after each run. A
+successful completed backup reports `Result=success` and `ExecMainStatus=0`.
+
+These snapshots protect against application errors and accidental database
+changes. Because they remain on the same VDS, a later off-host copy is still
+required to protect against complete server or disk loss.
+
+For a code rollback, keep the previous release directory and change only the
+`current` symlink. Never modify or restart unrelated VDS services during backup
+or rollback operations.
