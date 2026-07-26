@@ -1,8 +1,7 @@
 # Discord authentication flow
 
-This checkpoint implements server-side Discord sign-in for a future desktop
-client. Portable remains unchanged and never receives the Discord client
-secret.
+This flow is used by the Portable desktop client. Portable never receives the
+Discord client secret.
 
 ## Flow
 
@@ -38,6 +37,9 @@ installation flow if MoveBook later needs server commands.
   or production secret storage and are excluded from Git.
 - A completed device session can issue tokens only once. Refresh rotation
   revokes the previous MoveBook refresh token.
+- Portable encrypts the rotatable MoveBook refresh token with Windows DPAPI for
+  the current Windows user. Closing the book keeps the session; explicit logout
+  revokes it and removes the local encrypted copy.
 
 This flow does not yet decide whether MAME P1 or P2 belongs to the authenticated
 account and does not synchronize achievements.

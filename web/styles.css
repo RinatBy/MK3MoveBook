@@ -180,6 +180,17 @@ button {
         0 0 14px rgba(216, 173, 58, .18);
 }
 
+.achievement-entry.is-locked {
+    color: #b5a8ba;
+    background: linear-gradient(180deg, #2c2232, #241b29);
+    border-color: #55465c;
+}
+
+.achievement-entry.is-locked .achievement-mark-check,
+.roster-achievement-entry.is-locked .achievement-mark-check {
+    opacity: .18;
+}
+
 .achievement-entry > b {
     font: 10px/1 "Russo One", sans-serif;
     letter-spacing: .04em;
@@ -2365,6 +2376,70 @@ button {
     text-transform: uppercase;
 }
 
+.achievement-auth-gate {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    margin: -4px 0 14px;
+    padding: 15px 17px;
+    color: #e4d7e7;
+    background:
+        linear-gradient(100deg, rgba(44, 31, 52, .98), rgba(29, 21, 35, .98));
+    border: 1px solid #746079;
+    border-radius: 8px;
+    box-shadow: 0 7px 16px rgba(41, 27, 45, .16);
+}
+
+.achievement-auth-gate-mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    color: #d1a943;
+    background: #211827;
+    border: 1px solid #8b7041;
+    border-radius: 6px;
+}
+
+.achievement-auth-gate small {
+    color: #d1a943;
+    font: 8px/1 "Russo One", sans-serif;
+    letter-spacing: .13em;
+}
+
+.achievement-auth-gate h3 {
+    margin: 5px 0 3px;
+    color: #fff1c5;
+    font: 15px/1.15 "Russo One", sans-serif;
+}
+
+.achievement-auth-gate p {
+    margin: 0;
+    color: #c4b7c8;
+    font: 600 10px/1.45 "Literata", serif;
+}
+
+.achievement-auth-gate button,
+.achievement-auth-gate a {
+    padding: 10px 13px;
+    color: #fff2bd;
+    background: linear-gradient(180deg, #982b43, #6e1d31);
+    border: 1px solid #d0a746;
+    border-radius: 5px;
+    cursor: pointer;
+    font: 9px/1.15 "Russo One", sans-serif;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.achievement-auth-gate button:hover,
+.achievement-auth-gate a:hover {
+    color: #fff9dd;
+    background: linear-gradient(180deg, #ad3550, #7e2239);
+}
+
 .mame-diagnostic-stack {
     margin: -4px 0 14px;
 }
@@ -3924,6 +3999,18 @@ button {
 
     .achievements-summary span {
         margin: 0;
+    }
+
+    .achievement-auth-gate {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 11px;
+        padding: 12px;
+    }
+
+    .achievement-auth-gate button,
+    .achievement-auth-gate a {
+        grid-column: 1 / -1;
+        width: 100%;
     }
 
     .mame-diagnostic {

@@ -12,9 +12,20 @@ namespace MK3MoveBook
     internal sealed class MoveBookAuthException : Exception
     {
         public MoveBookAuthException(string message)
-            : base(message)
+            : this(message, null)
         {
         }
+
+        public MoveBookAuthException(
+            string message,
+            HttpStatusCode? statusCode
+        )
+            : base(message)
+        {
+            StatusCode = statusCode;
+        }
+
+        public HttpStatusCode? StatusCode { get; private set; }
     }
 
     internal sealed class MoveBookDeviceSession
@@ -131,22 +142,30 @@ namespace MK3MoveBook
                 };
             }
 
-            Dictionary<string, object> userPayload = RequireDictionary(
-                payload,
-                "user"
-            );
-            return new MoveBookAuthPollResult
+            return ParseAuthorizedResult(payload);
+        }
+
+        public async Task<MoveBookAuthPollResult> RefreshAsync(
+            string refreshToken,
+            CancellationToken cancellationToken
+        )
+        {
+            if (string.IsNullOrWhiteSpace(refreshToken))
             {
-                IsPending = false,
-                AccessToken = RequireString(payload, "access_token"),
-                RefreshToken = RequireString(payload, "refresh_token"),
-                User = new MoveBookAuthUser
-                {
-                    Id = RequirePositiveInt(userPayload, "id"),
-                    DisplayName = RequireString(userPayload, "display_name"),
-                    AvatarUrl = OptionalString(userPayload, "avatar_url")
-                }
-            };
+                throw new MoveBookAuthException(
+                    "Сохранённая сессия MoveBook повреждена."
+                );
+            }
+            Dictionary<string, object> body = new Dictionary<string, object>();
+            body["refresh_token"] = refreshToken;
+            AuthHttpResult result = await SendForResultAsync(
+                HttpMethod.Post,
+                "/api/v1/auth/refresh",
+                body,
+                new[] { HttpStatusCode.OK },
+                cancellationToken
+            );
+            return ParseAuthorizedResult(result.Payload);
         }
 
         public async Task LogoutAsync(
@@ -283,25 +302,58 @@ namespace MK3MoveBook
             if (statusCode == HttpStatusCode.BadRequest)
             {
                 return new MoveBookAuthException(
-                    "Discord не подтвердил вход. Попробуйте ещё раз."
+                    "Discord не подтвердил вход. Попробуйте ещё раз.",
+                    statusCode
+                );
+            }
+            if (statusCode == HttpStatusCode.Unauthorized)
+            {
+                return new MoveBookAuthException(
+                    "Сохранённая сессия истекла. Войдите через Discord снова.",
+                    statusCode
                 );
             }
             if (statusCode == HttpStatusCode.Gone)
             {
                 return new MoveBookAuthException(
-                    "Время входа истекло. Попробуйте ещё раз."
+                    "Время входа истекло. Попробуйте ещё раз.",
+                    statusCode
                 );
             }
             if (statusCode == HttpStatusCode.ServiceUnavailable)
             {
                 return new MoveBookAuthException(
-                    "Вход через Discord пока не настроен на сервере."
+                    "Вход через Discord пока не настроен на сервере.",
+                    statusCode
                 );
             }
             return new MoveBookAuthException(
                 "Сервер MoveBook отклонил запрос (" +
-                (int)statusCode + ")."
+                (int)statusCode + ").",
+                statusCode
             );
+        }
+
+        private static MoveBookAuthPollResult ParseAuthorizedResult(
+            Dictionary<string, object> payload
+        )
+        {
+            Dictionary<string, object> userPayload = RequireDictionary(
+                payload,
+                "user"
+            );
+            return new MoveBookAuthPollResult
+            {
+                IsPending = false,
+                AccessToken = RequireString(payload, "access_token"),
+                RefreshToken = RequireString(payload, "refresh_token"),
+                User = new MoveBookAuthUser
+                {
+                    Id = RequirePositiveInt(userPayload, "id"),
+                    DisplayName = RequireString(userPayload, "display_name"),
+                    AvatarUrl = OptionalString(userPayload, "avatar_url")
+                }
+            };
         }
 
         private static Dictionary<string, object> RequireDictionary(

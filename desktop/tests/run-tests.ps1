@@ -6,6 +6,7 @@ $compiler = Join-Path $frameworkDirectory "csc.exe"
 $outputDirectory = Join-Path $PSScriptRoot "build"
 $executable = Join-Path $outputDirectory "MameFinisherTrackerTests.exe"
 $authExecutable = Join-Path $outputDirectory "MoveBookAuthClientTests.exe"
+$sessionStoreExecutable = Join-Path $outputDirectory "MoveBookSessionStoreTests.exe"
 
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 
@@ -41,4 +42,22 @@ if ($LASTEXITCODE -ne 0) {
 & $authExecutable
 if ($LASTEXITCODE -ne 0) {
     throw "OAuth-тесты завершились с кодом $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$sessionStoreExecutable" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Security.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Web.Extensions.dll')" `
+    (Join-Path $desktopDirectory "MoveBookSessionStore.cs") `
+    (Join-Path $PSScriptRoot "MoveBookSessionStoreTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Компиляция тестов хранилища сессии завершилась с кодом $LASTEXITCODE"
+}
+
+& $sessionStoreExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Тесты хранилища сессии завершились с кодом $LASTEXITCODE"
 }

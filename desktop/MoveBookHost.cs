@@ -633,6 +633,7 @@ namespace MK3MoveBook
         private readonly LoadingView loadingView;
         private readonly JavaScriptSerializer jsonSerializer;
         private readonly MoveBookAuthClient authClient;
+        private readonly MoveBookSessionStore authSessionStore;
         private readonly MameBridge mameBridge;
         private readonly MameDiagnosticReport mameDiagnosticReport;
         private readonly string localDataDirectory;
@@ -646,7 +647,9 @@ namespace MK3MoveBook
         private bool updateBusy;
         private bool mameBridgeStarted;
         private bool authBusy;
+        private bool authRestorePending;
         private bool windowClosing;
+        private string authAccessToken;
         private string authRefreshToken;
         private MoveBookAuthUser authUser;
         private CancellationTokenSource authLoginCancellation;
@@ -661,20 +664,27 @@ namespace MK3MoveBook
             MinimumSize = new Size(1080, 700);
 
             jsonSerializer = new JavaScriptSerializer();
+            localDataDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MK3MoveBook"
+            );
+            string apiBaseUrl = MoveBookAuthClient.ResolveApiBaseUrl();
             authClient = new MoveBookAuthClient(
-                MoveBookAuthClient.ResolveApiBaseUrl(),
+                apiBaseUrl,
                 jsonSerializer
             );
+            authSessionStore = new MoveBookSessionStore(
+                localDataDirectory,
+                apiBaseUrl,
+                jsonSerializer
+            );
+            authRestorePending = true;
             mameBridge = new MameBridge();
             mameDiagnosticReport = new MameDiagnosticReport(
                 AppDomain.CurrentDomain.BaseDirectory
             );
             mameBridge.SnapshotChanged += OnMameBridgeSnapshotChanged;
             mameBridge.SnapshotObserved += OnMameBridgeSnapshotObserved;
-            localDataDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "MK3MoveBook"
-            );
             bundledWebDirectory = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
                 "web"
@@ -916,7 +926,7 @@ namespace MK3MoveBook
             }
         }
 
-        private void OnNavigationCompleted(
+        private async void OnNavigationCompleted(
             object sender,
             CoreWebView2NavigationCompletedEventArgs eventArgs
         )
@@ -930,6 +940,7 @@ namespace MK3MoveBook
                 browser.BringToFront();
                 browser.Focus();
                 StartMameBridge();
+                await RestoreAuthSessionAsync();
                 return;
             }
 
@@ -1111,12 +1122,13 @@ namespace MK3MoveBook
                         continue;
                     }
 
-                    authRefreshToken = result.RefreshToken;
-                    authUser = result.User;
+                    bool persisted = SetAuthSession(result, true);
                     SendAuthState(
                         "signed-in",
                         authUser.DisplayName,
-                        "Вход через Discord выполнен."
+                        persisted
+                            ? "Вход через Discord выполнен и сохранён."
+                            : "Вход выполнен, но Windows не смогла сохранить сессию."
                     );
                     return;
                 }
@@ -1165,6 +1177,105 @@ namespace MK3MoveBook
             }
         }
 
+        private async Task RestoreAuthSessionAsync()
+        {
+            if (!authRestorePending)
+            {
+                SendAuthState();
+                return;
+            }
+
+            authRestorePending = false;
+            MoveBookStoredSession storedSession = authSessionStore.Load();
+            if (storedSession == null)
+            {
+                SendAuthState();
+                return;
+            }
+
+            authBusy = true;
+            SendAuthState(
+                "restoring",
+                "Проверяем вход…",
+                "Восстанавливаем сохранённую сессию MoveBook."
+            );
+            try
+            {
+                MoveBookAuthPollResult result = await authClient.RefreshAsync(
+                    storedSession.RefreshToken,
+                    CancellationToken.None
+                );
+                bool persisted = SetAuthSession(result, true);
+                SendAuthState(
+                    "signed-in",
+                    authUser.DisplayName,
+                    persisted
+                        ? "Сессия Discord восстановлена."
+                        : "Сессия восстановлена, но Windows не смогла сохранить новый ключ."
+                );
+            }
+            catch (MoveBookAuthException exception)
+            {
+                ClearAuthSession();
+                if (exception.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    authSessionStore.Clear();
+                    SendAuthState(
+                        "signed-out",
+                        "Войти",
+                        exception.Message
+                    );
+                }
+                else
+                {
+                    SendAuthState(
+                        "error",
+                        "Повторить вход",
+                        "Сохранённую сессию не удалось проверить. " +
+                        "Она будет проверена при следующем запуске."
+                    );
+                }
+            }
+            catch
+            {
+                ClearAuthSession();
+                SendAuthState(
+                    "error",
+                    "Повторить вход",
+                    "Сервер MoveBook недоступен. Сохранённая сессия не удалена."
+                );
+            }
+            finally
+            {
+                authBusy = false;
+            }
+        }
+
+        private bool SetAuthSession(
+            MoveBookAuthPollResult result,
+            bool persist
+        )
+        {
+            authAccessToken = result.AccessToken;
+            authRefreshToken = result.RefreshToken;
+            authUser = result.User;
+            if (!persist)
+            {
+                return true;
+            }
+
+            try
+            {
+                authSessionStore.Save(authRefreshToken);
+                return true;
+            }
+            catch
+            {
+                authSessionStore.Clear();
+                return false;
+            }
+        }
+
         private async Task LogoutMoveBookAsync(bool confirm)
         {
             if (authBusy)
@@ -1173,6 +1284,7 @@ namespace MK3MoveBook
             }
             if (authUser == null || string.IsNullOrEmpty(authRefreshToken))
             {
+                authSessionStore.Clear();
                 ClearAuthSession();
                 SendAuthState();
                 return;
@@ -1213,6 +1325,7 @@ namespace MK3MoveBook
             }
             finally
             {
+                authSessionStore.Clear();
                 ClearAuthSession();
                 authBusy = false;
                 SendAuthState(
@@ -1225,13 +1338,25 @@ namespace MK3MoveBook
 
         private void ClearAuthSession()
         {
+            authAccessToken = "";
             authRefreshToken = "";
             authUser = null;
         }
 
         private void SendAuthState()
         {
-            if (authUser != null && !string.IsNullOrEmpty(authRefreshToken))
+            if (authRestorePending)
+            {
+                SendAuthState(
+                    "restoring",
+                    "Проверяем вход…",
+                    "Ищем сохранённую сессию MoveBook."
+                );
+                return;
+            }
+            if (authUser != null &&
+                !string.IsNullOrEmpty(authAccessToken) &&
+                !string.IsNullOrEmpty(authRefreshToken))
             {
                 SendAuthState(
                     "signed-in",
@@ -1264,6 +1389,7 @@ namespace MK3MoveBook
             payload["label"] = label;
             payload["details"] = details;
             payload["provider"] = authUser == null ? "" : "discord";
+            payload["userId"] = authUser == null ? 0 : authUser.Id;
             payload["displayName"] = authUser == null
                 ? ""
                 : authUser.DisplayName;
@@ -1413,22 +1539,6 @@ namespace MK3MoveBook
             if (authLoginCancellation != null)
             {
                 authLoginCancellation.Cancel();
-            }
-            string refreshToken = authRefreshToken;
-            ClearAuthSession();
-            if (!string.IsNullOrEmpty(refreshToken))
-            {
-                try
-                {
-                    authClient.LogoutAsync(
-                        refreshToken,
-                        CancellationToken.None
-                    ).Wait(1500);
-                }
-                catch
-                {
-                    // Window shutdown must not be blocked by network cleanup.
-                }
             }
             authClient.Dispose();
             mameBridge.SnapshotChanged -= OnMameBridgeSnapshotChanged;

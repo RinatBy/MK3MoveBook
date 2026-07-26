@@ -17,12 +17,13 @@ namespace MK3MoveBook
         {
             RunAsync(TestCreateDeviceSession, "Create device session");
             RunAsync(TestPendingAndAuthorizedPoll, "Poll authorization");
+            RunAsync(TestRefresh, "Refresh authorization");
             RunAsync(TestLogout, "Logout");
             TestRemoteHttpIsRejected();
 
             if (failures == 0)
             {
-                Console.WriteLine("MoveBookAuthClient: 4 tests passed.");
+                Console.WriteLine("MoveBookAuthClient: 5 tests passed.");
                 return 0;
             }
             Console.Error.WriteLine(
@@ -117,6 +118,31 @@ namespace MK3MoveBook
                 handler.Requests[0].Path
             );
             Contains("logout body", handler.Requests[0].Body, "refresh-secret");
+        }
+
+        private static async Task TestRefresh()
+        {
+            QueueHandler handler = new QueueHandler();
+            handler.Enqueue(
+                HttpStatusCode.OK,
+                "{\"status\":\"authorized\"," +
+                "\"access_token\":\"new-access\"," +
+                "\"refresh_token\":\"new-refresh\"," +
+                "\"user\":{\"id\":7,\"display_name\":\"uPlay\"," +
+                "\"avatar_url\":null,\"providers\":[\"discord\"]}}"
+            );
+            using (MoveBookAuthClient client = CreateClient(handler))
+            {
+                MoveBookAuthPollResult result = await client.RefreshAsync(
+                    "old-refresh",
+                    CancellationToken.None
+                );
+                Equal("refresh access", "new-access", result.AccessToken);
+                Equal("refresh token", "new-refresh", result.RefreshToken);
+                Equal("refresh user", 7, result.User.Id);
+            }
+            Equal("refresh path", "/api/v1/auth/refresh", handler.Requests[0].Path);
+            Contains("refresh body", handler.Requests[0].Body, "old-refresh");
         }
 
         private static void TestRemoteHttpIsRejected()

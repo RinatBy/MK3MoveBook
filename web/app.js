@@ -121,13 +121,29 @@
     const hostedSite = document.body.classList.contains("hosted-site");
     const latestReleaseUrl =
         "https://github.com/RinatBy/MK3MoveBook/releases/latest";
-    const achievementStorageKey = "movebook-achievement-progress-v1";
+    const achievementStoragePrefix = "movebook-achievement-progress-v2:user:";
     const achievementEngine = window.MOVEBOOK_ACHIEVEMENT_ENGINE;
+    const achievementAccess = {
+        signedIn: false,
+        userId: 0,
+        displayName: ""
+    };
 
-    function loadAchievementProgress() {
+    function achievementStorageKey(userId) {
+        const normalizedUserId = Number(userId);
+        return Number.isInteger(normalizedUserId) && normalizedUserId > 0
+            ? `${achievementStoragePrefix}${normalizedUserId}`
+            : "";
+    }
+
+    function loadAchievementProgress(userId) {
+        const storageKey = achievementStorageKey(userId);
+        if (!storageKey) {
+            return achievementEngine.emptyProgress();
+        }
         try {
             const saved = JSON.parse(
-                localStorage.getItem(achievementStorageKey) || "null"
+                localStorage.getItem(storageKey) || "null"
             );
             const reconciled = achievementEngine.reconcileProgress(
                 saved,
@@ -135,7 +151,7 @@
             );
             if (reconciled.changed) {
                 localStorage.setItem(
-                    achievementStorageKey,
+                    storageKey,
                     JSON.stringify(reconciled.progress)
                 );
             }
@@ -145,12 +161,18 @@
         }
     }
 
-    let achievementProgress = loadAchievementProgress();
+    let achievementProgress = achievementEngine.emptyProgress();
 
     function saveAchievementProgress() {
+        const storageKey = achievementAccess.signedIn
+            ? achievementStorageKey(achievementAccess.userId)
+            : "";
+        if (!storageKey) {
+            return;
+        }
         try {
             localStorage.setItem(
-                achievementStorageKey,
+                storageKey,
                 JSON.stringify(achievementProgress)
             );
         } catch {
@@ -163,6 +185,9 @@
     }
 
     function processMameAchievements(message) {
+        if (!achievementAccess.signedIn) {
+            return [];
+        }
         const result = achievementEngine.processStatus(
             achievementProgress,
             message,
@@ -1314,9 +1339,35 @@
         const total = generalAchievements.length +
             fighterAchievements.length + loreAchievements.length +
             specialAchievements.length;
-        const completed = achievementDefinitions().filter(definition =>
-            achievementProgress.unlocked[definition.id]
-        ).length;
+        const trackingEnabled = achievementAccess.signedIn;
+        const completed = trackingEnabled
+            ? achievementDefinitions().filter(definition =>
+                achievementProgress.unlocked[definition.id]
+            ).length
+            : 0;
+        const profileName = trackingEnabled
+            ? escapeHtml(achievementAccess.displayName)
+            : "";
+        const trackingPanel = trackingEnabled
+            ? mameDiagnosticMarkup()
+            : `<section class="achievement-auth-gate">
+                <span class="achievement-auth-gate-mark" aria-hidden="true">◆</span>
+                <div>
+                    <small>ПРОГРЕСС ПРИОСТАНОВЛЕН</small>
+                    <h3>Войдите через Discord</h3>
+                    <p>
+                        Каталог испытаний можно просматривать без входа, но победы,
+                        добивания и другие события MAME не записываются.
+                    </p>
+                </div>
+                ${updateBridge()
+                    ? `<button type="button" data-achievement-login>
+                        Войти и начать прогресс
+                    </button>`
+                    : `<a href="${latestReleaseUrl}" target="_blank" rel="noopener">
+                        Скачать Portable
+                    </a>`}
+            </section>`;
 
         const generalCards = generalAchievements.map(item =>
             renderAchievementCard(
@@ -1371,8 +1422,9 @@
         elements.heroPortrait.alt = "";
         elements.fighterTitle.textContent = "Достижения";
         elements.fighterSubtitle.hidden = false;
-        elements.fighterSubtitle.textContent =
-            `${completed} из ${total} испытаний · локально`;
+        elements.fighterSubtitle.textContent = trackingEnabled
+            ? `${completed} из ${total} испытаний · профиль ${achievementAccess.displayName}`
+            : "Просмотр каталога · прогресс требует входа";
         elements.rightPageNumber.textContent = "ДОСТИЖЕНИЯ";
         elements.bookNote.hidden = true;
         elements.bookNoteLabel.hidden = true;
@@ -1398,19 +1450,26 @@
             <div class="achievements-page">
                 <header class="achievements-hero">
                     <div class="achievements-hero-copy">
-                        <span class="achievements-kicker">Локальный профиль</span>
+                        <span class="achievements-kicker">${trackingEnabled
+                            ? `Профиль ${profileName}`
+                            : "Требуется авторизация"}</span>
                         <h2>Книга испытаний</h2>
                         <p>
-                            Личная летопись побед, боевых дебютов и знаковых
-                            противостояний Ultimate Mortal Kombat 3.
+                            ${trackingEnabled
+                                ? `Личная летопись побед, боевых дебютов и знаковых
+                                    противостояний Ultimate Mortal Kombat 3.`
+                                : `Все условия достижений доступны для просмотра.
+                                    Их выполнение начнёт учитываться после входа через Discord.`}
                         </p>
                     </div>
                     <div class="achievements-summary">
-                        <strong>${completed} / ${total}</strong>
-                        <span>${achievementProgress.victories} побед · прогресс на этом компьютере</span>
+                        <strong>${trackingEnabled ? completed : "—"} / ${total}</strong>
+                        <span>${trackingEnabled
+                            ? `${achievementProgress.victories} побед · профиль ${profileName}`
+                            : "События MAME сейчас не записываются"}</span>
                     </div>
                 </header>
-                ${mameDiagnosticMarkup()}
+                ${trackingPanel}
                 <nav class="achievement-filter-bar" aria-label="Фильтр достижений">
                     <button type="button" data-achievement-filter="all"
                         aria-pressed="true">Все</button>
@@ -1452,18 +1511,21 @@
                     <div class="achievement-card-grid">${specialCards}</div>
                 </section>
                 <p class="achievement-preview-note">
-                    Это первый локальный профиль для проверки правил достижений.
-                    После подключения аккаунта подтверждённый прогресс можно будет
-                    перенести на сервер.
+                    ${trackingEnabled
+                        ? `Прогресс пока хранится локально для этого аккаунта.
+                            Серверная синхронизация будет подключена следующим этапом.`
+                        : `Без авторизации этот раздел работает только как каталог:
+                            игровой прогресс не создаётся и не сохраняется.`}
                 </p>
             </div>`;
         elements.pageContent.scrollTop = 0;
-        elements.statusText.textContent =
-            `Достижения · ${completed} из ${total}`;
+        elements.statusText.textContent = trackingEnabled
+            ? `Достижения · ${completed} из ${total}`
+            : "Достижения · требуется вход через Discord";
     }
 
     function refreshAchievementProgress() {
-        if (state.tab !== "achievements") {
+        if (state.tab !== "achievements" || !achievementAccess.signedIn) {
             return;
         }
         const definitions = new Map(
@@ -2186,13 +2248,60 @@
         }
     }
 
+    function applyAchievementAccess(signedIn, userId, displayName) {
+        const normalizedUserId = signedIn ? Number(userId) : 0;
+        const validUserId = Number.isInteger(normalizedUserId) &&
+            normalizedUserId > 0;
+        const nextSignedIn = Boolean(signedIn && validUserId);
+        const identityChanged = achievementAccess.signedIn !== nextSignedIn ||
+            achievementAccess.userId !== normalizedUserId;
+
+        achievementAccess.signedIn = nextSignedIn;
+        achievementAccess.userId = nextSignedIn ? normalizedUserId : 0;
+        achievementAccess.displayName = nextSignedIn
+            ? String(displayName || "Discord")
+            : "";
+        if (identityChanged) {
+            achievementProgress = nextSignedIn
+                ? loadAchievementProgress(normalizedUserId)
+                : achievementEngine.emptyProgress();
+        }
+
+        document.body.classList.toggle(
+            "achievement-access-locked",
+            !nextSignedIn
+        );
+        elements.achievementButton.classList.toggle("is-locked", !nextSignedIn);
+        elements.mobileAchievementButton.classList.toggle(
+            "is-locked",
+            !nextSignedIn
+        );
+        const title = nextSignedIn
+            ? "Открыть достижения"
+            : "Просмотреть достижения · прогресс доступен после входа";
+        elements.achievementButton.title = title;
+        elements.achievementButton.setAttribute("aria-label", title);
+        const mobileHint = elements.mobileAchievementButton.querySelector("small");
+        if (mobileHint) {
+            mobileHint.textContent = nextSignedIn
+                ? "Открыть центр испытаний"
+                : "Войдите через Discord для учёта прогресса";
+        }
+
+        if (state.tab === "achievements") {
+            renderAchievementsPage();
+        }
+    }
+
     function applyAuthStatus(message) {
         if (!message || message.type !== "movebook-auth-status") {
             return;
         }
         const authState = String(message.state || "signed-out");
-        const busy = ["starting", "waiting", "signing-out"].includes(authState);
-        const signedIn = authState === "signed-in";
+        const busy = ["restoring", "starting", "waiting", "signing-out"]
+            .includes(authState);
+        const userId = Number(message.userId) || 0;
+        const signedIn = authState === "signed-in" && userId > 0;
         const label = String(message.label || (signedIn ? "Аккаунт" : "Войти"));
         const details = String(message.details || "Войти через Discord");
         const avatarUrl = String(message.avatarUrl || "");
@@ -2222,6 +2331,7 @@
         if (authState !== "signed-out") {
             elements.statusText.textContent = details;
         }
+        applyAchievementAccess(signedIn, userId, label);
     }
 
     function applyMameStatus(message) {
@@ -2487,6 +2597,14 @@
     });
 
     elements.pageContent.addEventListener("click", event => {
+        const achievementLogin = event.target.closest("[data-achievement-login]");
+        if (achievementLogin) {
+            const bridge = updateBridge();
+            if (bridge) {
+                bridge.postMessage("start-discord-login");
+            }
+            return;
+        }
         const loreButton = event.target.closest(".achievement-lore-note");
         if (loreButton) {
             const detailsId = loreButton.getAttribute("aria-controls");
@@ -2589,6 +2707,7 @@
     window.addEventListener("hashchange", handleLocationChange);
     window.addEventListener("popstate", handleLocationChange);
 
+    applyAchievementAccess(false, 0, "");
     initializeUpdater();
     placeResponsiveElements();
     setMobileRoster(false);
