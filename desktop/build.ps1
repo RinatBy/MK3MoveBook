@@ -16,6 +16,7 @@ $bootstrapper = Join-Path $webViewDirectory "MicrosoftEdgeWebview2Setup.exe"
 $source = Join-Path $desktopDirectory "MoveBookHost.cs"
 $authClientSource = Join-Path $desktopDirectory "MoveBookAuthClient.cs"
 $sessionStoreSource = Join-Path $desktopDirectory "MoveBookSessionStore.cs"
+$achievementQueueStoreSource = Join-Path $desktopDirectory "MoveBookAchievementQueueStore.cs"
 $mameBridgeSource = Join-Path $desktopDirectory "MameBridge.cs"
 $mameDiagnosticReportSource = Join-Path $desktopDirectory "MameDiagnosticReport.cs"
 $mameFightTrackerSource = Join-Path $desktopDirectory "MameFightTracker.cs"
@@ -37,6 +38,7 @@ $requiredFiles = @(
     $source,
     $authClientSource,
     $sessionStoreSource,
+    $achievementQueueStoreSource,
     $mameBridgeSource,
     $mameDiagnosticReportSource,
     $mameFightTrackerSource,
@@ -74,6 +76,7 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     $source `
     $authClientSource `
     $sessionStoreSource `
+    $achievementQueueStoreSource `
     $mameBridgeSource `
     $mameDiagnosticReportSource `
     $mameFightTrackerSource `

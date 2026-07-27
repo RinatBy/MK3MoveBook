@@ -7,6 +7,9 @@ $outputDirectory = Join-Path $PSScriptRoot "build"
 $executable = Join-Path $outputDirectory "MameFinisherTrackerTests.exe"
 $authExecutable = Join-Path $outputDirectory "MoveBookAuthClientTests.exe"
 $sessionStoreExecutable = Join-Path $outputDirectory "MoveBookSessionStoreTests.exe"
+$achievementQueueStoreExecutable = Join-Path `
+    $outputDirectory `
+    "MoveBookAchievementQueueStoreTests.exe"
 
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 
@@ -60,4 +63,24 @@ if ($LASTEXITCODE -ne 0) {
 & $sessionStoreExecutable
 if ($LASTEXITCODE -ne 0) {
     throw "Тесты хранилища сессии завершились с кодом $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$achievementQueueStoreExecutable" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Net.Http.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Security.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Web.Extensions.dll')" `
+    (Join-Path $desktopDirectory "MoveBookAuthClient.cs") `
+    (Join-Path $desktopDirectory "MoveBookAchievementQueueStore.cs") `
+    (Join-Path $PSScriptRoot "MoveBookAchievementQueueStoreTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Компиляция тестов очереди завершилась с кодом $LASTEXITCODE"
+}
+
+& $achievementQueueStoreExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Тесты очереди завершились с кодом $LASTEXITCODE"
 }

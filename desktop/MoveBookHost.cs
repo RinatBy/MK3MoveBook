@@ -634,6 +634,7 @@ namespace MK3MoveBook
         private readonly JavaScriptSerializer jsonSerializer;
         private readonly MoveBookAuthClient authClient;
         private readonly MoveBookSessionStore authSessionStore;
+        private readonly MoveBookAchievementQueueStore achievementQueueStore;
         private readonly Queue<MoveBookAchievementEvent> achievementEventQueue;
         private readonly HashSet<string> achievementSeenEventKeys;
         private readonly string achievementSessionId;
@@ -654,6 +655,7 @@ namespace MK3MoveBook
         private bool authRestorePending;
         private bool achievementCaptureEnabled;
         private bool achievementSyncBusy;
+        private bool achievementQueueRestoreWarning;
         private bool windowClosing;
         private string authAccessToken;
         private string authRefreshToken;
@@ -682,6 +684,11 @@ namespace MK3MoveBook
                 jsonSerializer
             );
             authSessionStore = new MoveBookSessionStore(
+                localDataDirectory,
+                apiBaseUrl,
+                jsonSerializer
+            );
+            achievementQueueStore = new MoveBookAchievementQueueStore(
                 localDataDirectory,
                 apiBaseUrl,
                 jsonSerializer
@@ -1447,8 +1454,19 @@ namespace MK3MoveBook
                 !string.IsNullOrEmpty(authAccessToken);
             achievementEventQueue.Clear();
             achievementSeenEventKeys.Clear();
+            achievementQueueRestoreWarning = false;
             if (achievementCaptureEnabled)
             {
+                MoveBookAchievementQueueLoadResult restored =
+                    achievementQueueStore.Load(authUser.Id);
+                achievementQueueRestoreWarning = restored.HadUnreadableData;
+                foreach (MoveBookAchievementEvent achievementEvent in restored.Events)
+                {
+                    if (achievementSeenEventKeys.Add(achievementEvent.EventKey))
+                    {
+                        achievementEventQueue.Enqueue(achievementEvent);
+                    }
+                }
                 MarkCurrentAchievementEventsSeen(mameBridge.CurrentSnapshot);
             }
         }
@@ -1477,11 +1495,18 @@ namespace MK3MoveBook
                     return;
                 }
                 serverAchievementProgress = progress;
+                int pendingEvents = achievementEventQueue.Count;
                 SendAchievementProgress(
-                    "synced",
+                    pendingEvents > 0 ? "syncing" : "synced",
                     progress,
                     new string[0],
-                    "Прогресс профиля синхронизирован."
+                    pendingEvents > 0
+                        ? "Восстановлена локальная очередь: " +
+                            pendingEvents + ". Отправляем события на сервер…"
+                        : achievementQueueRestoreWarning
+                            ? "Прогресс синхронизирован. Нечитаемая локальная " +
+                                "очередь сохранена отдельно для диагностики."
+                            : "Прогресс профиля синхронизирован."
                 );
                 ProcessAchievementQueueAsync();
             }
@@ -1496,7 +1521,8 @@ namespace MK3MoveBook
                     "offline",
                     serverAchievementProgress,
                     new string[0],
-                    "Сервер достижений временно недоступен. Новые события не засчитываются."
+                    "Сервер достижений временно недоступен. Новые события " +
+                        "сохраняются на компьютере и будут отправлены позже."
                 );
             }
             catch
@@ -1505,7 +1531,8 @@ namespace MK3MoveBook
                     "offline",
                     serverAchievementProgress,
                     new string[0],
-                    "Сервер достижений временно недоступен. Новые события не засчитываются."
+                    "Сервер достижений временно недоступен. Новые события " +
+                        "сохраняются на компьютере и будут отправлены позже."
                 );
             }
         }
@@ -1823,11 +1850,15 @@ namespace MK3MoveBook
                 return;
             }
             achievementEventQueue.Enqueue(achievementEvent);
+            bool persisted = TryPersistAchievementQueue(authUser.Id);
             SendAchievementProgress(
-                "syncing",
+                persisted ? "syncing" : "offline",
                 serverAchievementProgress,
                 new string[0],
-                "Отправляем событие MAME в профиль MoveBook…"
+                persisted
+                    ? "Событие сохранено в локальной очереди. Отправляем на сервер…"
+                    : "Событие ожидает отправки в памяти, но Windows не смогла " +
+                        "сохранить локальную очередь. Не закрывайте MoveBook."
             );
         }
 
@@ -1862,14 +1893,19 @@ namespace MK3MoveBook
                         return;
                     }
                     achievementEventQueue.Dequeue();
+                    bool persisted = TryPersistAchievementQueue(expectedUserId);
                     serverAchievementProgress = result.Progress;
                     SendAchievementProgress(
-                        "synced",
+                        persisted ? "synced" : "offline",
                         result.Progress,
                         result.NewUnlocks,
-                        result.Accepted
-                            ? "Событие MAME сохранено в профиле."
-                            : "Событие уже было сохранено ранее."
+                        !persisted
+                            ? "Событие сохранено сервером, но локальную очередь " +
+                                "обновить не удалось. Повтор будет безопасно " +
+                                "отброшен сервером."
+                            : result.Accepted
+                                ? "Событие MAME сохранено в профиле."
+                                : "Событие уже было сохранено ранее."
                     );
                 }
             }
@@ -1884,7 +1920,8 @@ namespace MK3MoveBook
                     "offline",
                     serverAchievementProgress,
                     new string[0],
-                    "Событие ожидает повторной отправки. Сервер MoveBook недоступен."
+                    "Событие сохранено на этом компьютере и ожидает повторной " +
+                        "отправки. Сервер MoveBook недоступен."
                 );
             }
             catch
@@ -1893,12 +1930,29 @@ namespace MK3MoveBook
                     "offline",
                     serverAchievementProgress,
                     new string[0],
-                    "Событие ожидает повторной отправки. Сервер MoveBook недоступен."
+                    "Событие сохранено на этом компьютере и ожидает повторной " +
+                        "отправки. Сервер MoveBook недоступен."
                 );
             }
             finally
             {
                 achievementSyncBusy = false;
+            }
+        }
+
+        private bool TryPersistAchievementQueue(int userId)
+        {
+            try
+            {
+                achievementQueueStore.Save(
+                    userId,
+                    achievementEventQueue.ToArray()
+                );
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 
