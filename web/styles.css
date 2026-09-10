@@ -63,7 +63,7 @@ button {
 
 .topbar {
     display: grid;
-    grid-template-columns: 54px 230px auto minmax(180px, 1fr) auto auto auto;
+    grid-template-columns: 68px 230px auto minmax(180px, 1fr) auto auto auto;
     align-items: center;
     gap: 12px;
     padding: 8px 18px;
@@ -74,12 +74,19 @@ button {
 }
 
 .brand-mark {
-    width: 52px;
-    height: 52px;
-    border: 2px solid #d7b44d;
-    border-radius: 50%;
-    background: url("assets/book-cover.png") 48% 46% / 310px auto;
-    box-shadow: 0 0 0 3px rgba(117, 39, 62, .5), 0 0 20px rgba(228, 183, 63, .2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 68px;
+    height: 56px;
+}
+
+.brand-mark img {
+    display: block;
+    width: 68px;
+    height: 68px;
+    object-fit: contain;
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, .52));
 }
 
 .brand-copy {
@@ -338,6 +345,151 @@ button {
     color: #bba9c4;
     font: 600 8px/1 "Literata", serif;
     text-overflow: ellipsis;
+}
+
+.movebook-dialog-backdrop {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 50% 36%, rgba(130, 53, 83, .22), transparent 42%),
+        rgba(10, 5, 15, .82);
+    backdrop-filter: blur(6px);
+}
+
+.movebook-dialog-backdrop[hidden] {
+    display: none !important;
+}
+
+.movebook-dialog {
+    position: relative;
+    width: min(440px, calc(100vw - 48px));
+    padding: 34px 34px 30px;
+    overflow: hidden;
+    color: var(--ink);
+    text-align: center;
+    background:
+        linear-gradient(90deg, rgba(112, 56, 44, .08) 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(rgba(112, 56, 44, .06) 1px, transparent 1px) 0 0 / 24px 24px,
+        linear-gradient(145deg, #f6ead2, #e5d0ae);
+    border: 2px solid #c5a044;
+    border-radius: 10px;
+    box-shadow:
+        0 0 0 5px rgba(77, 25, 43, .86),
+        0 24px 70px rgba(0, 0, 0, .62),
+        inset 0 0 36px rgba(95, 49, 35, .16);
+}
+
+.movebook-dialog::before,
+.movebook-dialog::after {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    content: "";
+    border-color: rgba(111, 33, 49, .45);
+}
+
+.movebook-dialog::before {
+    top: 12px;
+    left: 12px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+}
+
+.movebook-dialog::after {
+    right: 12px;
+    bottom: 12px;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+}
+
+.movebook-dialog-logo-frame {
+    display: grid;
+    width: 76px;
+    height: 76px;
+    margin: -8px auto 12px;
+    overflow: hidden;
+    background: radial-gradient(circle, #5d2337, #2a172d 72%);
+    border: 2px solid #cba94a;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(90, 18, 33, .16);
+    place-items: center;
+}
+
+.movebook-dialog-logo {
+    display: block;
+    width: 88px;
+    height: 88px;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 8px rgba(48, 18, 24, .28));
+}
+
+.movebook-dialog-kicker {
+    color: #8b273c;
+    font: 11px/1 "Russo One", sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.movebook-dialog h2 {
+    margin: 10px 0 12px;
+    color: #3c2027;
+    font: 27px/1.15 "Russo One", sans-serif;
+}
+
+.movebook-dialog p {
+    max-width: 340px;
+    margin: 0 auto;
+    color: #66515a;
+    font: 600 14px/1.6 "Literata", serif;
+}
+
+.movebook-dialog p strong {
+    color: #7f2037;
+}
+
+.movebook-dialog-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(111, 33, 49, .24);
+}
+
+.movebook-dialog-button {
+    min-width: 126px;
+    min-height: 42px;
+    padding: 9px 18px;
+    border: 1px solid;
+    border-radius: 6px;
+    cursor: pointer;
+    font: 13px/1 "Russo One", sans-serif;
+    letter-spacing: .04em;
+}
+
+.movebook-dialog-button.is-secondary {
+    color: #493640;
+    background: rgba(255, 250, 232, .5);
+    border-color: #9d8270;
+}
+
+.movebook-dialog-button.is-danger {
+    color: #fff2c8;
+    background: linear-gradient(180deg, #8f2a43, #61182d);
+    border-color: #c5a044;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+}
+
+.movebook-dialog-button:hover,
+.movebook-dialog-button:focus-visible {
+    outline: 2px solid #d5ad42;
+    outline-offset: 2px;
 }
 
 @keyframes account-pulse {
@@ -2291,6 +2443,14 @@ button {
     text-align: center;
 }
 
+.category-link.is-achievement-locked {
+    color: #806c72;
+}
+
+.category-link.is-achievement-locked b {
+    color: #a3273d;
+}
+
 .move-platform-badge.is-edition {
     color: #fff0b8;
     background: #7d2634;
@@ -2357,7 +2517,7 @@ button {
 .achievements-summary {
     display: grid;
     align-content: center;
-    min-width: 108px;
+    min-width: 220px;
     padding-left: 16px;
     border-left: 1px solid rgba(230, 199, 98, .25);
     text-align: center;
@@ -2372,6 +2532,33 @@ button {
     margin-top: 7px;
     color: #b8a6be;
     font: 9px/1.2 "Russo One", sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.achievements-summary .achievement-mode-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 9px;
+    text-align: left;
+}
+
+.achievements-summary .achievement-mode-stats span {
+    margin: 0;
+    padding: 6px 7px;
+    border: 1px solid rgba(230, 199, 98, .18);
+    border-radius: 4px;
+    background: rgba(23, 10, 27, .25);
+    font: 600 9px/1.35 "Literata", serif;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.achievements-summary .achievement-mode-stats b {
+    display: block;
+    color: #dfbd51;
+    font: 8px/1.2 "Russo One", sans-serif;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -2536,6 +2723,12 @@ button {
     border-left-color: #2f8c61;
 }
 
+.mame-diagnostic[data-state="achievement-blocked"] {
+    border-left-color: #bd3f4f;
+    background: rgba(255, 239, 238, .86);
+}
+
+.mame-diagnostic[data-state="match-synchronizing"],
 .mame-diagnostic[data-state="game-detected"],
 .mame-diagnostic[data-state="process-found"] {
     border-left-color: #c09a2b;
@@ -2556,6 +2749,13 @@ button {
         0 0 10px rgba(53, 170, 115, .5);
 }
 
+.mame-diagnostic[data-state="achievement-blocked"] .mame-diagnostic-light {
+    background: #bd3f4f;
+    box-shadow: 0 0 0 2px rgba(189, 63, 79, .15),
+        0 0 10px rgba(189, 63, 79, .42);
+}
+
+.mame-diagnostic[data-state="match-synchronizing"] .mame-diagnostic-light,
 .mame-diagnostic[data-state="game-detected"] .mame-diagnostic-light,
 .mame-diagnostic[data-state="process-found"] .mame-diagnostic-light {
     background: #d0a72d;
@@ -2610,45 +2810,109 @@ button {
     font: 8px/1 "Russo One", sans-serif;
 }
 
-.mame-diagnostic-report {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.mame-match-mode {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
     margin-top: 6px;
-    padding: 8px 12px;
-    color: #745e65;
-    background: rgba(255, 251, 238, .65);
-    border: 1px solid rgba(111, 73, 70, .18);
+    padding: 9px 12px;
+    background: rgba(255, 251, 238, .68);
+    border: 1px solid rgba(111, 73, 70, .2);
+    border-left: 3px solid #8c6d78;
     border-radius: 6px;
 }
 
-.mame-diagnostic-report > span {
+.mame-match-mode[data-mode="tower-cpu"] {
+    border-left-color: #2f8c61;
+}
+
+.mame-match-mode[data-mode="two-player"] {
+    border-left-color: #c08b2b;
+}
+
+.mame-match-mode > span {
     display: grid;
+    gap: 2px;
 }
 
-.mame-diagnostic-report strong {
-    color: #5a3540;
-    font: 9px/1.15 "Russo One", sans-serif;
+.mame-match-mode > span:last-child {
+    min-width: 220px;
 }
 
-.mame-diagnostic-report small {
-    margin-top: 2px;
-    color: #9b8588;
-    font: 8px/1.2 "Russo One", sans-serif;
+.mame-match-mode small {
+    color: #92767d;
+    font: 7px/1 "Russo One", sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
 }
 
-.mame-diagnostic-report > code {
-    margin-left: auto;
-    padding: 4px 6px;
+.mame-match-mode strong {
+    color: #4b3038;
+    font: 9px/1.25 "Russo One", sans-serif;
+}
+
+.mame-match-mode span span {
+    color: #806b70;
+    font: 600 9px/1.3 "Literata", serif;
+}
+
+.mame-match-mode code {
     color: #356f55;
-    background: rgba(53, 126, 87, .08);
-    border: 1px solid rgba(53, 126, 87, .15);
-    border-radius: 4px;
-    font: 8px/1.2 Consolas, monospace;
+    font: 8px/1.25 Consolas, monospace;
+    white-space: nowrap;
 }
 
-.mame-diagnostic-report > small {
-    margin-top: 0;
+.mame-cheat-policy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: 6px;
+    padding: 9px 12px;
+    background: rgba(255, 251, 238, .68);
+    border: 1px solid rgba(111, 73, 70, .2);
+    border-left: 3px solid #8c6d78;
+    border-radius: 6px;
+}
+
+.mame-cheat-policy[data-state="verified-clean"] {
+    border-left-color: #2f8c61;
+}
+
+.mame-cheat-policy[data-state="blocked-cheat"] {
+    border-left-color: #b51f43;
+    background: rgba(255, 235, 238, .75);
+}
+
+.mame-cheat-policy[data-state="checking"] {
+    border-left-color: #c08b2b;
+}
+
+.mame-cheat-policy > span {
+    display: grid;
+    gap: 2px;
+}
+
+.mame-cheat-policy small {
+    color: #92767d;
+    font: 7px/1 "Russo One", sans-serif;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.mame-cheat-policy strong {
+    color: #4b3038;
+    font: 9px/1.25 "Russo One", sans-serif;
+}
+
+.mame-cheat-policy span span {
+    color: #806b70;
+    font: 600 9px/1.3 "Literata", serif;
+}
+
+.mame-cheat-policy code {
+    color: #356f55;
+    font: 8px/1.25 Consolas, monospace;
     white-space: nowrap;
 }
 
@@ -2792,6 +3056,21 @@ button {
     background: linear-gradient(90deg, #b72b45, rgba(183, 43, 69, .08));
 }
 
+.achievement-category-lock {
+    margin: 0 2px 10px;
+    padding: 9px 12px;
+    color: #684d55;
+    background: rgba(161, 39, 61, .07);
+    border: 1px solid rgba(161, 39, 61, .2);
+    border-left: 4px solid #a1273d;
+    border-radius: 5px;
+    font: 600 10.5px/1.4 "Literata", serif;
+}
+
+.achievement-category-lock strong {
+    color: #97233a;
+}
+
 .achievement-card-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2832,6 +3111,14 @@ button {
     box-shadow: 0 4px 12px rgba(65, 91, 43, .14);
 }
 
+.achievement-card.is-prerequisite-locked {
+    background: rgba(235, 228, 216, .66);
+    border-color: rgba(92, 82, 82, .24);
+    border-left-color: #746a6d;
+    filter: grayscale(1) saturate(0);
+    opacity: .58;
+}
+
 .achievement-card.is-unlocked::after {
     content: "✓";
     color: #507435;
@@ -2850,23 +3137,27 @@ button {
     position: relative;
     display: grid;
     place-items: center;
-    width: 54px;
-    height: 54px;
+    width: 60px;
+    height: 60px;
     padding: 3px;
     overflow: hidden;
     color: #c49b33;
     background: #25172f;
     border: 2px solid #9f2a40;
-    border-radius: 50%;
+    border-radius: 7px;
     box-shadow: 0 0 0 2px #d1aa46;
 }
 
 .achievement-card-icon img {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: 4px;
     filter: grayscale(.82) brightness(.72);
     object-fit: cover;
+}
+
+.achievement-card-icon img[src$="fatality.gif"] {
+    object-fit: contain;
 }
 
 .achievement-card-icon .achievement-mark {
@@ -2964,6 +3255,12 @@ button {
     margin-top: 5px;
     color: #786269;
     font: 600 10.5px/1.3 "Literata", serif;
+}
+
+.achievement-card-requirement {
+    margin-top: 5px;
+    color: #8e263b;
+    font: 700 9.5px/1.35 "Literata", serif;
 }
 
 .achievement-preview-note {
@@ -3344,7 +3641,7 @@ button {
         top: 0;
         z-index: 60;
         grid-template-areas: "mark brand account achievement update roster";
-        grid-template-columns: 36px minmax(0, 1fr) 36px 36px 36px auto;
+        grid-template-columns: 48px minmax(0, 1fr) 36px 36px 36px auto;
         gap: 7px;
         min-height: 52px;
         padding: 6px max(9px, env(safe-area-inset-right)) 6px max(9px, env(safe-area-inset-left));
@@ -3352,9 +3649,13 @@ button {
 
     .brand-mark {
         grid-area: mark;
-        width: 36px;
-        height: 36px;
-        background-size: 240px auto;
+        width: 48px;
+        height: 40px;
+    }
+
+    .brand-mark img {
+        width: 48px;
+        height: 48px;
     }
 
     .brand-copy {
@@ -3921,13 +4222,18 @@ button {
     }
 
     .topbar {
-        grid-template-columns: 34px minmax(0, 1fr) 34px 34px auto;
+        grid-template-columns: 44px minmax(0, 1fr) 34px 34px 34px auto;
         gap: 6px;
     }
 
     .brand-mark {
-        width: 34px;
-        height: 34px;
+        width: 44px;
+        height: 36px;
+    }
+
+    .brand-mark img {
+        width: 44px;
+        height: 44px;
     }
 
     .brand-copy strong {
@@ -4074,6 +4380,12 @@ button {
         margin: 0;
     }
 
+    .achievements-summary .achievement-mode-stats {
+        grid-column: 1 / -1;
+        width: 100%;
+        margin-top: 2px;
+    }
+
     .achievement-auth-gate {
         grid-template-columns: auto minmax(0, 1fr);
         gap: 11px;
@@ -4110,17 +4422,13 @@ button {
         min-width: 0;
     }
 
-    .mame-diagnostic-report {
-        align-items: flex-start;
-        flex-wrap: wrap;
+    .mame-match-mode {
+        grid-template-columns: 1fr;
+        gap: 8px;
     }
 
-    .mame-diagnostic-report > code {
-        width: 100%;
-        margin-left: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    .mame-match-mode > span:last-child {
+        min-width: 0;
     }
 
     .mame-event-log > header {
@@ -4130,21 +4438,21 @@ button {
     }
 
     .achievement-card {
-        grid-template-columns: 52px minmax(0, 1fr);
+        grid-template-columns: 64px minmax(0, 1fr);
         min-height: 76px;
         padding: 9px 10px;
     }
 
     .achievement-card-icon {
-        width: 48px;
-        height: 48px;
+        width: 60px;
+        height: 60px;
     }
 }
 
 @media (max-width: 380px) {
     .topbar {
         grid-template-areas: "mark brand account update roster";
-        grid-template-columns: 34px minmax(0, 1fr) 34px 34px auto;
+        grid-template-columns: 44px minmax(0, 1fr) 34px 34px auto;
     }
 
     .achievement-entry {

@@ -9,6 +9,9 @@ namespace MK3MoveBook
         public string WinnerSide { get; set; }
         public int FighterId { get; set; }
         public int OpponentId { get; set; }
+        public int TeamActivePlayerCode { get; set; }
+        public int TeamLeftPlayerCount { get; set; }
+        public int TeamControllerSlot { get; set; }
         public string Title { get; set; }
         public string Details { get; set; }
     }
@@ -28,6 +31,9 @@ namespace MK3MoveBook
         private string winnerSide;
         private int fighterId;
         private int opponentId;
+        private int teamActivePlayerCode;
+        private int teamLeftPlayerCount;
+        private int teamControllerSlot;
         private string title;
         private string details;
 
@@ -47,6 +53,9 @@ namespace MK3MoveBook
             winnerSide = "";
             fighterId = -1;
             opponentId = -1;
+            teamActivePlayerCode = 0;
+            teamLeftPlayerCount = 0;
+            teamControllerSlot = -1;
             title = "";
             details = "";
         }
@@ -64,7 +73,10 @@ namespace MK3MoveBook
             int finishPhase,
             int typeA,
             int success,
-            int typeB
+            int typeB,
+            int currentTeamActivePlayerCode = 0,
+            int currentTeamLeftPlayerCount = 0,
+            int currentTeamControllerSlot = -1
         )
         {
             string detectedKind = "";
@@ -119,7 +131,10 @@ namespace MK3MoveBook
                         playerOneId,
                         playerOne,
                         playerTwoId,
-                        playerTwo
+                        playerTwo,
+                        currentTeamActivePlayerCode,
+                        currentTeamLeftPlayerCount,
+                        currentTeamControllerSlot
                     );
                 }
                 else if (playerTwoHealth > 0 && playerOneHealth == 0)
@@ -130,7 +145,10 @@ namespace MK3MoveBook
                         playerTwoId,
                         playerTwo,
                         playerOneId,
-                        playerOne
+                        playerOne,
+                        currentTeamActivePlayerCode,
+                        currentTeamLeftPlayerCount,
+                        currentTeamControllerSlot
                     );
                 }
             }
@@ -155,7 +173,10 @@ namespace MK3MoveBook
             int typeB
         )
         {
-            return string.Equals(romId, "umk3uk", StringComparison.Ordinal) &&
+            // Both UK profiles ship the same program ROM. Apply the same
+            // guarded Kabal flag transition (see research findings).
+            return (string.Equals(romId, "umk3uk", StringComparison.Ordinal) ||
+                    string.Equals(romId, "umk3uk2", StringComparison.Ordinal)) &&
                 characterId == KabalCharacterId &&
                 ownHealth > 0 &&
                 opponentHealth == 0 &&
@@ -176,7 +197,10 @@ namespace MK3MoveBook
             int detectedFighterId,
             string fighter,
             int detectedOpponentId,
-            string opponent
+            string opponent,
+            int detectedTeamActivePlayerCode,
+            int detectedTeamLeftPlayerCount,
+            int detectedTeamControllerSlot
         )
         {
             sequence++;
@@ -184,6 +208,9 @@ namespace MK3MoveBook
             winnerSide = detectedWinnerSide;
             fighterId = detectedFighterId;
             opponentId = detectedOpponentId;
+            teamActivePlayerCode = detectedTeamActivePlayerCode;
+            teamLeftPlayerCount = detectedTeamLeftPlayerCount;
+            teamControllerSlot = detectedTeamControllerSlot;
             title = FinisherTitle(detectedKind);
             details = fighter + " против " + opponent + ".";
         }
@@ -197,6 +224,9 @@ namespace MK3MoveBook
                 WinnerSide = winnerSide,
                 FighterId = fighterId,
                 OpponentId = opponentId,
+                TeamActivePlayerCode = teamActivePlayerCode,
+                TeamLeftPlayerCount = teamLeftPlayerCount,
+                TeamControllerSlot = teamControllerSlot,
                 Title = title,
                 Details = details
             };

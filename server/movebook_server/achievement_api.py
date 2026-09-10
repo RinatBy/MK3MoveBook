@@ -24,6 +24,16 @@ router = APIRouter(prefix="/achievements", tags=["achievements"])
 
 def _progress(db: Session, user: User) -> AchievementProgressOut:
     stats = db.get(UserStat, user.id)
+    unclassified_victories = 0 if stats is None else max(
+        0,
+        stats.victories - stats.computer_victories - stats.online_victories,
+    )
+    unclassified_matches_played = 0 if stats is None else max(
+        0,
+        stats.matches_played
+        - stats.computer_matches_played
+        - stats.online_matches_played,
+    )
     unlocks = db.scalars(
         select(AchievementUnlock)
         .where(AchievementUnlock.user_id == user.id)
@@ -33,6 +43,16 @@ def _progress(db: Session, user: User) -> AchievementProgressOut:
         user_id=user.id,
         victories=0 if stats is None else stats.victories,
         matches_played=0 if stats is None else stats.matches_played,
+        computer_victories=0 if stats is None else stats.computer_victories,
+        computer_matches_played=(
+            0 if stats is None else stats.computer_matches_played
+        ),
+        online_victories=0 if stats is None else stats.online_victories,
+        online_matches_played=(
+            0 if stats is None else stats.online_matches_played
+        ),
+        unclassified_victories=unclassified_victories,
+        unclassified_matches_played=unclassified_matches_played,
         finishers=0 if stats is None else stats.finishers,
         unlocks=[
             AchievementUnlockOut(
@@ -78,7 +98,18 @@ def submit_achievement_event(
         db.add(stats)
         db.flush()
 
-    evaluation = evaluate_event(body, current_victories=stats.victories)
+    existing_unlocks = set(
+        db.scalars(
+            select(AchievementUnlock.achievement_id).where(
+                AchievementUnlock.user_id == user.id
+            )
+        ).all()
+    )
+    evaluation = evaluate_event(
+        body,
+        current_victories=stats.victories,
+        unlocked_achievement_ids=existing_unlocks,
+    )
     event = AchievementEvent(
         user_id=user.id,
         source="mame-bridge",
@@ -101,20 +132,18 @@ def submit_achievement_event(
 
     stats.victories += evaluation.victories
     stats.matches_played += evaluation.matches_played
+    stats.computer_victories += evaluation.computer_victories
+    stats.computer_matches_played += evaluation.computer_matches_played
+    stats.online_victories += evaluation.online_victories
+    stats.online_matches_played += evaluation.online_matches_played
     stats.finishers += evaluation.finishers
 
-    existing_unlocks = set(
-        db.scalars(
-            select(AchievementUnlock.achievement_id).where(
-                AchievementUnlock.user_id == user.id
-            )
-        ).all()
-    )
-    new_unlocks = [
+    eligible_unlocks = [
         achievement_id
         for achievement_id in evaluation.unlocks
         if achievement_id not in existing_unlocks
     ]
+    new_unlocks = eligible_unlocks
     for achievement_id in new_unlocks:
         db.add(
             AchievementUnlock(

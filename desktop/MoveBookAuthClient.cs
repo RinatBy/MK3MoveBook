@@ -56,18 +56,40 @@ namespace MK3MoveBook
 
     internal sealed class MoveBookAchievementEvent
     {
+        public MoveBookAchievementEvent()
+        {
+            TowerId = -1;
+            CheatPolicyState = "unknown";
+        }
+
         public string EventKey { get; set; }
+        public string RewardGroupKey { get; set; }
         public string EventType { get; set; }
         public string RomId { get; set; }
+        public string MatchScope { get; set; }
+        public string CheatPolicyState { get; set; }
+        public bool MatchFullyObserved { get; set; }
+        public int NetplayTotalPlayers { get; set; }
+        public int TeamSize { get; set; }
+        public int TowerId { get; set; }
+        public bool TowerCompleted { get; set; }
         public string WinnerSide { get; set; }
         public int PlayerOneId { get; set; }
         public int PlayerTwoId { get; set; }
         public int PlayerOneHealth { get; set; }
         public int PlayerTwoHealth { get; set; }
+        public int RoundNumber { get; set; }
+        public int PlayerOneRounds { get; set; }
+        public int PlayerTwoRounds { get; set; }
+        public bool PlayerOneDangerSeen { get; set; }
+        public bool PlayerTwoDangerSeen { get; set; }
+        public string RoundWinningHit { get; set; }
         public string FinisherKind { get; set; }
         public string FinisherWinnerSide { get; set; }
         public int FinisherFighterId { get; set; }
         public int FinisherOpponentId { get; set; }
+        public string SpecialKind { get; set; }
+        public string SpecialActorSide { get; set; }
         public DateTime OccurredAtUtc { get; set; }
     }
 
@@ -76,6 +98,12 @@ namespace MK3MoveBook
         public int UserId { get; set; }
         public long Victories { get; set; }
         public long MatchesPlayed { get; set; }
+        public long ComputerVictories { get; set; }
+        public long ComputerMatchesPlayed { get; set; }
+        public long OnlineVictories { get; set; }
+        public long OnlineMatchesPlayed { get; set; }
+        public long UnclassifiedVictories { get; set; }
+        public long UnclassifiedMatchesPlayed { get; set; }
         public long Finishers { get; set; }
         public string VerificationState { get; set; }
         public Dictionary<string, string> Unlocked { get; set; }
@@ -252,18 +280,38 @@ namespace MK3MoveBook
             }
             Dictionary<string, object> body = new Dictionary<string, object>();
             body["event_key"] = achievementEvent.EventKey;
+            body["reward_group_key"] = achievementEvent.RewardGroupKey;
             body["event_type"] = achievementEvent.EventType;
             body["rom_id"] = achievementEvent.RomId;
+            body["match_scope"] = achievementEvent.MatchScope;
+            body["cheat_policy_state"] = achievementEvent.CheatPolicyState;
+            body["match_fully_observed"] =
+                achievementEvent.MatchFullyObserved;
+            body["netplay_total_players"] =
+                achievementEvent.NetplayTotalPlayers;
+            body["team_size"] = achievementEvent.TeamSize;
+            body["tower_id"] = achievementEvent.TowerId;
+            body["tower_completed"] = achievementEvent.TowerCompleted;
             body["winner_side"] = achievementEvent.WinnerSide;
             body["player_one_id"] = achievementEvent.PlayerOneId;
             body["player_two_id"] = achievementEvent.PlayerTwoId;
             body["player_one_health"] = achievementEvent.PlayerOneHealth;
             body["player_two_health"] = achievementEvent.PlayerTwoHealth;
+            body["round_number"] = achievementEvent.RoundNumber;
+            body["player_one_rounds"] = achievementEvent.PlayerOneRounds;
+            body["player_two_rounds"] = achievementEvent.PlayerTwoRounds;
+            body["player_one_danger_seen"] =
+                achievementEvent.PlayerOneDangerSeen;
+            body["player_two_danger_seen"] =
+                achievementEvent.PlayerTwoDangerSeen;
+            body["round_winning_hit"] = achievementEvent.RoundWinningHit;
             body["finisher_kind"] = achievementEvent.FinisherKind;
             body["finisher_winner_side"] =
                 achievementEvent.FinisherWinnerSide;
             body["finisher_fighter_id"] = achievementEvent.FinisherFighterId;
             body["finisher_opponent_id"] = achievementEvent.FinisherOpponentId;
+            body["special_kind"] = achievementEvent.SpecialKind;
+            body["special_actor_side"] = achievementEvent.SpecialActorSide;
             body["occurred_at"] = achievementEvent.OccurredAtUtc.ToString("o");
 
             AuthHttpResult result = await SendForResultAsync(
@@ -510,6 +558,30 @@ namespace MK3MoveBook
                 MatchesPlayed = RequireNonNegativeLong(
                     payload,
                     "matches_played"
+                ),
+                ComputerVictories = RequireNonNegativeLong(
+                    payload,
+                    "computer_victories"
+                ),
+                ComputerMatchesPlayed = RequireNonNegativeLong(
+                    payload,
+                    "computer_matches_played"
+                ),
+                OnlineVictories = RequireNonNegativeLong(
+                    payload,
+                    "online_victories"
+                ),
+                OnlineMatchesPlayed = RequireNonNegativeLong(
+                    payload,
+                    "online_matches_played"
+                ),
+                UnclassifiedVictories = RequireNonNegativeLong(
+                    payload,
+                    "unclassified_victories"
+                ),
+                UnclassifiedMatchesPlayed = RequireNonNegativeLong(
+                    payload,
+                    "unclassified_matches_played"
                 ),
                 Finishers = RequireNonNegativeLong(payload, "finishers"),
                 VerificationState = OptionalString(

@@ -42,6 +42,7 @@ KNOWN_OFFSETS = {
     0x0C560: "no_blocking",
     0x0C57C: "fast_uppercut",
     0x0C57E: "unlimited_run",
+    0x0C5FE: "team_size_code",
     0x0C4E6: "finisher_type_candidate_b",
 }
 

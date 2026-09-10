@@ -154,6 +154,10 @@ namespace MK3MoveBook
             handler.Enqueue(
                 HttpStatusCode.OK,
                 "{\"user_id\":7,\"victories\":5,\"matches_played\":8," +
+                "\"computer_victories\":3,\"computer_matches_played\":5," +
+                "\"online_victories\":2,\"online_matches_played\":3," +
+                "\"unclassified_victories\":0," +
+                "\"unclassified_matches_played\":0," +
                 "\"finishers\":2,\"verification_state\":\"unverified-local\"," +
                 "\"unlocks\":[{\"achievement_id\":\"victories-5\"," +
                 "\"unlocked_at\":\"2026-07-26T12:00:00Z\"}]}"
@@ -167,6 +171,12 @@ namespace MK3MoveBook
                     );
                 Equal("progress victories", 5L, progress.Victories);
                 Equal("progress matches", 8L, progress.MatchesPlayed);
+                Equal("progress computer victories", 3L, progress.ComputerVictories);
+                Equal("progress computer matches", 5L, progress.ComputerMatchesPlayed);
+                Equal("progress online victories", 2L, progress.OnlineVictories);
+                Equal("progress online matches", 3L, progress.OnlineMatchesPlayed);
+                Equal("progress unclassified victories", 0L, progress.UnclassifiedVictories);
+                Equal("progress unclassified matches", 0L, progress.UnclassifiedMatchesPlayed);
                 Equal("progress finishers", 2L, progress.Finishers);
                 Equal(
                     "progress unlock",
@@ -190,6 +200,10 @@ namespace MK3MoveBook
                 "{\"accepted\":true,\"new_unlocks\":[\"first-fatality\"]," +
                 "\"progress\":{\"user_id\":7,\"victories\":1," +
                 "\"matches_played\":1,\"finishers\":1," +
+                "\"computer_victories\":1,\"computer_matches_played\":1," +
+                "\"online_victories\":0,\"online_matches_played\":0," +
+                "\"unclassified_victories\":0," +
+                "\"unclassified_matches_played\":0," +
                 "\"verification_state\":\"unverified-local\"," +
                 "\"unlocks\":[{\"achievement_id\":\"first-fatality\"," +
                 "\"unlocked_at\":\"2026-07-26T12:00:00Z\"}]}}"
@@ -204,6 +218,13 @@ namespace MK3MoveBook
                             EventKey = "session:finisher:1",
                             EventType = "finisher",
                             RomId = "umk3uk",
+                            MatchScope = "computer",
+                            CheatPolicyState = "disabled",
+                            MatchFullyObserved = true,
+                            NetplayTotalPlayers = 0,
+                            TeamSize = 0,
+                            TowerId = 0,
+                            TowerCompleted = false,
                             WinnerSide = "",
                             PlayerOneId = 10,
                             PlayerTwoId = 0,
@@ -228,6 +249,28 @@ namespace MK3MoveBook
             );
             Contains("event body key", handler.Requests[0].Body, "session:finisher:1");
             Contains("event body type", handler.Requests[0].Body, "finisher_kind");
+            Contains("event body scope", handler.Requests[0].Body, "computer");
+            Contains(
+                "event body cheat policy",
+                handler.Requests[0].Body,
+                "\"cheat_policy_state\":\"disabled\""
+            );
+            Contains(
+                "event body full match",
+                handler.Requests[0].Body,
+                "\"match_fully_observed\":true"
+            );
+            Contains(
+                "event body net player count",
+                handler.Requests[0].Body,
+                "\"netplay_total_players\":0"
+            );
+            Contains(
+                "event body team size",
+                handler.Requests[0].Body,
+                "\"team_size\":0"
+            );
+            Contains("event body tower", handler.Requests[0].Body, "tower_id");
         }
 
         private static void TestRemoteHttpIsRejected()

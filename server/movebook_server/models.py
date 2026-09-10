@@ -287,6 +287,22 @@ class UserStat(Base):
     __table_args__ = (
         CheckConstraint("victories >= 0", name="victories_non_negative"),
         CheckConstraint("matches_played >= 0", name="matches_played_non_negative"),
+        CheckConstraint(
+            "computer_victories >= 0",
+            name="computer_victories_non_negative",
+        ),
+        CheckConstraint(
+            "computer_matches_played >= 0",
+            name="computer_matches_played_non_negative",
+        ),
+        CheckConstraint(
+            "online_victories >= 0",
+            name="online_victories_non_negative",
+        ),
+        CheckConstraint(
+            "online_matches_played >= 0",
+            name="online_matches_played_non_negative",
+        ),
         CheckConstraint("finishers >= 0", name="finishers_non_negative"),
     )
 
@@ -296,6 +312,26 @@ class UserStat(Base):
     )
     victories: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     matches_played: Mapped[int] = mapped_column(
+        BigInteger,
+        default=0,
+        nullable=False,
+    )
+    computer_victories: Mapped[int] = mapped_column(
+        BigInteger,
+        default=0,
+        nullable=False,
+    )
+    computer_matches_played: Mapped[int] = mapped_column(
+        BigInteger,
+        default=0,
+        nullable=False,
+    )
+    online_victories: Mapped[int] = mapped_column(
+        BigInteger,
+        default=0,
+        nullable=False,
+    )
+    online_matches_played: Mapped[int] = mapped_column(
         BigInteger,
         default=0,
         nullable=False,

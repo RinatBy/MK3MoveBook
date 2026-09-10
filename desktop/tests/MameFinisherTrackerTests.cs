@@ -17,10 +17,11 @@ namespace MK3MoveBook
             TestGenericFinisher("Friendship", 0x04, "friendship");
             TestGenericFinisher("Babality", 0x05, "babality");
             TestGenericFinisher("Brutality", 0x06, "brutality");
+            TestFinisherActivePlayerIsFrozen();
 
             if (failures == 0)
             {
-                Console.WriteLine("MameFinisherTracker: 9 tests passed.");
+                Console.WriteLine("MameFinisherTracker: 10 tests passed.");
                 return 0;
             }
             Console.Error.WriteLine(
@@ -143,6 +144,32 @@ namespace MK3MoveBook
                 type
             );
             Equal(name + " kind", expectedKind, result.Kind);
+        }
+
+        private static void TestFinisherActivePlayerIsFrozen()
+        {
+            MameFinisherTracker tracker = new MameFinisherTracker();
+            tracker.Observe(
+                "umk3tm", 0x02, "Jax", 166, 0x0012,
+                0x00, "Kano", 0, 0x0216, 0x03, 0x01, 0, 0, 0x21, 2
+            );
+            MameFinisherProgress detected = tracker.Observe(
+                "umk3tm", 0x02, "Jax", 166, 0x0012,
+                0x00, "Kano", 0, 0x0216, 0x03, 0x01, 1, 0x01, 0x21, 2
+            );
+            Equal("finisher active player at detection", 0x21,
+                detected.TeamActivePlayerCode);
+            Equal("finisher team layout at detection", 2,
+                detected.TeamLeftPlayerCount);
+
+            MameFinisherProgress later = tracker.Observe(
+                "umk3tm", 0x02, "Jax", 166, 0x0012,
+                0x00, "Kano", 0, 0x0216, 0x03, 0x01, 1, 0x01, 0x00, 1
+            );
+            Equal("finisher active player remains frozen", 0x21,
+                later.TeamActivePlayerCode);
+            Equal("finisher team layout remains frozen", 2,
+                later.TeamLeftPlayerCount);
         }
 
         private static MameFinisherProgress Observe(

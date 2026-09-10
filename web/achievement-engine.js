@@ -51,6 +51,7 @@
     function definitions(data) {
         return [
             ...(data.general || []),
+            ...(data.computer || []),
             ...(data.fighters || []),
             ...(data.lore || []),
             ...(data.special || [])
@@ -225,6 +226,11 @@
             unlocked,
             unlockedAt
         );
+        if (unlocked.length > 1) {
+            unlocked.splice(1).forEach(definition => {
+                delete progress.unlocked[definition.id];
+            });
+        }
         return {
             progress,
             unlocked,

@@ -310,22 +310,61 @@ namespace MK3MoveBook
             }
 
             achievementEvent.EventKey = (achievementEvent.EventKey ?? "").Trim();
+            achievementEvent.RewardGroupKey =
+                (achievementEvent.RewardGroupKey ?? "").Trim();
             achievementEvent.EventType = (achievementEvent.EventType ?? "").Trim();
             achievementEvent.RomId = (achievementEvent.RomId ?? "").Trim();
+            achievementEvent.MatchScope =
+                (achievementEvent.MatchScope ?? "").Trim();
+            achievementEvent.CheatPolicyState = string.IsNullOrWhiteSpace(
+                achievementEvent.CheatPolicyState
+            )
+                ? "unknown"
+                : achievementEvent.CheatPolicyState.Trim();
             achievementEvent.WinnerSide = (achievementEvent.WinnerSide ?? "").Trim();
             achievementEvent.FinisherKind =
                 (achievementEvent.FinisherKind ?? "").Trim();
             achievementEvent.FinisherWinnerSide =
                 (achievementEvent.FinisherWinnerSide ?? "").Trim();
+            achievementEvent.RoundWinningHit =
+                (achievementEvent.RoundWinningHit ?? "").Trim();
+            achievementEvent.SpecialKind =
+                (achievementEvent.SpecialKind ?? "").Trim();
+            achievementEvent.SpecialActorSide =
+                (achievementEvent.SpecialActorSide ?? "").Trim();
 
             if (achievementEvent.EventKey.Length < 8 ||
                 achievementEvent.EventKey.Length > 160 ||
+                achievementEvent.RewardGroupKey.Length > 160 ||
                 !IsEventType(achievementEvent.EventType) ||
                 achievementEvent.RomId.Length < 1 ||
                 achievementEvent.RomId.Length > 64 ||
+                !IsMatchScope(achievementEvent.MatchScope) ||
+                !IsCheatPolicyState(achievementEvent.CheatPolicyState) ||
+                achievementEvent.NetplayTotalPlayers < 0 ||
+                achievementEvent.NetplayTotalPlayers > 8 ||
+                achievementEvent.TeamSize < 0 ||
+                achievementEvent.TeamSize > 3 ||
+                achievementEvent.TowerId < -1 ||
+                achievementEvent.TowerId > 3 ||
+                (achievementEvent.TowerCompleted &&
+                    (!string.Equals(
+                        achievementEvent.EventType,
+                        "match-ended",
+                        StringComparison.Ordinal
+                    ) ||
+                     !string.Equals(
+                         achievementEvent.MatchScope,
+                         "computer",
+                         StringComparison.Ordinal
+                     ) ||
+                     achievementEvent.TowerId < 0)) ||
                 !IsPlayerSide(achievementEvent.WinnerSide) ||
                 !IsPlayerSide(achievementEvent.FinisherWinnerSide) ||
+                !IsPlayerSide(achievementEvent.SpecialActorSide) ||
                 achievementEvent.FinisherKind.Length > 32 ||
+                achievementEvent.SpecialKind.Length > 64 ||
+                achievementEvent.RoundWinningHit.Length > 64 ||
                 !IsFighterId(achievementEvent.PlayerOneId) ||
                 !IsFighterId(achievementEvent.PlayerTwoId) ||
                 !IsFighterId(achievementEvent.FinisherFighterId) ||
@@ -334,6 +373,12 @@ namespace MK3MoveBook
                 achievementEvent.PlayerOneHealth > 1000 ||
                 achievementEvent.PlayerTwoHealth < 0 ||
                 achievementEvent.PlayerTwoHealth > 1000 ||
+                achievementEvent.RoundNumber < 0 ||
+                achievementEvent.RoundNumber > 10 ||
+                achievementEvent.PlayerOneRounds < 0 ||
+                achievementEvent.PlayerOneRounds > 10 ||
+                achievementEvent.PlayerTwoRounds < 0 ||
+                achievementEvent.PlayerTwoRounds > 10 ||
                 achievementEvent.OccurredAtUtc == default(DateTime))
             {
                 throw new InvalidDataException(
@@ -351,7 +396,8 @@ namespace MK3MoveBook
         {
             return string.Equals(value, "round-ended", StringComparison.Ordinal) ||
                 string.Equals(value, "match-ended", StringComparison.Ordinal) ||
-                string.Equals(value, "finisher", StringComparison.Ordinal);
+                string.Equals(value, "finisher", StringComparison.Ordinal) ||
+                string.Equals(value, "special", StringComparison.Ordinal);
         }
 
         private static bool IsPlayerSide(string value)
@@ -359,6 +405,20 @@ namespace MK3MoveBook
             return string.IsNullOrEmpty(value) ||
                 string.Equals(value, "p1", StringComparison.Ordinal) ||
                 string.Equals(value, "p2", StringComparison.Ordinal);
+        }
+
+        private static bool IsMatchScope(string value)
+        {
+            return string.IsNullOrEmpty(value) ||
+                string.Equals(value, "computer", StringComparison.Ordinal) ||
+                string.Equals(value, "online", StringComparison.Ordinal);
+        }
+
+        private static bool IsCheatPolicyState(string value)
+        {
+            return string.Equals(value, "unknown", StringComparison.Ordinal) ||
+                string.Equals(value, "disabled", StringComparison.Ordinal) ||
+                string.Equals(value, "enabled", StringComparison.Ordinal);
         }
 
         private static bool IsFighterId(int value)

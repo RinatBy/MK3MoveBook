@@ -18,9 +18,19 @@ $authClientSource = Join-Path $desktopDirectory "MoveBookAuthClient.cs"
 $sessionStoreSource = Join-Path $desktopDirectory "MoveBookSessionStore.cs"
 $achievementQueueStoreSource = Join-Path $desktopDirectory "MoveBookAchievementQueueStore.cs"
 $mameBridgeSource = Join-Path $desktopDirectory "MameBridge.cs"
+$mameMatchModeClassifierSource = Join-Path $desktopDirectory "MameMatchModeClassifier.cs"
+$mameMatchModeTrackerSource = Join-Path $desktopDirectory "MameMatchModeTracker.cs"
+$mameAchievementAttributionSource = Join-Path $desktopDirectory "MameAchievementAttribution.cs"
+$mameAchievementEligibilityPolicySource = Join-Path $desktopDirectory "MameAchievementEligibilityPolicy.cs"
+$mameTeamPlayerAttributionSource = Join-Path $desktopDirectory "MameTeamPlayerAttribution.cs"
 $mameDiagnosticReportSource = Join-Path $desktopDirectory "MameDiagnosticReport.cs"
+$achievementDiagnosticReportSource = Join-Path $desktopDirectory "MoveBookAchievementDiagnosticReport.cs"
 $mameFightTrackerSource = Join-Path $desktopDirectory "MameFightTracker.cs"
 $mameFinisherTrackerSource = Join-Path $desktopDirectory "MameFinisherTracker.cs"
+$mameSpecialTrackerSource = Join-Path $desktopDirectory "MameSpecialTracker.cs"
+$mameCheatMonitorSource = Join-Path $desktopDirectory "MameCheatMonitor.cs"
+$mameCheatEngineReaderSource = Join-Path $desktopDirectory "MameCheatEngineReader.cs"
+$mameCpuCheatPolicySource = Join-Path $desktopDirectory "MameCpuCheatPolicy.cs"
 $webLauncherSource = Join-Path $desktopDirectory "MoveBookWebLauncher.cs"
 $deltaUpdaterSource = Join-Path $desktopDirectory "MoveBookDeltaUpdater.cs"
 $icon = Join-Path $sourceDirectory "web\assets\icon.ico"
@@ -40,9 +50,19 @@ $requiredFiles = @(
     $sessionStoreSource,
     $achievementQueueStoreSource,
     $mameBridgeSource,
+    $mameMatchModeClassifierSource,
+    $mameMatchModeTrackerSource,
+    $mameAchievementAttributionSource,
+    $mameAchievementEligibilityPolicySource,
+    $mameTeamPlayerAttributionSource,
     $mameDiagnosticReportSource,
+    $achievementDiagnosticReportSource,
     $mameFightTrackerSource,
     $mameFinisherTrackerSource,
+    $mameSpecialTrackerSource,
+    $mameCheatMonitorSource,
+    $mameCheatEngineReaderSource,
+    $mameCpuCheatPolicySource,
     $webLauncherSource,
     $deltaUpdaterSource,
     $icon,
@@ -78,9 +98,19 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     $sessionStoreSource `
     $achievementQueueStoreSource `
     $mameBridgeSource `
+    $mameMatchModeClassifierSource `
+    $mameMatchModeTrackerSource `
+    $mameAchievementAttributionSource `
+    $mameAchievementEligibilityPolicySource `
+    $mameTeamPlayerAttributionSource `
     $mameDiagnosticReportSource `
+    $achievementDiagnosticReportSource `
     $mameFightTrackerSource `
-    $mameFinisherTrackerSource
+    $mameFinisherTrackerSource `
+    $mameSpecialTrackerSource `
+    $mameCheatMonitorSource `
+    $mameCheatEngineReaderSource `
+    $mameCpuCheatPolicySource
 
 if ($LASTEXITCODE -ne 0) {
     throw "Компилятор завершился с кодом $LASTEXITCODE"

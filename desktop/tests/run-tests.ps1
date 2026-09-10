@@ -10,6 +10,27 @@ $sessionStoreExecutable = Join-Path $outputDirectory "MoveBookSessionStoreTests.
 $achievementQueueStoreExecutable = Join-Path `
     $outputDirectory `
     "MoveBookAchievementQueueStoreTests.exe"
+$matchModeClassifierExecutable = Join-Path `
+    $outputDirectory `
+    "MameMatchModeClassifierTests.exe"
+$matchModeTrackerExecutable = Join-Path `
+    $outputDirectory `
+    "MameMatchModeTrackerTests.exe"
+$achievementAttributionExecutable = Join-Path `
+    $outputDirectory `
+    "MameAchievementAttributionTests.exe"
+$teamPlayerAttributionExecutable = Join-Path `
+    $outputDirectory `
+    "MameTeamPlayerAttributionTests.exe"
+$specialTrackerExecutable = Join-Path `
+    $outputDirectory `
+    "MameSpecialTrackerTests.exe"
+$fightTrackerExecutable = Join-Path `
+    $outputDirectory `
+    "MameFightTrackerTests.exe"
+$cpuCheatPolicyExecutable = Join-Path `
+    $outputDirectory `
+    "MameCpuCheatPolicyTests.exe"
 
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 
@@ -84,3 +105,158 @@ if ($LASTEXITCODE -ne 0) {
 if ($LASTEXITCODE -ne 0) {
     throw "Тесты очереди завершились с кодом $LASTEXITCODE"
 }
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$matchModeClassifierExecutable" `
+    (Join-Path $desktopDirectory "MameMatchModeClassifier.cs") `
+    (Join-Path $PSScriptRoot "MameMatchModeClassifierTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Компиляция тестов режима матча завершилась с кодом $LASTEXITCODE"
+}
+
+& $matchModeClassifierExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Тесты режима матча завершились с кодом $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$matchModeTrackerExecutable" `
+    (Join-Path $desktopDirectory "MameFightTracker.cs") `
+    (Join-Path $desktopDirectory "MameMatchModeClassifier.cs") `
+    (Join-Path $desktopDirectory "MameMatchModeTracker.cs") `
+    (Join-Path $PSScriptRoot "MameMatchModeTrackerTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Компиляция тестов удержания режима завершилась с кодом $LASTEXITCODE"
+}
+
+& $matchModeTrackerExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Тесты удержания режима завершились с кодом $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$achievementAttributionExecutable" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Net.Http.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Web.Extensions.dll')" `
+    (Join-Path $desktopDirectory "MoveBookAuthClient.cs") `
+    (Join-Path $desktopDirectory "MameTeamPlayerAttribution.cs") `
+    (Join-Path $desktopDirectory "MameAchievementEligibilityPolicy.cs") `
+    (Join-Path $desktopDirectory "MameAchievementAttribution.cs") `
+    (Join-Path $PSScriptRoot "MameAchievementAttributionTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Achievement-attribution test compilation failed with code $LASTEXITCODE"
+}
+
+& $achievementAttributionExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Achievement-attribution tests failed with code $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$teamPlayerAttributionExecutable" `
+    (Join-Path $desktopDirectory "MameTeamPlayerAttribution.cs") `
+    (Join-Path $PSScriptRoot "MameTeamPlayerAttributionTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Team-player-attribution test compilation failed with code $LASTEXITCODE"
+}
+
+& $teamPlayerAttributionExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Team-player-attribution tests failed with code $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$specialTrackerExecutable" `
+    (Join-Path $desktopDirectory "MameSpecialTracker.cs") `
+    (Join-Path $PSScriptRoot "MameSpecialTrackerTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Special-tracker test compilation failed with code $LASTEXITCODE"
+}
+
+& $specialTrackerExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Special-tracker tests failed with code $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    "/out:$fightTrackerExecutable" `
+    (Join-Path $desktopDirectory "MameFightTracker.cs") `
+    (Join-Path $PSScriptRoot "MameFightTrackerTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Fight-tracker test compilation failed with code $LASTEXITCODE"
+}
+
+& $fightTrackerExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "Fight-tracker tests failed with code $LASTEXITCODE"
+}
+
+& $compiler `
+    /nologo `
+    /target:exe `
+    /platform:x64 `
+    "/out:$cpuCheatPolicyExecutable" `
+    (Join-Path $desktopDirectory "MameCheatMonitor.cs") `
+    (Join-Path $desktopDirectory "MameCheatEngineReader.cs") `
+    (Join-Path $desktopDirectory "MameCpuCheatPolicy.cs") `
+    (Join-Path $PSScriptRoot "MameCpuCheatPolicyTests.cs")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "CPU cheat-policy test compilation failed with code $LASTEXITCODE"
+}
+
+& $cpuCheatPolicyExecutable
+if ($LASTEXITCODE -ne 0) {
+    throw "CPU cheat-policy tests failed with code $LASTEXITCODE"
+}
+
+$romCompatibilityExecutable = Join-Path $outputDirectory "MameRomCompatibilityTests.exe"
+& $compiler `
+    /nologo /target:exe /platform:x64 `
+    "/out:$romCompatibilityExecutable" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Net.Http.dll')" `
+    "/reference:$(Join-Path $frameworkDirectory 'System.Web.Extensions.dll')" `
+    (Join-Path $desktopDirectory "MameBridge.cs") `
+    (Join-Path $desktopDirectory "MameFightTracker.cs") `
+    (Join-Path $desktopDirectory "MameFinisherTracker.cs") `
+    (Join-Path $desktopDirectory "MameSpecialTracker.cs") `
+    (Join-Path $desktopDirectory "MameMatchModeClassifier.cs") `
+    (Join-Path $desktopDirectory "MameMatchModeTracker.cs") `
+    (Join-Path $desktopDirectory "MameTeamPlayerAttribution.cs") `
+    (Join-Path $desktopDirectory "MameAchievementAttribution.cs") `
+    (Join-Path $desktopDirectory "MameAchievementEligibilityPolicy.cs") `
+    (Join-Path $desktopDirectory "MameCheatMonitor.cs") `
+    (Join-Path $desktopDirectory "MameCheatEngineReader.cs") `
+    (Join-Path $desktopDirectory "MameCpuCheatPolicy.cs") `
+    (Join-Path $desktopDirectory "MoveBookAuthClient.cs") `
+    (Join-Path $desktopDirectory "MoveBookAchievementDiagnosticReport.cs") `
+    (Join-Path $PSScriptRoot "MameRomCompatibilityTests.cs")
+if ($LASTEXITCODE -ne 0) { throw "ROM compatibility test compilation failed: $LASTEXITCODE" }
+& $romCompatibilityExecutable (Join-Path $PSScriptRoot "fixtures/umk3tm60-cpu-test17.csv")
+if ($LASTEXITCODE -ne 0) { throw "ROM compatibility tests failed: $LASTEXITCODE" }
+
+$engineReaderExecutable = Join-Path $outputDirectory "MameCheatEngineReaderTests.exe"
+& $compiler /nologo /target:exe /platform:x64 "/out:$engineReaderExecutable" `
+    (Join-Path $desktopDirectory "MameCheatEngineReader.cs") `
+    (Join-Path $PSScriptRoot "MameCheatEngineReaderTests.cs")
+if ($LASTEXITCODE -ne 0) { throw "Cheat-engine reader test compilation failed: $LASTEXITCODE" }
+& $engineReaderExecutable
+if ($LASTEXITCODE -ne 0) { throw "Cheat-engine reader tests failed: $LASTEXITCODE" }

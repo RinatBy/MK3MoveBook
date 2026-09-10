@@ -75,6 +75,24 @@ namespace MK3MoveBook
                 DateTimeKind.Utc,
                 loaded.Events[0].OccurredAtUtc.Kind
             );
+            Equal("round-trip scope", "computer", loaded.Events[0].MatchScope);
+            Equal(
+                "round-trip cheat policy",
+                "disabled",
+                loaded.Events[0].CheatPolicyState
+            );
+            Equal("round-trip full match", true,
+                loaded.Events[0].MatchFullyObserved);
+            Equal("round-trip net player count", 0,
+                loaded.Events[0].NetplayTotalPlayers);
+            Equal("round-trip team size", 0,
+                loaded.Events[0].TeamSize);
+            Equal("round-trip tower id", 3, loaded.Events[0].TowerId);
+            Equal(
+                "round-trip tower completion",
+                true,
+                loaded.Events[0].TowerCompleted
+            );
         }
 
         private static void TestProfileAndApiIsolation(string root)
@@ -211,6 +229,13 @@ namespace MK3MoveBook
                 EventKey = eventKey,
                 EventType = "match-ended",
                 RomId = "umk3tm",
+                MatchScope = "computer",
+                CheatPolicyState = "disabled",
+                MatchFullyObserved = true,
+                NetplayTotalPlayers = 0,
+                TeamSize = 0,
+                TowerId = 3,
+                TowerCompleted = true,
                 WinnerSide = "p1",
                 PlayerOneId = 3,
                 PlayerTwoId = 18,

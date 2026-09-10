@@ -6,6 +6,7 @@ using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -23,7 +24,7 @@ namespace MK3MoveBook
             "MicrosoftEdgeWebview2Setup.exe";
 
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             Application.EnableVisualStyles();
@@ -32,7 +33,27 @@ namespace MK3MoveBook
             {
                 return;
             }
-            Application.Run(new MoveBookWindow());
+            Application.Run(new MoveBookWindow(HasArgument(args, "--diagnostics")));
+        }
+
+        private static bool HasArgument(string[] args, string expected)
+        {
+            if (args == null)
+            {
+                return false;
+            }
+            foreach (string argument in args)
+            {
+                if (string.Equals(
+                    argument,
+                    expected,
+                    StringComparison.OrdinalIgnoreCase
+                ))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool EnsureWebView2Runtime()
@@ -476,44 +497,7 @@ namespace MK3MoveBook
                         graphics.Restore(state);
                     }
 
-                    if (
-                        displayedProgress > 0.03F &&
-                        displayedProgress < 0.98F
-                    )
-                    {
-                        int lineInset = Math.Max(
-                            1,
-                            (int)(waveSegments * 0.125F)
-                        );
-                        int linePointCount =
-                            wavePoints.Length - lineInset * 2;
-                        PointF[] visibleWavePoints =
-                            new PointF[linePointCount];
-                        Array.Copy(
-                            wavePoints,
-                            lineInset,
-                            visibleWavePoints,
-                            0,
-                            linePointCount
-                        );
 
-                        using (
-                            System.Drawing.Drawing2D.GraphicsPath wavePath =
-                                new System.Drawing.Drawing2D.GraphicsPath()
-                        )
-                        using (Pen glowPen = new Pen(
-                            Color.FromArgb(145, 244, 197, 83),
-                            2.0F
-                        ))
-                        {
-                            glowPen.StartCap =
-                                System.Drawing.Drawing2D.LineCap.Round;
-                            glowPen.EndCap =
-                                System.Drawing.Drawing2D.LineCap.Round;
-                            wavePath.AddLines(visibleWavePoints);
-                            graphics.DrawPath(glowPen, wavePath);
-                        }
-                    }
                 }
             }
 
@@ -622,13 +606,79 @@ namespace MK3MoveBook
         }
     }
 
+    internal sealed class AchievementToastForm : Form
+    {
+        private const int WsExNoActivate = 0x08000000;
+        private const int WsExToolWindow = 0x00000080;
+
+        public AchievementToastForm(string achievementTitle)
+        {
+            FormBorderStyle = FormBorderStyle.None;
+            ShowInTaskbar = false;
+            TopMost = true;
+            StartPosition = FormStartPosition.Manual;
+            BackColor = Color.FromArgb(30, 20, 34);
+            ClientSize = new Size(382, 96);
+
+            Panel accent = new Panel();
+            accent.Dock = DockStyle.Left;
+            accent.Width = 5;
+            accent.BackColor = Color.FromArgb(212, 168, 46);
+            Controls.Add(accent);
+
+            Label mark = new Label();
+            mark.AutoSize = false;
+            mark.Location = new Point(18, 17);
+            mark.Size = new Size(58, 58);
+            mark.Text = "◆";
+            mark.TextAlign = ContentAlignment.MiddleCenter;
+            mark.ForeColor = Color.FromArgb(244, 205, 74);
+            mark.BackColor = Color.FromArgb(91, 30, 50);
+            mark.Font = new Font("Segoe UI Symbol", 23F, FontStyle.Bold);
+            Controls.Add(mark);
+
+            Label heading = new Label();
+            heading.AutoSize = false;
+            heading.Location = new Point(91, 17);
+            heading.Size = new Size(272, 18);
+            heading.Text = "ДОСТИЖЕНИЕ ПОЛУЧЕНО";
+            heading.ForeColor = Color.FromArgb(218, 175, 55);
+            heading.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            Controls.Add(heading);
+
+            Label title = new Label();
+            title.AutoEllipsis = true;
+            title.AutoSize = false;
+            title.Location = new Point(89, 39);
+            title.Size = new Size(275, 40);
+            title.Text = achievementTitle;
+            title.ForeColor = Color.FromArgb(250, 244, 224);
+            title.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
+            Controls.Add(title);
+        }
+
+        protected override bool ShowWithoutActivation
+        {
+            get { return true; }
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams parameters = base.CreateParams;
+                parameters.ExStyle |= WsExNoActivate | WsExToolWindow;
+                return parameters;
+            }
+        }
+    }
+
     internal sealed class MoveBookWindow : Form
     {
         private const string AppHost = "appassets.example";
         private const string LatestManifestUrl =
             "https://github.com/RinatBy/MK3MoveBook/releases/latest/download/" +
             "update-manifest.json";
-
         private readonly WebView2 browser;
         private readonly LoadingView loadingView;
         private readonly JavaScriptSerializer jsonSerializer;
@@ -636,11 +686,15 @@ namespace MK3MoveBook
         private readonly MoveBookSessionStore authSessionStore;
         private readonly MoveBookAchievementQueueStore achievementQueueStore;
         private readonly Queue<MoveBookAchievementEvent> achievementEventQueue;
+        private readonly Queue<string> achievementToastQueue;
+        private readonly System.Windows.Forms.Timer achievementToastTimer;
         private readonly HashSet<string> achievementSeenEventKeys;
         private readonly string achievementSessionId;
         private readonly string achievementProfileScope;
         private readonly MameBridge mameBridge;
         private readonly MameDiagnosticReport mameDiagnosticReport;
+        private readonly MoveBookAchievementDiagnosticReport achievementDiagnosticReport;
+        private readonly bool diagnosticMode;
         private readonly string localDataDirectory;
         private readonly string bundledWebDirectory;
         private readonly string contentDirectory;
@@ -656,6 +710,7 @@ namespace MK3MoveBook
         private bool achievementCaptureEnabled;
         private bool achievementSyncBusy;
         private bool achievementQueueRestoreWarning;
+        private bool achievementQueuePolicyDiscarded;
         private bool windowClosing;
         private string authAccessToken;
         private string authRefreshToken;
@@ -663,8 +718,17 @@ namespace MK3MoveBook
         private MoveBookAchievementProgress serverAchievementProgress;
         private CancellationTokenSource authLoginCancellation;
         private UpdateManifest availableUpdate;
+        private AchievementToastForm activeAchievementToast;
 
-        public MoveBookWindow()
+        [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
+        private static extern int mciSendString(
+            string command,
+            StringBuilder returnValue,
+            int returnLength,
+            IntPtr callback
+        );
+
+        public MoveBookWindow(bool diagnosticsEnabled)
         {
             Text = "MK3 MoveBook — Книга приёмов";
             StartPosition = FormStartPosition.CenterScreen;
@@ -673,6 +737,7 @@ namespace MK3MoveBook
             MinimumSize = new Size(1080, 700);
 
             jsonSerializer = new JavaScriptSerializer();
+            diagnosticMode = diagnosticsEnabled;
             localDataDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "MK3MoveBook"
@@ -694,6 +759,13 @@ namespace MK3MoveBook
                 jsonSerializer
             );
             achievementEventQueue = new Queue<MoveBookAchievementEvent>();
+            achievementToastQueue = new Queue<string>();
+            achievementToastTimer = new System.Windows.Forms.Timer();
+            achievementToastTimer.Interval = 6000;
+            achievementToastTimer.Tick += delegate
+            {
+                DismissAchievementToast();
+            };
             achievementSeenEventKeys = new HashSet<string>(
                 StringComparer.Ordinal
             );
@@ -701,8 +773,11 @@ namespace MK3MoveBook
             authRestorePending = true;
             mameBridge = new MameBridge();
             mameDiagnosticReport = new MameDiagnosticReport(
-                AppDomain.CurrentDomain.BaseDirectory
+                AppDomain.CurrentDomain.BaseDirectory,
+                diagnosticMode
             );
+            achievementDiagnosticReport = new MoveBookAchievementDiagnosticReport(
+                AppDomain.CurrentDomain.BaseDirectory, diagnosticMode, apiBaseUrl);
             mameBridge.SnapshotChanged += OnMameBridgeSnapshotChanged;
             mameBridge.SnapshotObserved += OnMameBridgeSnapshotObserved;
             bundledWebDirectory = Path.Combine(
@@ -1033,6 +1108,11 @@ namespace MK3MoveBook
                 return;
             }
 
+            if (TryHandleAchievementNotification(message))
+            {
+                return;
+            }
+
             if (string.Equals(
                 message,
                 "check-updates",
@@ -1088,7 +1168,7 @@ namespace MK3MoveBook
                 StringComparison.Ordinal
             ))
             {
-                await LogoutMoveBookAsync(true);
+                await LogoutMoveBookAsync();
             }
             else if (string.Equals(
                 message,
@@ -1099,6 +1179,148 @@ namespace MK3MoveBook
                 await LoadServerAchievementProgressAsync();
                 ProcessAchievementQueueAsync();
             }
+        }
+
+        private bool TryHandleAchievementNotification(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message) || message[0] != '{')
+            {
+                return false;
+            }
+            try
+            {
+                Dictionary<string, object> payload =
+                    jsonSerializer.Deserialize<Dictionary<string, object>>(
+                        message
+                    );
+                object typeValue;
+                if (payload == null ||
+                    !payload.TryGetValue("type", out typeValue) ||
+                    !string.Equals(
+                        Convert.ToString(typeValue),
+                        "movebook-achievement-unlocked",
+                        StringComparison.Ordinal
+                    ))
+                {
+                    return false;
+                }
+
+                List<string> titles = new List<string>();
+                object titleValues;
+                IEnumerable values = payload.TryGetValue("titles", out titleValues)
+                    ? titleValues as IEnumerable
+                    : null;
+                if (values != null)
+                {
+                    foreach (object value in values)
+                    {
+                        string title = Convert.ToString(value).Trim();
+                        if (!string.IsNullOrEmpty(title))
+                        {
+                            titles.Add(title.Length > 120
+                                ? title.Substring(0, 120)
+                                : title);
+                        }
+                    }
+                }
+                NotifyAchievementUnlocks(titles);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void NotifyAchievementUnlocks(IEnumerable<string> titles)
+        {
+            bool found = false;
+            foreach (string title in titles)
+            {
+                found = true;
+                if (WindowState == FormWindowState.Minimized)
+                {
+                    achievementToastQueue.Enqueue(title);
+                }
+            }
+            if (!found)
+            {
+                return;
+            }
+            PlayAchievementSound();
+            ShowNextAchievementToast();
+        }
+
+        private void PlayAchievementSound()
+        {
+            string relativePath = Path.Combine(
+                "assets",
+                "audio",
+                "achievement-unlocked.mp3"
+            );
+            string soundPath = Path.Combine(currentWebDirectory, relativePath);
+            if (!File.Exists(soundPath))
+            {
+                soundPath = Path.Combine(bundledWebDirectory, relativePath);
+            }
+            if (!File.Exists(soundPath))
+            {
+                return;
+            }
+            mciSendString(
+                "close MoveBookAchievementSound",
+                null,
+                0,
+                IntPtr.Zero
+            );
+            int opened = mciSendString(
+                "open \"" + soundPath +
+                    "\" type mpegvideo alias MoveBookAchievementSound",
+                null,
+                0,
+                IntPtr.Zero
+            );
+            if (opened == 0)
+            {
+                mciSendString(
+                    "play MoveBookAchievementSound from 0",
+                    null,
+                    0,
+                    IntPtr.Zero
+                );
+            }
+        }
+
+        private void ShowNextAchievementToast()
+        {
+            if (activeAchievementToast != null ||
+                achievementToastQueue.Count == 0 ||
+                windowClosing)
+            {
+                return;
+            }
+            activeAchievementToast = new AchievementToastForm(
+                achievementToastQueue.Dequeue()
+            );
+            Rectangle workingArea = Screen.FromHandle(Handle).WorkingArea;
+            activeAchievementToast.Location = new Point(
+                workingArea.Right - activeAchievementToast.Width - 18,
+                workingArea.Bottom - activeAchievementToast.Height - 18
+            );
+            activeAchievementToast.Show();
+            achievementToastTimer.Start();
+        }
+
+        private void DismissAchievementToast()
+        {
+            achievementToastTimer.Stop();
+            if (activeAchievementToast != null)
+            {
+                activeAchievementToast.Close();
+                activeAchievementToast.Dispose();
+                activeAchievementToast = null;
+            }
+            ShowNextAchievementToast();
         }
 
         private async Task StartDiscordLoginAsync()
@@ -1318,7 +1540,7 @@ namespace MK3MoveBook
             }
         }
 
-        private async Task LogoutMoveBookAsync(bool confirm)
+        private async Task LogoutMoveBookAsync()
         {
             if (authBusy)
             {
@@ -1330,21 +1552,6 @@ namespace MK3MoveBook
                 ClearAuthSession();
                 SendAuthState();
                 return;
-            }
-            if (confirm)
-            {
-                DialogResult answer = MessageBox.Show(
-                    this,
-                    "Выйти из аккаунта " + authUser.DisplayName + "?",
-                    "MK3 MoveBook",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question
-                );
-                if (answer != DialogResult.Yes)
-                {
-                    SendAuthState();
-                    return;
-                }
             }
 
             authBusy = true;
@@ -1455,6 +1662,7 @@ namespace MK3MoveBook
             achievementEventQueue.Clear();
             achievementSeenEventKeys.Clear();
             achievementQueueRestoreWarning = false;
+            achievementQueuePolicyDiscarded = false;
             if (achievementCaptureEnabled)
             {
                 MoveBookAchievementQueueLoadResult restored =
@@ -1462,10 +1670,25 @@ namespace MK3MoveBook
                 achievementQueueRestoreWarning = restored.HadUnreadableData;
                 foreach (MoveBookAchievementEvent achievementEvent in restored.Events)
                 {
+                    if (!MameAchievementEligibilityPolicy.IsQueuedEventEligible(
+                        achievementEvent
+                    ))
+                    {
+                        achievementQueuePolicyDiscarded = true;
+                        achievementDiagnosticReport.Record("restore-discarded", achievementEvent,
+                            achievementEventQueue.Count, "outbox-policy");
+                        continue;
+                    }
                     if (achievementSeenEventKeys.Add(achievementEvent.EventKey))
                     {
                         achievementEventQueue.Enqueue(achievementEvent);
+                        achievementDiagnosticReport.Record("restored", achievementEvent,
+                            achievementEventQueue.Count, "");
                     }
+                }
+                if (achievementQueuePolicyDiscarded)
+                {
+                    TryPersistAchievementQueue(authUser.Id);
                 }
                 MarkCurrentAchievementEventsSeen(mameBridge.CurrentSnapshot);
             }
@@ -1503,6 +1726,9 @@ namespace MK3MoveBook
                     pendingEvents > 0
                         ? "Восстановлена локальная очередь: " +
                             pendingEvents + ". Отправляем события на сервер…"
+                        : achievementQueuePolicyDiscarded
+                            ? "Прогресс синхронизирован. Старые события без " +
+                                "подтверждённого допуска удалены из очереди."
                         : achievementQueueRestoreWarning
                             ? "Прогресс синхронизирован. Нечитаемая локальная " +
                                 "очередь сохранена отдельно для диагностики."
@@ -1660,6 +1886,24 @@ namespace MK3MoveBook
             payload["matchesPlayed"] = progress == null
                 ? 0
                 : progress.MatchesPlayed;
+            payload["computerVictories"] = progress == null
+                ? 0
+                : progress.ComputerVictories;
+            payload["computerMatchesPlayed"] = progress == null
+                ? 0
+                : progress.ComputerMatchesPlayed;
+            payload["onlineVictories"] = progress == null
+                ? 0
+                : progress.OnlineVictories;
+            payload["onlineMatchesPlayed"] = progress == null
+                ? 0
+                : progress.OnlineMatchesPlayed;
+            payload["unclassifiedVictories"] = progress == null
+                ? 0
+                : progress.UnclassifiedVictories;
+            payload["unclassifiedMatchesPlayed"] = progress == null
+                ? 0
+                : progress.UnclassifiedMatchesPlayed;
             payload["finishers"] = progress == null ? 0 : progress.Finishers;
             payload["verificationState"] = progress == null
                 ? ""
@@ -1747,10 +1991,32 @@ namespace MK3MoveBook
 
         private void CaptureAchievementEvents(MameBridgeSnapshot snapshot)
         {
+            achievementDiagnosticReport.Observe(snapshot, achievementCaptureEnabled,
+                authUser != null, achievementEventQueue.Count, currentContentVersion);
             if (!achievementCaptureEnabled ||
                 authUser == null ||
                 snapshot == null)
             {
+                return;
+            }
+
+            if (!MameAchievementEligibilityPolicy.IsSnapshotEligible(
+                snapshot.RomId,
+                snapshot.FightMatchFullyObserved,
+                snapshot.MatchMode,
+                snapshot.CpuAchievementPolicy,
+                snapshot.NetplayLayoutSupported,
+                snapshot.NetplayActive,
+                snapshot.NetplayPlayerNumber,
+                snapshot.NetplayTotalPlayers,
+                snapshot.TeamSize
+            ))
+            {
+                // Mark live detector sequences as consumed without creating
+                // an outbox item. A later eligible snapshot must not revive a
+                // partial, cheated, local, unknown or multiplayer event.
+                MarkCurrentAchievementEventsSeen(snapshot);
+                ProcessAchievementQueueAsync();
                 return;
             }
 
@@ -1777,7 +2043,30 @@ namespace MK3MoveBook
                         eventKind,
                         snapshot
                     );
-                QueueAchievementEvent(fightEvent);
+                if (MameAchievementAttribution.TryNormalizeForProfile(
+                    snapshot.MatchMode,
+                    snapshot.TowerPlayerSide,
+                    snapshot.TowerId,
+                    string.Equals(
+                        snapshot.TowerPlayerSide,
+                        "p2",
+                        StringComparison.Ordinal
+                    )
+                        ? snapshot.PlayerOneId
+                        : snapshot.PlayerTwoId,
+                    snapshot.RomId,
+                    snapshot.EventTeamActivePlayerCode,
+                    snapshot.EventTeamLeftPlayerCount,
+                    snapshot.EventTeamControllerSlot,
+                    snapshot.NetplayLayoutSupported,
+                    snapshot.NetplayActive,
+                    snapshot.NetplayPlayerNumber,
+                    snapshot.NetplayTotalPlayers,
+                    fightEvent
+                ))
+                {
+                    QueueAchievementEvent(fightEvent);
+                }
             }
 
             if (snapshot.FinisherSequence > 0 &&
@@ -1794,7 +2083,70 @@ namespace MK3MoveBook
                         "finisher",
                         snapshot
                     );
-                QueueAchievementEvent(finisherEvent);
+                if (MameAchievementAttribution.TryNormalizeForProfile(
+                    snapshot.MatchMode,
+                    snapshot.TowerPlayerSide,
+                    snapshot.TowerId,
+                    string.Equals(
+                        snapshot.TowerPlayerSide,
+                        "p2",
+                        StringComparison.Ordinal
+                    )
+                        ? snapshot.PlayerOneId
+                        : snapshot.PlayerTwoId,
+                    snapshot.RomId,
+                    snapshot.FinisherTeamActivePlayerCode,
+                    snapshot.FinisherTeamLeftPlayerCount,
+                    snapshot.FinisherTeamControllerSlot,
+                    snapshot.NetplayLayoutSupported,
+                    snapshot.NetplayActive,
+                    snapshot.NetplayPlayerNumber,
+                    snapshot.NetplayTotalPlayers,
+                    finisherEvent
+                ))
+                {
+                    QueueAchievementEvent(finisherEvent);
+                }
+            }
+
+            if (snapshot.SpecialSequence > 0 &&
+                !string.IsNullOrWhiteSpace(snapshot.SpecialKind))
+            {
+                MoveBookAchievementEvent specialEvent =
+                    CreateAchievementEvent(
+                        BuildAchievementEventKey(
+                            "special",
+                            snapshot,
+                            snapshot.SpecialSequence,
+                            snapshot.SpecialKind
+                        ),
+                        "special",
+                        snapshot
+                    );
+                if (MameAchievementAttribution.TryNormalizeForProfile(
+                    snapshot.MatchMode,
+                    snapshot.TowerPlayerSide,
+                    snapshot.TowerId,
+                    string.Equals(
+                        snapshot.TowerPlayerSide,
+                        "p2",
+                        StringComparison.Ordinal
+                    )
+                        ? snapshot.PlayerOneId
+                        : snapshot.PlayerTwoId,
+                    snapshot.RomId,
+                    snapshot.SpecialTeamActivePlayerCode,
+                    snapshot.SpecialTeamLeftPlayerCount,
+                    snapshot.SpecialTeamControllerSlot,
+                    snapshot.NetplayLayoutSupported,
+                    snapshot.NetplayActive,
+                    snapshot.NetplayPlayerNumber,
+                    snapshot.NetplayTotalPlayers,
+                    specialEvent
+                ))
+                {
+                    QueueAchievementEvent(specialEvent);
+                }
             }
 
             ProcessAchievementQueueAsync();
@@ -1820,23 +2172,48 @@ namespace MK3MoveBook
                     StringComparison.Ordinal
                 )))
             {
-                achievementSeenEventKeys.Add(BuildAchievementEventKey(
+                MarkAchievementEventConsumed(BuildAchievementEventKey(
                     "fight",
                     snapshot,
                     snapshot.EventSequence,
                     eventKind
-                ));
+                ), snapshot, eventKind);
             }
             if (snapshot.FinisherSequence > 0 &&
                 !string.IsNullOrWhiteSpace(snapshot.FinisherKind))
             {
-                achievementSeenEventKeys.Add(BuildAchievementEventKey(
+                MarkAchievementEventConsumed(BuildAchievementEventKey(
                     "finisher",
                     snapshot,
                     snapshot.FinisherSequence,
                     snapshot.FinisherKind
-                ));
+                ), snapshot, "finisher");
             }
+            if (snapshot.SpecialSequence > 0 &&
+                !string.IsNullOrWhiteSpace(snapshot.SpecialKind))
+            {
+                MarkAchievementEventConsumed(BuildAchievementEventKey(
+                    "special",
+                    snapshot,
+                    snapshot.SpecialSequence,
+                    snapshot.SpecialKind
+                ), snapshot, "special");
+            }
+        }
+
+        private void MarkAchievementEventConsumed(
+            string eventKey, MameBridgeSnapshot snapshot, string eventType)
+        {
+            if (!achievementSeenEventKeys.Add(eventKey)) return;
+            string reason = MameAchievementEligibilityPolicy.SnapshotExclusionReason(
+                snapshot.RomId, snapshot.FightMatchFullyObserved,
+                snapshot.MatchMode, snapshot.CpuAchievementPolicy,
+                snapshot.NetplayLayoutSupported, snapshot.NetplayActive,
+                snapshot.NetplayPlayerNumber, snapshot.NetplayTotalPlayers,
+                snapshot.TeamSize);
+            achievementDiagnosticReport.Consumed(eventKey, snapshot.RomId, eventType,
+                reason.Length == 0 ? "capture-start-baseline" : reason,
+                achievementEventQueue.Count);
         }
 
         private void QueueAchievementEvent(
@@ -1845,12 +2222,17 @@ namespace MK3MoveBook
         {
             if (achievementEvent == null ||
                 string.IsNullOrWhiteSpace(achievementEvent.EventKey) ||
+                !MameAchievementEligibilityPolicy.IsQueuedEventEligible(
+                    achievementEvent
+                ) ||
                 !achievementSeenEventKeys.Add(achievementEvent.EventKey))
             {
                 return;
             }
             achievementEventQueue.Enqueue(achievementEvent);
             bool persisted = TryPersistAchievementQueue(authUser.Id);
+            achievementDiagnosticReport.Record("queued", achievementEvent,
+                achievementEventQueue.Count, persisted ? "persisted" : "memory-only");
             SendAchievementProgress(
                 persisted ? "syncing" : "offline",
                 serverAchievementProgress,
@@ -1874,6 +2256,7 @@ namespace MK3MoveBook
 
             achievementSyncBusy = true;
             int expectedUserId = authUser.Id;
+            MoveBookAchievementEvent submittingEvent = null;
             try
             {
                 while (achievementCaptureEnabled &&
@@ -1883,6 +2266,19 @@ namespace MK3MoveBook
                 {
                     MoveBookAchievementEvent achievementEvent =
                         achievementEventQueue.Peek();
+                    submittingEvent = achievementEvent;
+                    if (!MameAchievementEligibilityPolicy.IsQueuedEventEligible(
+                        achievementEvent
+                    ))
+                    {
+                        achievementEventQueue.Dequeue();
+                        achievementDiagnosticReport.Record("send-discarded", achievementEvent,
+                            achievementEventQueue.Count, "outbox-policy");
+                        TryPersistAchievementQueue(expectedUserId);
+                        continue;
+                    }
+                    achievementDiagnosticReport.Record("submit-started", achievementEvent,
+                        achievementEventQueue.Count, "");
                     MoveBookAchievementSubmitResult result =
                         await SubmitAchievementEventWithRefreshAsync(
                             expectedUserId,
@@ -1895,6 +2291,8 @@ namespace MK3MoveBook
                     achievementEventQueue.Dequeue();
                     bool persisted = TryPersistAchievementQueue(expectedUserId);
                     serverAchievementProgress = result.Progress;
+                    achievementDiagnosticReport.Record("server-response", achievementEvent,
+                        achievementEventQueue.Count, persisted ? "persisted" : "persist-failed", result);
                     SendAchievementProgress(
                         persisted ? "synced" : "offline",
                         result.Progress,
@@ -1911,6 +2309,9 @@ namespace MK3MoveBook
             }
             catch (MoveBookAuthException exception)
             {
+                achievementDiagnosticReport.Record("submit-error", submittingEvent,
+                    achievementEventQueue.Count, exception.StatusCode.HasValue
+                        ? "http-" + (int)exception.StatusCode.Value : "transport-error");
                 if (exception.StatusCode == HttpStatusCode.Unauthorized)
                 {
                     ExpireAuthSession(exception.Message);
@@ -1926,6 +2327,8 @@ namespace MK3MoveBook
             }
             catch
             {
+                achievementDiagnosticReport.Record("submit-error", submittingEvent,
+                    achievementEventQueue.Count, "client-or-transport-error");
                 SendAchievementProgress(
                     "offline",
                     serverAchievementProgress,
@@ -1965,21 +2368,59 @@ namespace MK3MoveBook
             return new MoveBookAchievementEvent
             {
                 EventKey = eventKey,
+                RewardGroupKey = BuildAchievementRewardGroupKey(snapshot),
                 EventType = eventType,
                 RomId = string.IsNullOrWhiteSpace(snapshot.RomId)
                     ? "unknown"
                     : snapshot.RomId,
+                CheatPolicyState = string.Equals(
+                    snapshot.CpuAchievementPolicy,
+                    "verified-clean",
+                    StringComparison.Ordinal
+                )
+                    ? "disabled"
+                    : "unknown",
+                MatchFullyObserved = snapshot.FightMatchFullyObserved,
+                NetplayTotalPlayers = snapshot.NetplayTotalPlayers,
+                TeamSize = snapshot.TeamSize,
                 WinnerSide = snapshot.WinnerSide ?? "",
                 PlayerOneId = snapshot.FightPlayerOneId,
                 PlayerTwoId = snapshot.FightPlayerTwoId,
                 PlayerOneHealth = snapshot.PlayerOneHealth,
                 PlayerTwoHealth = snapshot.PlayerTwoHealth,
+                RoundNumber = snapshot.RoundNumber,
+                PlayerOneRounds = snapshot.PlayerOneRounds,
+                PlayerTwoRounds = snapshot.PlayerTwoRounds,
+                PlayerOneDangerSeen = snapshot.PlayerOneDangerSeen,
+                PlayerTwoDangerSeen = snapshot.PlayerTwoDangerSeen,
+                RoundWinningHit = snapshot.RoundWinningHit ?? "",
                 FinisherKind = snapshot.FinisherKind ?? "",
                 FinisherWinnerSide = snapshot.FinisherWinnerSide ?? "",
                 FinisherFighterId = snapshot.FinisherFighterId,
                 FinisherOpponentId = snapshot.FinisherOpponentId,
+                SpecialKind = snapshot.SpecialKind ?? "",
+                SpecialActorSide = snapshot.SpecialActorSide ?? "",
                 OccurredAtUtc = DateTime.UtcNow
             };
+        }
+
+        private string BuildAchievementRewardGroupKey(
+            MameBridgeSnapshot snapshot
+        )
+        {
+            if (snapshot == null || snapshot.MatchSequence <= 0)
+            {
+                return "";
+            }
+            return string.Join(
+                ":",
+                achievementSessionId,
+                "match",
+                snapshot.ProcessId.ToString(),
+                snapshot.TrackingSessionSequence.ToString(),
+                SafeAchievementEventKeyPart(snapshot.RomId),
+                snapshot.MatchSequence.ToString()
+            );
         }
 
         private string BuildAchievementEventKey(
@@ -1994,6 +2435,7 @@ namespace MK3MoveBook
                 achievementSessionId,
                 SafeAchievementEventKeyPart(category),
                 snapshot.ProcessId.ToString(),
+                snapshot.TrackingSessionSequence.ToString(),
                 SafeAchievementEventKeyPart(snapshot.RomId),
                 sequence.ToString(),
                 SafeAchievementEventKeyPart(detail)
@@ -2036,21 +2478,77 @@ namespace MK3MoveBook
             payload["processPath"] = snapshot.ProcessPath;
             payload["processVersion"] = snapshot.ProcessVersion;
             payload["windowTitle"] = snapshot.WindowTitle;
+            payload["diagnosticMode"] = diagnosticMode;
             payload["playerOne"] = snapshot.PlayerOne;
             payload["playerTwo"] = snapshot.PlayerTwo;
             payload["playerOneId"] = snapshot.PlayerOneId;
             payload["playerTwoId"] = snapshot.PlayerTwoId;
             payload["playerOneHealth"] = snapshot.PlayerOneHealth;
             payload["playerTwoHealth"] = snapshot.PlayerTwoHealth;
+            payload["gamePlayerOneRounds"] = snapshot.GamePlayerOneRounds;
+            payload["gamePlayerTwoRounds"] = snapshot.GamePlayerTwoRounds;
             payload["romId"] = snapshot.RomId;
             payload["romLabel"] = snapshot.RomLabel;
             payload["fightState"] = snapshot.FightState;
+            payload["matchMode"] = snapshot.MatchMode;
+            payload["matchModeLabel"] = snapshot.MatchModeLabel;
+            payload["matchModeDetails"] = snapshot.MatchModeDetails;
+            payload["cheatMonitorState"] = snapshot.CheatMonitorState;
+            payload["cheatCatalogCount"] = snapshot.CheatCatalogCount;
+            payload["cheatUseSequence"] = snapshot.CheatUseSequence;
+            payload["activeCheatCount"] = snapshot.ActiveCheatCount;
+            payload["activeCheats"] = snapshot.ActiveCheats;
+            payload["lastDetectedCheat"] = snapshot.LastDetectedCheat;
+            payload["cpuAchievementPolicy"] = snapshot.CpuAchievementPolicy;
+            payload["cpuAchievementPolicyDetails"] =
+                snapshot.CpuAchievementPolicyDetails;
+            payload["cpuCheatDetected"] = snapshot.CpuCheatDetected;
+            payload["towerContext"] = snapshot.TowerContext;
+            payload["towerPlayerSide"] = snapshot.TowerPlayerSide;
+            payload["towerId"] = snapshot.TowerId;
+            payload["towerName"] = snapshot.TowerName;
+            payload["towerFightNumber"] = snapshot.TowerFightNumber;
+            payload["powerBarsEnabled"] = snapshot.PowerBarsEnabled;
+            payload["finishPhase"] = snapshot.FinishPhase;
+            payload["towerStateA"] = snapshot.TowerStateA;
+            payload["towerStateB"] = snapshot.TowerStateB;
+            payload["playerTwoControlState"] =
+                snapshot.PlayerTwoControlState;
+            payload["playerOneParticipantState"] =
+                snapshot.PlayerOneParticipantState;
+            payload["playerTwoParticipantState"] =
+                snapshot.PlayerTwoParticipantState;
+            payload["teamSizeCode"] = snapshot.TeamSizeCode;
+            payload["teamSize"] = snapshot.TeamSize;
+            payload["teamActivePlayerCode"] = snapshot.TeamActivePlayerCode;
+            payload["teamLeftPlayerCount"] = snapshot.TeamLeftPlayerCount;
+            payload["teamLocalPlayerActive"] = snapshot.TeamLocalPlayerActive;
+            payload["teamLocalPlayerSide"] = snapshot.TeamLocalPlayerSide;
+            payload["netplayLayoutSupported"] =
+                snapshot.NetplayLayoutSupported;
+            payload["netplayActive"] = snapshot.NetplayActive;
+            payload["netplayPlayerNumber"] = snapshot.NetplayPlayerNumber;
+            payload["netplayTotalPlayers"] = snapshot.NetplayTotalPlayers;
+            payload["netplayControllerSlot"] = snapshot.NetplayControllerSlot;
+            payload["netplayControllerOrder"] = snapshot.NetplayControllerOrder;
             payload["roundNumber"] = snapshot.RoundNumber;
             payload["playerOneRounds"] = snapshot.PlayerOneRounds;
             payload["playerTwoRounds"] = snapshot.PlayerTwoRounds;
+            payload["matchSequence"] = snapshot.MatchSequence;
+            payload["fightMatchFullyObserved"] =
+                snapshot.FightMatchFullyObserved;
+            payload["playerOneDangerSeen"] = snapshot.PlayerOneDangerSeen;
+            payload["playerTwoDangerSeen"] = snapshot.PlayerTwoDangerSeen;
+            payload["roundWinningHit"] = snapshot.RoundWinningHit;
             payload["winnerSide"] = snapshot.WinnerSide;
             payload["winner"] = snapshot.Winner;
             payload["eventSequence"] = snapshot.EventSequence;
+            payload["eventTeamActivePlayerCode"] =
+                snapshot.EventTeamActivePlayerCode;
+            payload["eventTeamLeftPlayerCount"] =
+                snapshot.EventTeamLeftPlayerCount;
+            payload["eventTeamControllerSlot"] =
+                snapshot.EventTeamControllerSlot;
             payload["eventKind"] = snapshot.EventKind;
             payload["eventTitle"] = snapshot.EventTitle;
             payload["eventDetails"] = snapshot.EventDetails;
@@ -2067,8 +2565,25 @@ namespace MK3MoveBook
             payload["finisherWinnerSide"] = snapshot.FinisherWinnerSide;
             payload["finisherFighterId"] = snapshot.FinisherFighterId;
             payload["finisherOpponentId"] = snapshot.FinisherOpponentId;
+            payload["finisherTeamActivePlayerCode"] =
+                snapshot.FinisherTeamActivePlayerCode;
+            payload["finisherTeamLeftPlayerCount"] =
+                snapshot.FinisherTeamLeftPlayerCount;
+            payload["finisherTeamControllerSlot"] =
+                snapshot.FinisherTeamControllerSlot;
             payload["finisherTitle"] = snapshot.FinisherTitle;
             payload["finisherDetails"] = snapshot.FinisherDetails;
+            payload["specialSequence"] = snapshot.SpecialSequence;
+            payload["specialKind"] = snapshot.SpecialKind;
+            payload["specialActorSide"] = snapshot.SpecialActorSide;
+            payload["specialTeamActivePlayerCode"] =
+                snapshot.SpecialTeamActivePlayerCode;
+            payload["specialTeamLeftPlayerCount"] =
+                snapshot.SpecialTeamLeftPlayerCount;
+            payload["specialTeamControllerSlot"] =
+                snapshot.SpecialTeamControllerSlot;
+            payload["specialTitle"] = snapshot.SpecialTitle;
+            payload["specialDetails"] = snapshot.SpecialDetails;
             payload["diagnosticReportPath"] =
                 mameDiagnosticReport.ReportPath;
             payload["diagnosticReportName"] = string.IsNullOrEmpty(
@@ -2084,6 +2599,20 @@ namespace MK3MoveBook
         private void OnWindowClosed(object sender, FormClosedEventArgs eventArgs)
         {
             windowClosing = true;
+            achievementToastTimer.Stop();
+            achievementToastTimer.Dispose();
+            if (activeAchievementToast != null)
+            {
+                activeAchievementToast.Close();
+                activeAchievementToast.Dispose();
+                activeAchievementToast = null;
+            }
+            mciSendString(
+                "close MoveBookAchievementSound",
+                null,
+                0,
+                IntPtr.Zero
+            );
             if (authLoginCancellation != null)
             {
                 authLoginCancellation.Cancel();

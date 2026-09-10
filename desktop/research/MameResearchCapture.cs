@@ -44,6 +44,15 @@ namespace MK3MoveBook.Research
         private const int NoBlockingOffset = 0x0C560;
         private const int FastUppercutOffset = 0x0C57C;
         private const int UnlimitedRunOffset = 0x0C57E;
+        private const int TowerFightNumberOffset = 0x0B77A;
+        private const int PlayerOneParticipantStateOffset = 0x0C144;
+        private const int PlayerTwoControlStateOffset = 0x0C2AA;
+        private const int PlayerTwoParticipantStateOffset = 0x0C2BA;
+        private const int TowerStateAOffset = 0x0C5D7;
+        private const int TowerStateBOffset = 0x0C5D9;
+        private const int TowerIdOffset = 0x0C5F6;
+        private const int TeamSizeCodeOffset = 0x0C5FE;
+        private const int TeamActivePlayerCodeOffset = 0x6003F;
         private const uint TmsMainRamAddress = 0x01000000;
         private const int ObjectXOffset = 0x12;
         private const int ObjectYOffset = 0x16;
@@ -61,6 +70,37 @@ namespace MK3MoveBook.Research
             "mameppk",
             "mame",
             "mame64"
+        };
+
+        private static readonly NetplayLayout[] NetplayLayouts =
+        {
+            new NetplayLayout(
+                "mamepp-0129-a",
+                0x0076C8F0,
+                0x020B5D14,
+                0x0232EBE0,
+                0x0232EBE4,
+                new byte[]
+                {
+                    0x55, 0x89, 0xE5, 0x57, 0x56, 0x53,
+                    0x81, 0xEC, 0x5C, 0x0F, 0x00, 0x00,
+                    0x8B, 0x15, 0x14, 0x5D, 0x0B, 0x02
+                }
+            ),
+            new NetplayLayout(
+                "mamepp-0129-b",
+                0x0076CE80,
+                0x020BAD34,
+                0x02333FF0,
+                0x02333FF4,
+                new byte[]
+                {
+                    0x55, 0xB8, 0x5C, 0x10, 0x00, 0x00,
+                    0x89, 0xE5, 0x57, 0x56, 0x53,
+                    0xE8, 0xD0, 0x1F, 0x90, 0x00,
+                    0x8B, 0x15, 0x34, 0xAD, 0x0B, 0x02
+                }
+            )
         };
 
         private static volatile bool stopRequested;
@@ -103,6 +143,7 @@ namespace MK3MoveBook.Research
             int activeProcessId = 0;
             IntPtr processHandle = IntPtr.Zero;
             long bankPointerAddress = 0;
+            NetplayLayout netplayLayout = null;
             MameFightTracker fightTracker = new MameFightTracker();
 
             timeBeginPeriod(1);
@@ -160,8 +201,14 @@ namespace MK3MoveBook.Research
                                 bankPointerAddress = 0;
                                 previousRam = null;
                                 lastKnownSignature = "";
+                                netplayLayout = FindNetplayLayout(processHandle);
                                 fightTracker.Reset();
                                 Console.WriteLine("MAME найден, PID " + activeProcessId + ".");
+                                Console.WriteLine(
+                                    netplayLayout == null
+                                        ? "Kaillera layout не распознан."
+                                        : "Kaillera layout: " + netplayLayout.Id + "."
+                                );
                             }
                         }
 
@@ -174,6 +221,7 @@ namespace MK3MoveBook.Research
                             bankPointerAddress = 0;
                             previousRam = null;
                             lastKnownSignature = "";
+                            netplayLayout = null;
                             fightTracker.Reset();
                             Console.WriteLine("MAME закрыт. Ожидаю новый процесс...");
                             continue;
@@ -231,12 +279,17 @@ namespace MK3MoveBook.Research
                             previousRam
                         );
                         frameCount++;
+                        NetplayState netplay = ReadNetplayState(
+                            processHandle,
+                            netplayLayout
+                        );
                         WriteKnownFieldsIfChanged(
                             events,
                             currentRam,
                             frameCount,
                             activeProcessId,
                             lastRamAddress,
+                            netplay,
                             fightTracker,
                             ref lastKnownSignature
                         );
@@ -247,14 +300,15 @@ namespace MK3MoveBook.Research
                             nextStatusUtc = DateTime.UtcNow.AddSeconds(1);
                             Console.WriteLine(
                                 "{0:HH:mm:ss} · кадров {1} · P1 {2:X2}/{3} HP · " +
-                                "P2 {4:X2}/{5} HP · арена {6:X2}",
+                                "P2 {4:X2}/{5} HP · арена {6:X2} · {7}",
                                 DateTime.Now,
                                 frameCount,
                                 currentRam[PlayerOneCharacterOffset],
                                 currentRam[PlayerOneHealthOffset],
                                 currentRam[PlayerTwoCharacterOffset],
                                 currentRam[PlayerTwoHealthOffset],
-                                currentRam[KombatZoneOffset]
+                                currentRam[KombatZoneOffset],
+                                NetplayStatus(netplay)
                             );
                         }
 
@@ -351,7 +405,12 @@ namespace MK3MoveBook.Research
                 "p1_input;p2_input;aux_input;finish_phase;" +
                 "finisher_type_a;finisher_success;finisher_type_b;finisher_kind;" +
                 "fight_state;round;p1_rounds;p2_rounds;winner_side;winner;event_kind;zone;" +
-                "powerbars_enabled;no_throwing;no_blocking;fast_uppercut;unlimited_run"
+                "powerbars_enabled;no_throwing;no_blocking;fast_uppercut;unlimited_run;" +
+                "tower_state_a;tower_state_b;tower_id;tower_fight_number;" +
+                "p2_control_state;p1_participant_state;p2_participant_state;" +
+                "team_size_code;team_active_player_code;" +
+                "netplay_layout;netplay_active;" +
+                "netplay_player_number;netplay_total_players"
             );
             writer.Flush();
             return writer;
@@ -363,6 +422,7 @@ namespace MK3MoveBook.Research
             int frame,
             int processId,
             long ramAddress,
+            NetplayState netplay,
             MameFightTracker fightTracker,
             ref string lastSignature
         )
@@ -390,7 +450,13 @@ namespace MK3MoveBook.Research
                     p1Health,
                     p2Id,
                     CharacterName(p2Id),
-                    p2Health
+                    p2Health,
+                    false,
+                    0,
+                    0,
+                    -1,
+                    0,
+                    ram[FinishPhaseCandidateOffset]
                 );
             }
             string signature = string.Join(
@@ -435,7 +501,20 @@ namespace MK3MoveBook.Research
                 ram[NoThrowingOffset],
                 ram[NoBlockingOffset],
                 ram[FastUppercutOffset],
-                ram[UnlimitedRunOffset]
+                ram[UnlimitedRunOffset],
+                ram[TowerStateAOffset],
+                ram[TowerStateBOffset],
+                ram[TowerIdOffset],
+                ram[TowerFightNumberOffset],
+                ram[PlayerTwoControlStateOffset],
+                ram[PlayerOneParticipantStateOffset],
+                ram[PlayerTwoParticipantStateOffset],
+                ram[TeamSizeCodeOffset],
+                ram[TeamActivePlayerCodeOffset],
+                netplay.LayoutId,
+                netplay.Active,
+                netplay.PlayerNumber,
+                netplay.TotalPlayers
             );
             if (string.Equals(signature, lastSignature, StringComparison.Ordinal))
             {
@@ -495,7 +574,24 @@ namespace MK3MoveBook.Research
                     Hex(ram[NoThrowingOffset]),
                     Hex(ram[NoBlockingOffset]),
                     Hex(ram[FastUppercutOffset]),
-                    Hex(ram[UnlimitedRunOffset])
+                    Hex(ram[UnlimitedRunOffset]),
+                    Hex(ram[TowerStateAOffset]),
+                    Hex(ram[TowerStateBOffset]),
+                    Hex(ram[TowerIdOffset]),
+                    Hex(ram[TowerFightNumberOffset]),
+                    Hex(ram[PlayerTwoControlStateOffset]),
+                    Hex(ram[PlayerOneParticipantStateOffset]),
+                    Hex(ram[PlayerTwoParticipantStateOffset]),
+                    Hex(ram[TeamSizeCodeOffset]),
+                    Hex(ram[TeamActivePlayerCodeOffset]),
+                    netplay.LayoutId,
+                    netplay.Active ? "1" : "0",
+                    netplay.Active
+                        ? netplay.PlayerNumber.ToString(CultureInfo.InvariantCulture)
+                        : "",
+                    netplay.Active
+                        ? netplay.TotalPlayers.ToString(CultureInfo.InvariantCulture)
+                        : ""
                 )
             );
             writer.Flush();
@@ -613,8 +709,64 @@ namespace MK3MoveBook.Research
             }
         }
 
+        private sealed class NetplayLayout
+        {
+            public NetplayLayout(
+                string id,
+                uint callbackAddress,
+                uint activeAddress,
+                uint playerNumberAddress,
+                uint totalPlayersAddress,
+                byte[] callbackSignature
+            )
+            {
+                Id = id;
+                CallbackAddress = callbackAddress;
+                ActiveAddress = activeAddress;
+                PlayerNumberAddress = playerNumberAddress;
+                TotalPlayersAddress = totalPlayersAddress;
+                CallbackSignature = callbackSignature;
+            }
+
+            public string Id { get; private set; }
+            public uint CallbackAddress { get; private set; }
+            public uint ActiveAddress { get; private set; }
+            public uint PlayerNumberAddress { get; private set; }
+            public uint TotalPlayersAddress { get; private set; }
+            public byte[] CallbackSignature { get; private set; }
+        }
+
+        private struct NetplayState
+        {
+            public readonly string LayoutId;
+            public readonly bool Active;
+            public readonly int PlayerNumber;
+            public readonly int TotalPlayers;
+
+            public NetplayState(
+                string layoutId,
+                bool active,
+                int playerNumber,
+                int totalPlayers
+            )
+            {
+                LayoutId = layoutId ?? "";
+                Active = active;
+                PlayerNumber = playerNumber;
+                TotalPlayers = totalPlayers;
+            }
+        }
+
         private static string CharacterName(int characterId)
         {
+            if (characterId == 0x18)
+            {
+                return "Motaro";
+            }
+            if (characterId == 0x19)
+            {
+                return "Shao Kahn";
+            }
             string[] names =
             {
                 "Kano", "Sonya", "Jax", "Nightwolf", "Unmasked Sub-Zero",
@@ -976,6 +1128,93 @@ namespace MK3MoveBook.Research
             }
             value = BitConverter.ToUInt32(bytes, 0);
             return true;
+        }
+
+        private static NetplayLayout FindNetplayLayout(IntPtr processHandle)
+        {
+            foreach (NetplayLayout layout in NetplayLayouts)
+            {
+                byte[] actual;
+                if (!TryReadBytes(
+                        processHandle,
+                        layout.CallbackAddress,
+                        layout.CallbackSignature.Length,
+                        out actual
+                    ))
+                {
+                    continue;
+                }
+                bool matches = true;
+                for (int index = 0; index < actual.Length; index++)
+                {
+                    if (actual[index] != layout.CallbackSignature[index])
+                    {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches)
+                {
+                    return layout;
+                }
+            }
+            return null;
+        }
+
+        private static NetplayState ReadNetplayState(
+            IntPtr processHandle,
+            NetplayLayout layout
+        )
+        {
+            if (layout == null)
+            {
+                return new NetplayState("", false, 0, 0);
+            }
+
+            uint active;
+            uint playerNumber;
+            uint totalPlayers;
+            if (!TryReadUInt32(processHandle, layout.ActiveAddress, out active) ||
+                !TryReadUInt32(
+                    processHandle,
+                    layout.PlayerNumberAddress,
+                    out playerNumber
+                ) ||
+                !TryReadUInt32(
+                    processHandle,
+                    layout.TotalPlayersAddress,
+                    out totalPlayers
+                ) ||
+                active != 1 ||
+                playerNumber > 8 ||
+                totalPlayers < 1 ||
+                totalPlayers > 8 ||
+                (playerNumber > 0 && playerNumber > totalPlayers))
+            {
+                return new NetplayState(layout.Id, false, 0, 0);
+            }
+
+            return new NetplayState(
+                layout.Id,
+                true,
+                checked((int)playerNumber),
+                checked((int)totalPlayers)
+            );
+        }
+
+        private static string NetplayStatus(NetplayState state)
+        {
+            if (string.IsNullOrEmpty(state.LayoutId))
+            {
+                return "NET layout неизвестен";
+            }
+            if (!state.Active)
+            {
+                return "NET OFF";
+            }
+            return state.PlayerNumber > 0
+                ? "NET P" + state.PlayerNumber + "/" + state.TotalPlayers
+                : "NET наблюдатель/" + state.TotalPlayers;
         }
 
         private static bool TryReadBytes(

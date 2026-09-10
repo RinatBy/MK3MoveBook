@@ -30,6 +30,8 @@ namespace MK3MoveBook
             "p2_id_hex",
             "p2_name",
             "p2_health_raw",
+            "game_p1_rounds",
+            "game_p2_rounds",
             "fight_participants_confirmed",
             "fight_p1_id_dec",
             "fight_p1_id_hex",
@@ -38,12 +40,55 @@ namespace MK3MoveBook
             "fight_p2_id_hex",
             "fight_p2_name",
             "fight_state",
+            "match_mode",
+            "match_mode_label",
+            "cheat_monitor_state",
+            "cheat_catalog_count",
+            "cheat_use_sequence",
+            "active_cheat_count",
+            "active_cheats",
+            "last_detected_cheat",
+            "cpu_achievement_policy",
+            "cpu_achievement_policy_details",
+            "cpu_cheat_detected",
+            "tower_context",
+            "tower_player_side",
+            "tower_id",
+            "tower_name",
+            "tower_fight_number",
+            "powerbars_enabled",
+            "finish_phase",
+            "tower_state_a",
+            "tower_state_b",
+            "p2_control_state",
+            "p1_participant_state",
+            "p2_participant_state",
+            "team_size_code",
+            "team_size",
+            "team_active_player_code",
+            "team_left_player_count",
+            "team_local_player_active",
+            "team_local_player_side",
+            "netplay_layout_supported",
+            "netplay_active",
+            "netplay_player_number",
+            "netplay_total_players",
+            "netplay_controller_slot",
+            "netplay_controller_order",
             "round_number",
             "p1_rounds",
             "p2_rounds",
+            "match_sequence",
+            "match_fully_observed",
+            "p1_danger_seen",
+            "p2_danger_seen",
+            "round_winning_hit",
             "winner_side",
             "winner",
             "event_sequence",
+            "event_team_active_player_code",
+            "event_team_left_player_count",
+            "event_team_controller_slot",
             "event_kind",
             "event_title",
             "event_details",
@@ -52,8 +97,19 @@ namespace MK3MoveBook
             "finisher_winner_side",
             "finisher_fighter_id_dec",
             "finisher_opponent_id_dec",
+            "finisher_team_active_player_code",
+            "finisher_team_left_player_count",
+            "finisher_team_controller_slot",
             "finisher_title",
             "finisher_details",
+            "special_sequence",
+            "special_kind",
+            "special_actor_side",
+            "special_team_active_player_code",
+            "special_team_left_player_count",
+            "special_team_controller_slot",
+            "special_title",
+            "special_details",
             "bridge_title",
             "bridge_details"
         };
@@ -62,7 +118,10 @@ namespace MK3MoveBook
         private readonly string sessionId;
         private int sampleNumber;
 
-        public MameDiagnosticReport(string applicationDirectory)
+        public MameDiagnosticReport(
+            string applicationDirectory,
+            bool diagnosticsEnabled
+        )
         {
             string startedAt = DateTime.Now.ToString(
                 "yyyyMMdd-HHmmss",
@@ -70,6 +129,11 @@ namespace MK3MoveBook
             );
             sessionId = startedAt + "-P" +
                 Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture);
+            ReportPath = "";
+            if (!diagnosticsEnabled)
+            {
+                return;
+            }
             try
             {
                 string directory = Path.Combine(
@@ -142,6 +206,12 @@ namespace MK3MoveBook
                     snapshot.PlayerDataAvailable
                         ? Number(snapshot.PlayerTwoHealth)
                         : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.GamePlayerOneRounds)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.GamePlayerTwoRounds)
+                        : "",
                     snapshot.FightParticipantsConfirmed ? "1" : "0",
                     snapshot.FightParticipantsConfirmed
                         ? Number(snapshot.FightPlayerOneId)
@@ -162,12 +232,85 @@ namespace MK3MoveBook
                         ? snapshot.FightPlayerTwo
                         : "",
                     snapshot.FightState,
+                    snapshot.MatchMode,
+                    snapshot.MatchModeLabel,
+                    snapshot.CheatMonitorState,
+                    Number(snapshot.CheatCatalogCount),
+                    Number(snapshot.CheatUseSequence),
+                    Number(snapshot.ActiveCheatCount),
+                    snapshot.ActiveCheats,
+                    snapshot.LastDetectedCheat,
+                    snapshot.CpuAchievementPolicy,
+                    snapshot.CpuAchievementPolicyDetails,
+                    snapshot.CpuCheatDetected ? "1" : "0",
+                    snapshot.TowerContext ? "1" : "0",
+                    snapshot.TowerPlayerSide,
+                    snapshot.TowerContext ? Number(snapshot.TowerId) : "",
+                    snapshot.TowerName,
+                    snapshot.TowerFightNumber > 0
+                        ? Number(snapshot.TowerFightNumber)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.PowerBarsEnabled)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.FinishPhase)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.TowerStateA)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.TowerStateB)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.PlayerTwoControlState)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.PlayerOneParticipantState)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.PlayerTwoParticipantState)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.TeamSizeCode)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.TeamSize)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.TeamActivePlayerCode)
+                        : "",
+                    snapshot.PlayerDataAvailable
+                        ? Number(snapshot.TeamLeftPlayerCount)
+                        : "",
+                    snapshot.TeamLocalPlayerActive ? "1" : "0",
+                    snapshot.TeamLocalPlayerSide,
+                    snapshot.NetplayLayoutSupported ? "1" : "0",
+                    snapshot.NetplayActive ? "1" : "0",
+                    snapshot.NetplayActive
+                        ? Number(snapshot.NetplayPlayerNumber)
+                        : "",
+                    snapshot.NetplayActive
+                        ? Number(snapshot.NetplayTotalPlayers)
+                        : "",
+                    snapshot.NetplayActive
+                        ? Number(snapshot.NetplayControllerSlot)
+                        : "",
+                    snapshot.NetplayControllerOrder,
                     Number(snapshot.RoundNumber),
                     Number(snapshot.PlayerOneRounds),
                     Number(snapshot.PlayerTwoRounds),
+                    Number(snapshot.MatchSequence),
+                    snapshot.FightMatchFullyObserved ? "1" : "0",
+                    snapshot.PlayerOneDangerSeen ? "1" : "0",
+                    snapshot.PlayerTwoDangerSeen ? "1" : "0",
+                    snapshot.RoundWinningHit,
                     snapshot.WinnerSide,
                     snapshot.Winner,
                     Number(snapshot.EventSequence),
+                    Number(snapshot.EventTeamActivePlayerCode),
+                    Number(snapshot.EventTeamLeftPlayerCount),
+                    Number(snapshot.EventTeamControllerSlot),
                     snapshot.EventKind,
                     snapshot.EventTitle,
                     snapshot.EventDetails,
@@ -176,8 +319,19 @@ namespace MK3MoveBook
                     snapshot.FinisherWinnerSide,
                     Number(snapshot.FinisherFighterId),
                     Number(snapshot.FinisherOpponentId),
+                    Number(snapshot.FinisherTeamActivePlayerCode),
+                    Number(snapshot.FinisherTeamLeftPlayerCount),
+                    Number(snapshot.FinisherTeamControllerSlot),
                     snapshot.FinisherTitle,
                     snapshot.FinisherDetails,
+                    Number(snapshot.SpecialSequence),
+                    snapshot.SpecialKind,
+                    snapshot.SpecialActorSide,
+                    Number(snapshot.SpecialTeamActivePlayerCode),
+                    Number(snapshot.SpecialTeamLeftPlayerCount),
+                    Number(snapshot.SpecialTeamControllerSlot),
+                    snapshot.SpecialTitle,
+                    snapshot.SpecialDetails,
                     snapshot.Title,
                     snapshot.Details
                 };

@@ -171,6 +171,8 @@ def test_full_device_flow_is_one_time_and_stores_only_hashes(
                 params={"code": "valid-code", "state": "x" * 43},
             )
             assert wrong_state.status_code == 400
+            assert 'class="auth-result is-error"' in wrong_state.text
+            assert "Не удалось войти" in wrong_state.text
 
             callback = await client.get(
                 "/api/v1/auth/discord/callback",
@@ -180,6 +182,19 @@ def test_full_device_flow_is_one_time_and_stores_only_hashes(
                 },
             )
             assert callback.status_code == 200
+            assert 'class="auth-result is-success"' in callback.text
+            assert "Вход выполнен" in callback.text
+            assert "Эту страницу можно закрыть." in callback.text
+            assert 'class="brand-logo-frame"' in callback.text
+            assert 'class="brand-logo"' in callback.text
+            assert "MK3 MoveBook" not in callback.text
+            assert "closeWindow" not in callback.text
+            assert "window.history.replaceState" in callback.text
+
+            logo = await client.get("/api/v1/auth/movebook-logo.ico")
+            assert logo.status_code == 200
+            assert logo.headers["content-type"] == "image/x-icon"
+            assert len(logo.content) > 100_000
 
             repeated_callback = await client.get(
                 "/api/v1/auth/discord/callback",

@@ -209,6 +209,7 @@ window.MOVEBOOK_ANIMATIONS = {
   "unmasked-sub-zero|special moves|freeze": "assets/moves/unmasked-sub-zero/special/01-freeze.webm",
   "unmasked-sub-zero|special moves|ice shower-over": "assets/moves/unmasked-sub-zero/special/02-ice-shower-over.webm",
   "unmasked-sub-zero|special moves|ice shower-front": "assets/moves/unmasked-sub-zero/special/03-ice-shower-front.webm",
+  "unmasked-sub-zero|special moves|ice shower-behind": "assets/moves/unmasked-sub-zero/special/04-ice-shower-behind.webm",
   "unmasked-sub-zero|special moves|ice clone": "assets/moves/unmasked-sub-zero/special/05-ice-clone.webm",
   "unmasked-sub-zero|special moves|slide": "assets/moves/unmasked-sub-zero/special/06-slide.webm",
   "unmasked-sub-zero|autokombos|(18%)": "assets/moves/unmasked-sub-zero/autokombos/01-18-percent.webm",

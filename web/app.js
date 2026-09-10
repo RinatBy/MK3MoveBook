@@ -134,6 +134,12 @@
         state: "signed-out",
         details: "Войдите через Discord для синхронизации.",
         matchesPlayed: 0,
+        computerVictories: 0,
+        computerMatchesPlayed: 0,
+        onlineVictories: 0,
+        onlineMatchesPlayed: 0,
+        unclassifiedVictories: 0,
+        unclassifiedMatchesPlayed: 0,
         finishers: 0,
         pendingEvents: 0,
         verificationState: ""
@@ -197,6 +203,13 @@
         return achievementEngine.definitions(achievementData);
     }
 
+    function gatedAchievementIds() {
+        return new Set([
+            ...(achievementData.lore || []),
+            ...(achievementData.special || [])
+        ].map(definition => definition.id));
+    }
+
     function processMameAchievements(message) {
         // The C# host sends normalized MAME events to the authenticated API.
         // JavaScript never grants account achievements on its own.
@@ -227,6 +240,41 @@
         playerTwoRounds: 0,
         roundNumber: 0,
         fightState: "waiting",
+        matchMode: "unknown",
+        cheatMonitorState: "stopped",
+        cheatCatalogCount: 0,
+        cheatUseSequence: 0,
+        activeCheatCount: 0,
+        activeCheats: "",
+        lastDetectedCheat: "",
+        cpuAchievementPolicy: "not-applicable",
+        cpuAchievementPolicyDetails: "",
+        cpuCheatDetected: false,
+        matchModeLabel: "Режим не подтверждён",
+        matchModeDetails: "Ожидаем устойчивые игровые признаки.",
+        towerContext: false,
+        towerPlayerSide: "",
+        towerId: -1,
+        towerName: "",
+        towerFightNumber: 0,
+        powerBarsEnabled: 0,
+        finishPhase: 0,
+        towerStateA: 0,
+        towerStateB: 0,
+        playerTwoControlState: 0,
+        playerOneParticipantState: 0,
+        playerTwoParticipantState: 0,
+        teamSizeCode: 0,
+        teamSize: 0,
+        teamActivePlayerCode: 0,
+        teamLocalPlayerActive: false,
+        teamLocalPlayerSide: "",
+        netplayLayoutSupported: false,
+        netplayActive: false,
+        netplayPlayerNumber: 0,
+        netplayTotalPlayers: 0,
+        netplayControllerSlot: -1,
+        netplayControllerOrder: "",
         romLabel: "ROM определяется",
         playerDataAvailable: false,
         mainRamAddress: "",
@@ -239,12 +287,17 @@
         finisherKind: "",
         finisherFighterId: -1,
         finisherOpponentId: -1,
+        specialSequence: 0,
+        specialKind: "",
+        specialActorSide: "",
+        diagnosticMode: false,
         diagnosticReportName: ""
     };
     let mameDiagnosticEvents = [];
     let mameDiagnosticProcessId = 0;
     let lastMameEventSequence = 0;
     let lastMameFinisherSequence = 0;
+    let lastMameSpecialSequence = 0;
     let lastMameRomId = "";
 
     const elements = {
@@ -267,6 +320,10 @@
         accountFallback: document.querySelector("#accountFallback"),
         accountLabel: document.querySelector("#accountLabel"),
         accountDetails: document.querySelector("#accountDetails"),
+        logoutDialog: document.querySelector("#logoutDialog"),
+        logoutDialogUser: document.querySelector("#logoutDialogUser"),
+        logoutDialogCancel: document.querySelector("#logoutDialogCancel"),
+        logoutDialogConfirm: document.querySelector("#logoutDialogConfirm"),
         updateButton: document.querySelector("#updateButton"),
         updatePanel: document.querySelector("#updatePanel"),
         updatePanelClose: document.querySelector("#updatePanelClose"),
@@ -1246,11 +1303,52 @@
             "MK3 MoveBook · сообщество Онлайн ретро-игры";
     }
 
-    function renderAchievementCard(definition, iconHtml) {
-        const unlocked = Boolean(achievementProgress.unlocked[definition.id]);
+    function fighterDebutGate() {
+        const definitions = achievementData.fighters || [];
+        const completed = definitions.filter(definition =>
+            achievementProgress.unlocked[definition.id]
+        ).length;
+        return {
+            completed,
+            total: definitions.length,
+            unlocked: definitions.length > 0 && completed === definitions.length
+        };
+    }
+
+    function achievementPrerequisiteReason(definition) {
+        const definitionsById = new Map(
+            achievementDefinitions().map(item => [item.id, item])
+        );
+        const missing = Array.isArray(definition.prerequisites)
+            ? definition.prerequisites.filter(id =>
+                !achievementProgress.unlocked[id]
+            )
+            : [];
+        if (!missing.length) {
+            return "";
+        }
+        const titles = missing.map(id => {
+            const prerequisite = definitionsById.get(id);
+            return `«${prerequisite ? prerequisite.title : id}»`;
+        });
+        return `Сначала получите: ${titles.join(", ")}.`;
+    }
+
+    function renderAchievementCard(definition, iconHtml, categoryLockReason = "") {
+        const categoryLocked = Boolean(categoryLockReason);
+        const unlocked = Boolean(
+            achievementProgress.unlocked[definition.id] && !categoryLocked
+        );
+        const prerequisiteReason = achievementPrerequisiteReason(definition);
+        const lockReason = !unlocked && !categoryLocked
+            ? prerequisiteReason
+            : "";
+        const achievementLocked = categoryLocked || Boolean(lockReason);
         const label = unlocked
             ? `${definition.label || "Испытание"} · Получено`
-            : (definition.label || "Испытание");
+            : achievementLocked
+                ? "Заблокировано"
+                : (definition.label || "Испытание");
         const loreId = `achievement-lore-${definition.id}`;
         const loreNote = definition.loreNote
             ? `<button class="achievement-lore-note" type="button"
@@ -1262,10 +1360,15 @@
                 ${escapeHtml(definition.loreNote)}
             </span>`
             : "";
+        const resolvedIconHtml = definition.icon
+            ? `<span class="achievement-card-icon">
+                <img src="${escapeHtml(definition.icon)}" alt="">
+            </span>`
+            : iconHtml;
         return `
-            <article class="achievement-card${unlocked ? " is-unlocked" : ""}"
+            <article class="achievement-card${unlocked ? " is-unlocked" : ""}${achievementLocked ? " is-prerequisite-locked" : ""}"
                 data-achievement="${escapeHtml(definition.id)}">
-                ${iconHtml}
+                ${resolvedIconHtml}
                 <span class="achievement-card-copy">
                     <span class="achievement-card-meta">
                         <small>${escapeHtml(label)}</small>
@@ -1273,12 +1376,35 @@
                     </span>
                     <strong>${escapeHtml(definition.title)}</strong>
                     <span class="achievement-card-description">${escapeHtml(definition.description)}</span>
+                    ${lockReason
+                        ? `<span class="achievement-card-requirement">${escapeHtml(lockReason)}</span>`
+                        : ""}
                     ${loreDetails}
                 </span>
             </article>`;
     }
 
     function mameDiagnosticMarkup() {
+        const diagnosticsEnabled = Boolean(mameDiagnostic.diagnosticMode);
+        const diagnosticState = String(mameDiagnostic.state || "");
+        if (!diagnosticsEnabled) {
+            if (diagnosticState !== "match-synchronizing") {
+                return "";
+            }
+            return `
+                <div class="mame-diagnostic-stack">
+                    <section class="mame-diagnostic" data-state="match-synchronizing">
+                        <span class="mame-diagnostic-light" aria-hidden="true"></span>
+                        <span class="mame-diagnostic-copy">
+                            <small>ТЕКУЩИЙ МАТЧ ПРОПУЩЕН</small>
+                            <strong>${escapeHtml(mameDiagnostic.title ||
+                                "Синхронизация с текущим матчем")}</strong>
+                            <span>${escapeHtml(mameDiagnostic.details ||
+                                "Прогресс начнётся со следующего полного матча.")}</span>
+                        </span>
+                    </section>
+                </div>`;
+        }
         const confirmed = Boolean(mameDiagnostic.fightParticipantsConfirmed);
         const playerOneId = Number(mameDiagnostic.fightPlayerOneId) || 0;
         const playerTwoId = Number(mameDiagnostic.fightPlayerTwoId) || 0;
@@ -1295,6 +1421,115 @@
                         ID ${playerTwoId.toString(16).toUpperCase().padStart(2, "0")}</small></span>
             </div>`
             : "";
+        const matchMode = String(mameDiagnostic.matchMode || "unknown");
+        const byteHex = value => Math.max(0, Number(value) || 0)
+            .toString(16).toUpperCase().padStart(2, "0");
+        const towerName = String(mameDiagnostic.towerName || "");
+        const towerFightNumber = Math.max(
+            0,
+            Number(mameDiagnostic.towerFightNumber) || 0
+        );
+        const towerPlayerSide = String(
+            mameDiagnostic.towerPlayerSide || ""
+        ).toUpperCase();
+        const towerDetails = Boolean(mameDiagnostic.towerContext)
+            ? `${towerName || "Башня определяется"}${towerFightNumber > 0
+                ? ` · бой ${towerFightNumber}`
+                : ""}${towerPlayerSide ? ` · игрок ${towerPlayerSide}` : ""}`
+            : "Контекст башни не подтверждён";
+        const teamSize = Math.max(0, Number(mameDiagnostic.teamSize) || 0);
+        const teamDetails = teamSize > 0
+            ? `Команды ${teamSize}×${teamSize}`
+            : "Размер команд определяется";
+        const netplayActive = Boolean(mameDiagnostic.netplayActive);
+        const netplayPlayerNumber = Math.max(
+            0,
+            Number(mameDiagnostic.netplayPlayerNumber) || 0
+        );
+        const netplayTotalPlayers = Math.max(
+            0,
+            Number(mameDiagnostic.netplayTotalPlayers) || 0
+        );
+        const netplayControllerSlot = Number(
+            mameDiagnostic.netplayControllerSlot
+        );
+        const netplayControllerOrder = String(
+            mameDiagnostic.netplayControllerOrder || ""
+        );
+        const teamLocalPlayerSide = String(
+            mameDiagnostic.teamLocalPlayerSide || ""
+        ).toLowerCase();
+        const teamLocalPlayerSideLabel = teamLocalPlayerSide === "p1"
+            ? "левой стороне боя (P1)"
+            : teamLocalPlayerSide === "p2"
+                ? "правой стороне боя (P2)"
+                : "определённой стороне боя";
+        const netplayDetails = netplayActive
+            ? netplayPlayerNumber > 0
+                ? `Kaillera: вы P${netplayPlayerNumber} · участников ${netplayTotalPlayers}${
+                    netplayTotalPlayers > 2
+                        ? Boolean(mameDiagnostic.teamLocalPlayerActive)
+                            ? ` · ваш боец активен на ${teamLocalPlayerSideLabel}`
+                            : " · ваш боец ожидает"
+                        : ""
+                }`
+                : `Kaillera: наблюдатель · участников ${netplayTotalPlayers}`
+            : Boolean(mameDiagnostic.netplayLayoutSupported)
+                ? "Kaillera: матч не запущен"
+                : "Kaillera: эта сборка MAME не распознана";
+        const mode = mameDiagnostic.playerDataAvailable
+            ? `<section class="mame-match-mode" data-mode="${escapeHtml(matchMode)}">
+                <span><small>Режим матча</small>
+                    <strong>${escapeHtml(
+                        mameDiagnostic.matchModeLabel || "Режим не подтверждён"
+                    )}</strong>
+                    <span>${escapeHtml(
+                        mameDiagnostic.matchModeDetails || ""
+                    )}</span>
+                    <span>${escapeHtml(netplayDetails)}</span></span>
+                <span><small>${matchMode === "two-player" ? "Формат" : "Башня"}</small>
+                    <strong>${escapeHtml(matchMode === "two-player" ? teamDetails : towerDetails)}</strong>
+                    <code>T ${byteHex(mameDiagnostic.towerStateA)}/
+                        ${byteHex(mameDiagnostic.towerStateB)} ·
+                        P2 ${byteHex(mameDiagnostic.playerTwoControlState)} ·
+                        S ${byteHex(mameDiagnostic.playerOneParticipantState)}/
+                        ${byteHex(mameDiagnostic.playerTwoParticipantState)} ·
+                        TEAM ${byteHex(mameDiagnostic.teamSizeCode)} ·
+                        ACTIVE ${byteHex(mameDiagnostic.teamActivePlayerCode)} ·
+                        PHASE ${byteHex(mameDiagnostic.finishPhase)} ·
+                        MAP ${escapeHtml(netplayControllerOrder || "?")} ·
+                        MAP POS ${netplayControllerSlot >= 0
+                            ? netplayControllerSlot
+                            : "?"} ·
+                        NET ${netplayActive
+                            ? `P${netplayPlayerNumber}/${netplayTotalPlayers}`
+                            : "OFF"}</code></span>
+            </section>`
+            : "";
+        const cheatPolicyState = String(
+            mameDiagnostic.cpuAchievementPolicy || "not-applicable"
+        );
+        const cheatPolicyTitles = {
+            "verified-clean": "CPU-античит: проверено",
+            "blocked-cheat": "CPU-античит: достижения отключены",
+            checking: "CPU-античит: идёт проверка",
+            "not-applicable": "CPU-античит: не применяется"
+        };
+        const cheatPolicy = mameDiagnostic.playerDataAvailable
+            ? `<section class="mame-cheat-policy" data-state="${escapeHtml(
+                cheatPolicyState
+            )}">
+                <span><small>Политика достижений</small>
+                    <strong>${escapeHtml(
+                        cheatPolicyTitles[cheatPolicyState] || "CPU-античит"
+                    )}</strong>
+                    <span>${escapeHtml(
+                        mameDiagnostic.cpuAchievementPolicyDetails || ""
+                    )}</span></span>
+                <code>${Math.max(0, Number(mameDiagnostic.cheatCatalogCount) || 0)}/23 ·
+                    ${Math.max(0, Number(mameDiagnostic.activeCheatCount) || 0)} active</code>
+            </section>`
+            : "";
         const events = mameDiagnosticEvents.length
             ? `<section class="mame-event-log">
                 <header><strong>Журнал боя</strong><span>только на этом компьютере</span></header>
@@ -1303,15 +1538,6 @@
                         <i></i><span><strong>${escapeHtml(event.title)}</strong>
                         <small>${escapeHtml(event.details)}</small></span>
                     </li>`).join("")}</ol>
-            </section>`
-            : "";
-        const reportName = String(mameDiagnostic.diagnosticReportName || "");
-        const report = reportName
-            ? `<section class="mame-diagnostic-report">
-                <span><strong>Полный CSV-отчёт</strong>
-                    <small>четыре замера памяти в секунду</small></span>
-                <code>diagnostics\\${escapeHtml(reportName)}</code>
-                <small>Папка находится рядом с MK3 MoveBook.exe</small>
             </section>`
             : "";
         return `
@@ -1326,7 +1552,8 @@
                     </span>
                     ${players}
                 </section>
-                ${report}
+                ${mode}
+                ${cheatPolicy}
                 ${events}
             </div>`;
     }
@@ -1336,16 +1563,25 @@
         const fighters = currentVersion().fighters;
         const fighterById = new Map(fighters.map(fighter => [fighter.id, fighter]));
         const generalAchievements = achievementData.general || [];
+        const computerAchievements = achievementData.computer || [];
         const fighterAchievements = achievementData.fighters || [];
         const loreAchievements = achievementData.lore || [];
         const specialAchievements = achievementData.special || [];
+        const debutGate = fighterDebutGate();
+        const gatedCategoryReason = debutGate.unlocked
+            ? ""
+            : `Получите все достижения категории «Боевые дебюты» ` +
+                `(${debutGate.completed} из ${debutGate.total}).`;
         const total = generalAchievements.length +
-            fighterAchievements.length + loreAchievements.length +
+            computerAchievements.length + fighterAchievements.length +
+            loreAchievements.length +
             specialAchievements.length;
         const trackingEnabled = achievementAccess.signedIn;
+        const gatedIds = gatedAchievementIds();
         const completed = trackingEnabled
             ? achievementDefinitions().filter(definition =>
-                achievementProgress.unlocked[definition.id]
+                achievementProgress.unlocked[definition.id] &&
+                (debutGate.unlocked || !gatedIds.has(definition.id))
             ).length
             : 0;
         const profileName = trackingEnabled
@@ -1399,6 +1635,12 @@
                 `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`
             )
         ).join("");
+        const computerCards = computerAchievements.map(item =>
+            renderAchievementCard(
+                item,
+                `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`
+            )
+        ).join("");
         const fighterCards = fighterAchievements.map(item => {
             const fighter = fighterById.get(item.fighterId);
             return renderAchievementCard(
@@ -1419,7 +1661,7 @@
                     <img src="${portraitPath(opponent)}" alt="">
                 </span>`
                 : `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`;
-            return renderAchievementCard(item, portraits);
+            return renderAchievementCard(item, portraits, gatedCategoryReason);
         }).join("");
         const specialCards = specialAchievements.map(item => {
             const fighter = fighterById.get(item.fighterId);
@@ -1428,7 +1670,7 @@
                     <img src="${portraitPath(fighter)}" alt="">
                 </span>`
                 : `<span class="achievement-card-icon">${achievementMarkMarkup()}</span>`;
-            return renderAchievementCard(item, icon);
+            return renderAchievementCard(item, icon, gatedCategoryReason);
         }).join("");
 
         document.documentElement.style.setProperty("--accent", "#b62a43");
@@ -1458,14 +1700,21 @@
             <button class="category-link" type="button" data-category="achievement-general">
                 <span>Общие</span><b>${generalAchievements.length}</b>
             </button>
+            <button class="category-link" type="button" data-category="achievement-computer">
+                <span>Против компьютера</span><b>${computerAchievements.length}</b>
+            </button>
             <button class="category-link" type="button" data-category="achievement-fighters">
-                <span>Бойцы</span><b>${fighterAchievements.length}</b>
+                <span>Боевые дебюты</span><b>${fighterAchievements.length}</b>
             </button>
-            <button class="category-link" type="button" data-category="achievement-lore">
-                <span>Противостояния</span><b>${loreAchievements.length}</b>
+            <button class="category-link${debutGate.unlocked ? "" : " is-achievement-locked"}"
+                type="button" data-category="achievement-lore"
+                title="${escapeHtml(gatedCategoryReason)}">
+                <span>Противостояния</span><b>${debutGate.unlocked ? loreAchievements.length : "◆"}</b>
             </button>
-            <button class="category-link" type="button" data-category="achievement-special">
-                <span>Особые</span><b>${specialAchievements.length}</b>
+            <button class="category-link${debutGate.unlocked ? "" : " is-achievement-locked"}"
+                type="button" data-category="achievement-special"
+                title="${escapeHtml(gatedCategoryReason)}">
+                <span>Особые испытания</span><b>${debutGate.unlocked ? specialAchievements.length : "◆"}</b>
             </button>`;
         elements.routeBar.innerHTML =
             `MOVEBOOK&nbsp;&nbsp;/&nbsp;&nbsp;<b>ДОСТИЖЕНИЯ</b>`;
@@ -1488,9 +1737,19 @@
                     </div>
                     <div class="achievements-summary">
                         <strong>${trackingEnabled ? completed : "—"} / ${total}</strong>
-                        <span>${trackingEnabled
-                            ? `${achievementProgress.victories} побед · ${achievementSync.matchesPlayed} матчей`
+                        <span class="achievement-total-stats">${trackingEnabled
+                            ? `Всего: ${achievementProgress.victories} побед · ${achievementSync.matchesPlayed} матчей`
                             : "События MAME сейчас не записываются"}</span>
+                        ${trackingEnabled
+                            ? `<span class="achievement-mode-stats">
+                                <span data-achievement-computer-stats><b>CPU</b>
+                                    ${achievementSync.computerVictories} побед ·
+                                    ${achievementSync.computerMatchesPlayed} матчей</span>
+                                <span data-achievement-online-stats><b>Онлайн</b>
+                                    ${achievementSync.onlineVictories} побед ·
+                                    ${achievementSync.onlineMatchesPlayed} матчей</span>
+                            </span>`
+                            : ""}
                     </div>
                 </header>
                 ${trackingPanel}
@@ -1499,12 +1758,14 @@
                         aria-pressed="true">Все</button>
                     <button type="button" data-achievement-filter="general"
                         aria-pressed="false">Общие</button>
+                    <button type="button" data-achievement-filter="computer"
+                        aria-pressed="false">Против компьютера</button>
                     <button type="button" data-achievement-filter="fighters"
-                        aria-pressed="false">Бойцы</button>
+                        aria-pressed="false">Боевые дебюты</button>
                     <button type="button" data-achievement-filter="lore"
                         aria-pressed="false">Противостояния</button>
                     <button type="button" data-achievement-filter="special"
-                        aria-pressed="false">Особые</button>
+                        aria-pressed="false">Особые испытания</button>
                 </nav>
                 <section id="category-achievement-general"
                     class="achievement-group" data-achievement-group="general">
@@ -1512,6 +1773,13 @@
                         <h3>Общие</h3><span>${generalAchievements.length}</span>
                     </header>
                     <div class="achievement-card-grid">${generalCards}</div>
+                </section>
+                <section id="category-achievement-computer"
+                    class="achievement-group" data-achievement-group="computer">
+                    <header class="achievement-group-heading">
+                        <h3>Против компьютера</h3><span>${computerAchievements.length}</span>
+                    </header>
+                    <div class="achievement-card-grid">${computerCards}</div>
                 </section>
                 <section id="category-achievement-fighters"
                     class="achievement-group" data-achievement-group="fighters">
@@ -1525,6 +1793,10 @@
                     <header class="achievement-group-heading">
                         <h3>Противостояния</h3><span>${loreAchievements.length}</span>
                     </header>
+                    ${debutGate.unlocked ? "" : `
+                        <p class="achievement-category-lock">
+                            <strong>Заблокировано.</strong> ${escapeHtml(gatedCategoryReason)}
+                        </p>`}
                     <div class="achievement-card-grid">${loreCards}</div>
                 </section>
                 <section id="category-achievement-special"
@@ -1532,6 +1804,10 @@
                     <header class="achievement-group-heading">
                         <h3>Особые испытания</h3><span>${specialAchievements.length}</span>
                     </header>
+                    ${debutGate.unlocked ? "" : `
+                        <p class="achievement-category-lock">
+                            <strong>Заблокировано.</strong> ${escapeHtml(gatedCategoryReason)}
+                        </p>`}
                     <div class="achievement-card-grid">${specialCards}</div>
                 </section>
                 <p class="achievement-preview-note">
@@ -1556,39 +1832,74 @@
         const definitions = new Map(
             achievementDefinitions().map(definition => [definition.id, definition])
         );
+        const debutGate = fighterDebutGate();
+        const gatedIds = gatedAchievementIds();
         elements.pageContent.querySelectorAll("[data-achievement]")
             .forEach(card => {
                 const definition = definitions.get(card.dataset.achievement);
+                const categoryLocked = Boolean(
+                    definition && !debutGate.unlocked &&
+                    gatedIds.has(definition.id)
+                );
                 const unlocked = Boolean(
-                    definition && achievementProgress.unlocked[definition.id]
+                    definition && achievementProgress.unlocked[definition.id] &&
+                    !categoryLocked
+                );
+                const prerequisiteLocked = Boolean(
+                    definition && !unlocked &&
+                    Array.isArray(definition.prerequisites) &&
+                    definition.prerequisites.some(id =>
+                        !achievementProgress.unlocked[id]
+                    )
                 );
                 card.classList.toggle("is-unlocked", unlocked);
+                card.classList.toggle(
+                    "is-prerequisite-locked",
+                    categoryLocked || prerequisiteLocked
+                );
                 const label = card.querySelector(".achievement-card-copy small");
                 if (label && definition) {
                     label.textContent = unlocked
                         ? `${definition.label || "Испытание"} · Получено`
-                        : (definition.label || "Испытание");
+                        : categoryLocked || prerequisiteLocked
+                            ? "Заблокировано"
+                            : (definition.label || "Испытание");
                 }
             });
         const completed = achievementDefinitions().filter(definition =>
-            achievementProgress.unlocked[definition.id]
+            achievementProgress.unlocked[definition.id] &&
+            (debutGate.unlocked || !gatedIds.has(definition.id))
         ).length;
         const total = achievementDefinitions().length;
         const summaryValue = elements.pageContent.querySelector(
             ".achievements-summary strong"
         );
         const summaryText = elements.pageContent.querySelector(
-            ".achievements-summary span"
+            ".achievement-total-stats"
         );
         if (summaryValue) {
             summaryValue.textContent = `${completed} / ${total}`;
         }
         if (summaryText) {
             summaryText.textContent =
-                `${achievementProgress.victories} побед · прогресс на этом компьютере`;
+                `Всего: ${achievementProgress.victories} побед · ${achievementSync.matchesPlayed} матчей`;
+        }
+        const computerStats = elements.pageContent.querySelector(
+            "[data-achievement-computer-stats]"
+        );
+        if (computerStats) {
+            computerStats.innerHTML = `<b>CPU</b> ${achievementSync.computerVictories} побед · ` +
+                `${achievementSync.computerMatchesPlayed} матчей`;
+        }
+        const onlineStats = elements.pageContent.querySelector(
+            "[data-achievement-online-stats]"
+        );
+        if (onlineStats) {
+            onlineStats.innerHTML = `<b>Онлайн</b> ${achievementSync.onlineVictories} побед · ` +
+                `${achievementSync.onlineMatchesPlayed} матчей`;
         }
         elements.fighterSubtitle.textContent =
-            `${completed} из ${total} испытаний · локально`;
+            `${completed} из ${total} испытаний · профиль ${achievementAccess.displayName || "MoveBook"}`;
         elements.statusText.textContent =
             `Достижения · ${completed} из ${total}`;
     }
@@ -2309,6 +2620,12 @@
                 ? "Ожидаем серверный профиль MoveBook."
                 : "Войдите через Discord для синхронизации.";
             achievementSync.matchesPlayed = 0;
+            achievementSync.computerVictories = 0;
+            achievementSync.computerMatchesPlayed = 0;
+            achievementSync.onlineVictories = 0;
+            achievementSync.onlineMatchesPlayed = 0;
+            achievementSync.unclassifiedVictories = 0;
+            achievementSync.unclassifiedMatchesPlayed = 0;
             achievementSync.finishers = 0;
             achievementSync.pendingEvents = 0;
             achievementSync.verificationState = "";
@@ -2381,6 +2698,30 @@
                 0,
                 Number(message.matchesPlayed) || 0
             );
+            achievementSync.computerVictories = Math.max(
+                0,
+                Number(message.computerVictories) || 0
+            );
+            achievementSync.computerMatchesPlayed = Math.max(
+                0,
+                Number(message.computerMatchesPlayed) || 0
+            );
+            achievementSync.onlineVictories = Math.max(
+                0,
+                Number(message.onlineVictories) || 0
+            );
+            achievementSync.onlineMatchesPlayed = Math.max(
+                0,
+                Number(message.onlineMatchesPlayed) || 0
+            );
+            achievementSync.unclassifiedVictories = Math.max(
+                0,
+                Number(message.unclassifiedVictories) || 0
+            );
+            achievementSync.unclassifiedMatchesPlayed = Math.max(
+                0,
+                Number(message.unclassifiedMatchesPlayed) || 0
+            );
             achievementSync.finishers = Math.max(
                 0,
                 Number(message.finishers) || 0
@@ -2397,11 +2738,21 @@
             );
             const newlyUnlocked = newUnlockIds
                 .map(id => definitionsById.get(id))
-                .filter(Boolean);
+                .filter(definition => definition && (
+                    fighterDebutGate().unlocked ||
+                    !gatedAchievementIds().has(definition.id)
+                ));
             if (newlyUnlocked.length) {
                 elements.statusText.textContent = newlyUnlocked.length === 1
                     ? `Получено достижение: ${newlyUnlocked[0].title}`
                     : `Получено достижений: ${newlyUnlocked.length}`;
+                const bridge = updateBridge();
+                if (bridge) {
+                    bridge.postMessage(JSON.stringify({
+                        type: "movebook-achievement-unlocked",
+                        titles: newlyUnlocked.map(definition => definition.title)
+                    }));
+                }
             }
         }
 
@@ -2450,6 +2801,32 @@
             elements.statusText.textContent = details;
         }
         applyAchievementAccess(signedIn, userId, label, profileScope);
+        if (!signedIn && !elements.logoutDialog.hidden) {
+            closeLogoutDialog(false);
+        }
+    }
+
+    function openLogoutDialog() {
+        elements.logoutDialogUser.textContent = elements.accountLabel.textContent;
+        elements.logoutDialog.hidden = false;
+        elements.logoutDialogCancel.focus();
+    }
+
+    function closeLogoutDialog(restoreFocus = true) {
+        elements.logoutDialog.hidden = true;
+        if (restoreFocus) {
+            elements.accountButton.focus();
+        }
+    }
+
+    function confirmLogout() {
+        const bridge = updateBridge();
+        if (!bridge) {
+            closeLogoutDialog();
+            return;
+        }
+        closeLogoutDialog(false);
+        bridge.postMessage("logout-movebook");
     }
 
     function applyMameStatus(message) {
@@ -2459,17 +2836,21 @@
         const processId = Number(message.processId) || 0;
         const eventSequence = Number(message.eventSequence) || 0;
         const finisherSequence = Number(message.finisherSequence) || 0;
+        const specialSequence = Number(message.specialSequence) || 0;
         const romId = String(message.romId || "");
         const processChanged = processId !== mameDiagnosticProcessId;
         const romChanged = lastMameRomId && romId && romId !== lastMameRomId;
         const sequenceRestarted = eventSequence < lastMameEventSequence;
         const finisherSequenceRestarted =
             finisherSequence < lastMameFinisherSequence;
+        const specialSequenceRestarted =
+            specialSequence < lastMameSpecialSequence;
         if (processChanged || romChanged || sequenceRestarted ||
-            finisherSequenceRestarted) {
+            finisherSequenceRestarted || specialSequenceRestarted) {
             mameDiagnosticEvents = [];
             lastMameEventSequence = 0;
             lastMameFinisherSequence = 0;
+            lastMameSpecialSequence = 0;
         }
         mameDiagnosticProcessId = processId;
         if (romId) {
@@ -2499,11 +2880,34 @@
             mameDiagnosticEvents = mameDiagnosticEvents.slice(0, 5);
             lastMameFinisherSequence = finisherSequence;
         }
+        if (specialSequence > 0 &&
+            specialSequence !== lastMameSpecialSequence &&
+            message.specialTitle) {
+            mameDiagnosticEvents.unshift({
+                sequence: `S${specialSequence}`,
+                kind: `special-${String(message.specialKind || "event")}`,
+                title: String(message.specialTitle),
+                details: String(message.specialDetails || "")
+            });
+            mameDiagnosticEvents = mameDiagnosticEvents.slice(0, 5);
+            lastMameSpecialSequence = specialSequence;
+        }
+        const wasSynchronizing = String(mameDiagnostic.state || "") ===
+            "match-synchronizing";
         const unlocked = processMameAchievements(message);
         mameDiagnostic = {
             ...mameDiagnostic,
             ...message
         };
+        const synchronizing = String(mameDiagnostic.state || "") ===
+            "match-synchronizing";
+        if (!mameDiagnostic.diagnosticMode && synchronizing) {
+            elements.statusText.textContent =
+                mameDiagnostic.title || "Синхронизация с текущим матчем";
+        } else if (!mameDiagnostic.diagnosticMode && wasSynchronizing) {
+            elements.statusText.textContent =
+                "Синхронизация завершена · новый полный матч учитывается";
+        }
         if (unlocked.length && state.tab !== "achievements") {
             elements.statusText.textContent = unlocked.length === 1
                 ? `Получено достижение: ${unlocked[0].title}`
@@ -2512,9 +2916,21 @@
         if (state.tab !== "achievements") {
             return;
         }
+        const markup = mameDiagnosticMarkup();
         const current = elements.pageContent.querySelector(".mame-diagnostic-stack");
         if (current) {
-            current.outerHTML = mameDiagnosticMarkup();
+            if (markup) {
+                current.outerHTML = markup;
+            } else {
+                current.remove();
+            }
+        } else if (markup) {
+            const syncPanel = elements.pageContent.querySelector(
+                ".achievement-sync-status"
+            );
+            if (syncPanel) {
+                syncPanel.insertAdjacentHTML("afterend", markup);
+            }
         }
         refreshAchievementProgress();
     }
@@ -2636,11 +3052,37 @@
         if (!bridge || elements.accountButton.disabled) {
             return;
         }
-        bridge.postMessage(
-            elements.accountButton.dataset.state === "signed-in"
-                ? "logout-movebook"
-                : "start-discord-login"
-        );
+        if (elements.accountButton.dataset.state === "signed-in") {
+            openLogoutDialog();
+            return;
+        }
+        bridge.postMessage("start-discord-login");
+    });
+
+    elements.logoutDialogCancel.addEventListener("click", () => {
+        closeLogoutDialog();
+    });
+
+    elements.logoutDialogConfirm.addEventListener("click", confirmLogout);
+
+    elements.logoutDialog.addEventListener("click", event => {
+        if (event.target === elements.logoutDialog) {
+            closeLogoutDialog();
+        }
+    });
+
+    document.addEventListener("keydown", event => {
+        if (elements.logoutDialog.hidden) {
+            return;
+        }
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeLogoutDialog();
+        } else if (event.key === "Enter" &&
+            event.target !== elements.logoutDialogCancel) {
+            event.preventDefault();
+            confirmLogout();
+        }
     });
 
     elements.fighterSeal.addEventListener("click", () => {

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from html import escape
+from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -40,6 +42,7 @@ from .security import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer_scheme = HTTPBearer(auto_error=False)
+AUTH_LOGO_PATH = Path(__file__).resolve().parent / "static" / "movebook-logo.ico"
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -78,13 +81,152 @@ def _user_out(user: User) -> UserOut:
     )
 
 
+@router.get(
+    "/movebook-logo.ico",
+    include_in_schema=False,
+    response_class=FileResponse,
+)
+def movebook_logo() -> FileResponse:
+    return FileResponse(
+        AUTH_LOGO_PATH,
+        media_type="image/x-icon",
+        headers={"Cache-Control": "public, max-age=604800, immutable"},
+    )
+
+
 def _browser_page(message: str, *, status_code: int = 200) -> HTMLResponse:
-    html = f"""<!doctype html>
+    is_success = status_code < 400
+    result_class = "is-success" if is_success else "is-error"
+    headline = "Вход выполнен" if is_success else "Не удалось войти"
+    display_message = "Эту страницу можно закрыть." if is_success else message
+    html = (
+        """<!doctype html>
 <html lang="ru">
-<head><meta charset="utf-8"><title>MK3 MoveBook</title></head>
-<body style="font-family: sans-serif; max-width: 42rem; margin: 4rem auto; padding: 1rem">
-<h1>MK3 MoveBook</h1><p>{message}</p>
-</body></html>"""
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#140c1d">
+<title>MoveBook — результат входа</title>
+<link rel="icon" href="/api/v1/auth/movebook-logo.ico" type="image/x-icon">
+<style>
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
+body {
+    display: grid;
+    min-height: 100vh;
+    padding: 28px;
+    overflow-x: hidden;
+    color: #2f2028;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(166, 42, 67, .28), transparent 30%),
+        radial-gradient(circle at 82% 74%, rgba(109, 58, 140, .3), transparent 34%),
+        linear-gradient(135deg, #0d0713, #21142d 52%, #120a1a);
+    font-family: Georgia, "Times New Roman", serif;
+    place-items: center;
+}
+body::before {
+    position: fixed;
+    inset: 20px;
+    pointer-events: none;
+    content: "";
+    border: 1px solid rgba(226, 189, 76, .22);
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, .36);
+}
+.auth-result-card {
+    position: relative;
+    width: min(560px, 100%);
+    padding: 48px 44px 40px;
+    overflow: hidden;
+    text-align: center;
+    background:
+        linear-gradient(90deg, rgba(117, 64, 45, .07) 1px, transparent 1px) 0 0 / 26px 26px,
+        linear-gradient(rgba(117, 64, 45, .055) 1px, transparent 1px) 0 0 / 26px 26px,
+        linear-gradient(145deg, #f7ecd7, #e5d1af);
+    border: 2px solid #c8a64d;
+    border-radius: 12px;
+    box-shadow:
+        0 0 0 6px rgba(86, 24, 43, .88),
+        0 28px 90px rgba(0, 0, 0, .62),
+        inset 0 0 48px rgba(91, 49, 34, .15);
+}
+.auth-result-card::before,
+.auth-result-card::after {
+    position: absolute;
+    width: 78px;
+    height: 78px;
+    content: "";
+    border-color: rgba(117, 33, 53, .42);
+}
+.auth-result-card::before {
+    top: 14px;
+    left: 14px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+}
+.auth-result-card::after {
+    right: 14px;
+    bottom: 14px;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+}
+.brand-logo-frame {
+    display: grid;
+    width: 112px;
+    height: 112px;
+    margin: -12px auto 4px;
+    overflow: hidden;
+    background: radial-gradient(circle, #5d2337, #25172f 72%);
+    border: 2px solid #d1ae4c;
+    border-radius: 50%;
+    box-shadow: 0 0 0 5px rgba(87, 22, 39, .15);
+    place-items: center;
+}
+.brand-logo {
+    display: block;
+    width: 130px;
+    height: 130px;
+    object-fit: contain;
+    filter: drop-shadow(0 7px 10px rgba(48, 18, 24, .28));
+}
+h1 {
+    margin: 12px 0 16px;
+    color: #3d2029;
+    font: 700 clamp(28px, 6vw, 40px)/1.1 Georgia, serif;
+}
+p {
+    max-width: 430px;
+    margin: 0 auto;
+    color: #65515a;
+    font-size: 17px;
+    line-height: 1.65;
+}
+
+@media (max-width: 560px) {
+    body { padding: 18px; }
+    body::before { inset: 9px; }
+    .auth-result-card { padding: 38px 24px 32px; }
+}
+</style>
+</head>
+<body class="auth-result __RESULT_CLASS__">
+<main class="auth-result-card" role="status" aria-live="polite">
+    <span class="brand-logo-frame" aria-hidden="true">
+        <img class="brand-logo" src="/api/v1/auth/movebook-logo.ico" alt="">
+    </span>
+    <h1>__HEADLINE__</h1>
+    <p>__MESSAGE__</p>
+</main>
+<script>
+if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, document.title, window.location.pathname);
+}
+</script>
+</body>
+</html>"""
+        .replace("__RESULT_CLASS__", result_class)
+        .replace("__HEADLINE__", headline)
+        .replace("__MESSAGE__", escape(display_message))
+    )
     return HTMLResponse(html, status_code=status_code)
 
 
@@ -289,9 +431,7 @@ async def discord_callback(
         login_session.authorized_at = now
         login_session.oauth_state_hash = None
         db.commit()
-    return _browser_page(
-        "Вход выполнен. Можно закрыть эту вкладку и вернуться в MK3 MoveBook."
-    )
+    return _browser_page("Эту страницу можно закрыть.")
 
 
 def _new_refresh_token(user: User, settings: Settings, now: datetime) -> tuple[str, RefreshToken]:
