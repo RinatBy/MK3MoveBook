@@ -53,3 +53,18 @@ MoveBookAchievementDiagnosticReport is also checked for opt-in behavior,
 deduplication, exclusion reasons, server counters and absence of URL credentials.
 See ../research/findings/2026-09-05-60fps-achievement-path.md for provenance
 and the remaining manual work.
+
+## Проверка готового пакета автообновления
+
+`WebUpdatePackageTests.cs` запускает методы выпущенного хоста через reflection,
+без создания окна, MAME, входа в аккаунт или доступа к пользовательскому профилю.
+Он проверяет выбор delta из манифеста, SHA-256, распаковку, каждый целевой файл
+и отказ при испорченном портрете. Все записи идут в новый тестовый каталог.
+
+```powershell
+& "$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe" /nologo /target:exe /reference:System.Web.Extensions.dll /out:<audit>/WebUpdatePackageTests.exe desktop/tests/WebUpdatePackageTests.cs
+& <audit>/WebUpdatePackageTests.exe <released-host.exe> <update-manifest.json> <assets-directory> <web-1.1.16.zip> <web-1.1.17.zip> <fresh-output-directory>
+```
+
+Текущая регрессия проверяет переходы 1.1.16/1.1.17 на 1.1.18. При следующем
+изменении протокола обновления задайте соответствующие версии в тесте.

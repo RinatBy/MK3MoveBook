@@ -14,3 +14,6 @@ tools/ocr_*.exe
 tools/ocr_*.png
 web/assets/moves/
 .site-dist/
+
+tools/__pycache__/
+tools/tests/__pycache__/

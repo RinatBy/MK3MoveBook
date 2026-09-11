@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 import zipfile
 
+from release_assets import validate_web_assets
+
 RUNTIME_FILES = (
     "MK3 MoveBook.exe", "Web MK3 MBook.exe", "Microsoft.Web.WebView2.Core.dll",
     "Microsoft.Web.WebView2.WinForms.dll", "WebView2Loader.dll",
@@ -50,6 +52,7 @@ def build(args: argparse.Namespace) -> None:
     if missing or not references:
         raise ValueError("Video references missing from library: " + repr(missing))
     web_files.update(videos)
+    required_assets = validate_web_assets(web, {name.removeprefix("web/") for name in web_files})
     # Current catalog images must be present in the current source, never inherited
     # from a previous release containing an older catalog.
     catalog = (web / "data/achievements.js").read_text(encoding="utf-8-sig")
@@ -99,6 +102,7 @@ def build(args: argparse.Namespace) -> None:
     (output / names[3]).write_text("".join(digest(output / name) + "  " + name + "\n" for name in names[:3]), encoding="ascii")
     report = {
         "version": args.version, "video_count": len(videos), "referenced_video_count": len(references),
+        "referenced_asset_count": len(required_assets),
         "achievement_icon_count": len(icons),
         "files": [{"path": name, "bytes": files[name].stat().st_size, "sha256": hashes[name]} for name in sorted(files)],
     }
