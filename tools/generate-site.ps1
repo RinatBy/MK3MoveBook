@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [string]$WebRoot = (Join-Path $PSScriptRoot "..\web"),
     [string]$OutputRoot = (Join-Path $PSScriptRoot "..\.site-dist"),
@@ -789,6 +789,38 @@ foreach ($LegalRelativeUrl in @("privacy/", "terms/")) {
         throw "Legal page is missing from generated site: $LegalRelativeUrl"
     }
     $SitemapUrls.Add($NormalizedBaseUrl + $LegalRelativeUrl)
+}
+
+# Analytics belongs to generated public pages, never to the desktop web source.
+$MetrikaMarkup = @"
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=112493277', 'ym');
+
+    ym(112493277, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/112493277" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+"@
+$BodyOpening = [regex]::new('(?i)<body\b[^>]*>')
+foreach ($PageFile in Get-ChildItem -LiteralPath $OutputPath -Recurse -File -Filter '*.html') {
+    # Ownership verification documents must retain their exact contents.
+    if ($PageFile.Name -match '^yandex_[0-9a-f]+\.html$') { continue }
+    $PageHtml = [IO.File]::ReadAllText($PageFile.FullName, [Text.Encoding]::UTF8)
+    if ($PageHtml.Contains('<!-- Yandex.Metrika counter -->')) { continue }
+    if (-not $BodyOpening.IsMatch($PageHtml)) {
+        throw "Cannot insert analytics: body missing in $($PageFile.FullName)"
+    }
+    $PageHtml = $BodyOpening.Replace($PageHtml, {
+        param($Match)
+        $Match.Value + [Environment]::NewLine + $MetrikaMarkup
+    }, 1)
+    [IO.File]::WriteAllText($PageFile.FullName, $PageHtml, $Utf8NoBom)
 }
 
 $SitemapEntries = foreach ($Url in $SitemapUrls) {
