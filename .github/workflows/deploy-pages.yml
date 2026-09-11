@@ -175,6 +175,11 @@ jobs:
             -BaseUrl https://movebook.ru/ `
             -AssetVersion "${{ github.sha }}"
 
+      - name: Copy Yandex verification file
+        shell: pwsh
+        run: |
+          Copy-Item -LiteralPath "web/yandex_7334ce9f14bb6881.html" -Destination ".site-dist/yandex_7334ce9f14bb6881.html" -Force
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
