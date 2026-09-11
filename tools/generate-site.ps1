@@ -81,6 +81,7 @@ if (-not [string]::IsNullOrWhiteSpace($AssetVersion)) {
         "data/moves.js",
         "data/sega-moves.js",
         "data/lore.js",
+        "data/achievements.js",
         "data/changelog.js",
         "app.js"
     )
